@@ -121,16 +121,13 @@ export async function requireAdmin(): Promise<SessionUser> {
   return session
 }
 
-export async function requireServerPermission(permission: string): Promise<SessionUser> {
-  const session = await requireAuth()
-  if (session.role === "ADMIN") return session
-  if (!session.permissions.includes(permission)) {
-    redirect("/unauthorized")
-  }
-  return session
+// Permissions are currently disabled — any authenticated user is allowed.
+export async function requireServerPermission(_permission: string): Promise<SessionUser> {
+  void _permission
+  return requireAuth()
 }
 
-export function requirePermission(user: SessionUser, permission: string): boolean {
-  if (user.role === "ADMIN") return true
-  return user.permissions.includes(permission)
+export function requirePermission(_user: SessionUser, _permission: string): boolean {
+  void _user; void _permission
+  return true
 }

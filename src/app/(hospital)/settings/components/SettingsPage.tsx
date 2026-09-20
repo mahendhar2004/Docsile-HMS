@@ -264,13 +264,12 @@ export default function SettingsPage({
 
       <div className="pt-5">
         <Tabs value={tab} onValueChange={handleTabChange}>
-          <div className="border-b border-border mb-6">
-            <TabsList className="bg-transparent h-auto p-0 rounded-none gap-0 -mb-px">
+          <div className="mb-6 -mx-1 px-1 overflow-x-auto scrollbar-hide">
+            <TabsList className="inline-flex h-auto items-center gap-1 rounded-full border border-border/60 bg-muted/40 p-1 shadow-sm backdrop-blur-sm">
               {(
                 [
                   { value: "services",       label: "Service Templates" },
                   { value: "prescriptions",  label: "Prescription Templates" },
-                  { value: "inpatient",      label: "Inpatient Templates" },
                   { value: "medicines",      label: "Medicine Templates" },
                   { value: "packages",       label: "IPD Packages" },
                   { value: "surgeries",      label: "Predefined Surgeries" },
@@ -283,7 +282,7 @@ export default function SettingsPage({
                 <TabsTrigger
                   key={value}
                   value={value}
-                  className="rounded-none px-4 py-2.5 text-sm font-medium border-b-2 border-transparent text-muted-foreground hover:text-foreground transition-colors data-[state=active]:border-primary data-[state=active]:text-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none"
+                  className="whitespace-nowrap rounded-full px-4 py-1.5 text-sm font-medium text-muted-foreground transition-all hover:text-foreground hover:bg-white/60 data-[state=active]:bg-white data-[state=active]:text-primary data-[state=active]:shadow-sm data-[state=active]:ring-1 data-[state=active]:ring-primary/15"
                 >
                   {label}
                 </TabsTrigger>
@@ -292,7 +291,6 @@ export default function SettingsPage({
           </div>
           <TabsContent value="services"><ServicesTab initialServices={initialServices} /></TabsContent>
           <TabsContent value="prescriptions"><PrescriptionsTab /></TabsContent>
-          <TabsContent value="inpatient"><InpatientTemplatesTab /></TabsContent>
           <TabsContent value="medicines"><MedicinesTab /></TabsContent>
           <TabsContent value="packages"><PackagesTab /></TabsContent>
           <TabsContent value="surgeries"><SurgeriesTab /></TabsContent>

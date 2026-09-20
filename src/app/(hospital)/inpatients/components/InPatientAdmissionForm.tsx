@@ -173,7 +173,7 @@ export default function InPatientAdmissionForm({ open, onClose, onSuccess, editI
 
   return (
     <Dialog open={open} onOpenChange={v => !v && onClose()}>
-      <DialogContent className="max-w-full h-[100dvh] rounded-none p-0 sm:max-w-3xl sm:h-auto sm:rounded-xl overflow-hidden flex flex-col">
+      <DialogContent className="max-w-full h-[100dvh] rounded-none p-0 sm:max-w-3xl sm:h-auto sm:max-h-[90vh] sm:rounded-xl overflow-hidden flex flex-col">
         <DialogHeader className="px-6 pt-6 pb-4 border-b border-border">
           <DialogTitle>
             {isEditMode ? `Edit In-Patient: ${editInpatient?.name ?? ""}` : "Admit In-Patient"}

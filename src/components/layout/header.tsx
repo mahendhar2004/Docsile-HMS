@@ -1,9 +1,10 @@
 "use client"
 
 import { ReactNode, useState, useCallback } from "react"
-import { useRouter } from "next/navigation"
+import { useRouter, usePathname } from "next/navigation"
 import { ChevronRight, Home } from "lucide-react"
 import { cn } from "@/lib/utils"
+import { BackToDashboard } from "./BackToDashboard"
 
 interface PageHeaderProps {
   title: string
@@ -15,6 +16,8 @@ interface PageHeaderProps {
 
 export function PageHeader({ title, description, children, className, onRefresh }: PageHeaderProps) {
   const [spinning, setSpinning] = useState(false)
+  const pathname = usePathname()
+  const showBack = pathname !== "/dashboard"
 
   const handleRefresh = useCallback(async () => {
     if (!onRefresh || spinning) return
@@ -55,8 +58,11 @@ export function PageHeader({ title, description, children, className, onRefresh 
           </button>
         )}
       </div>
-      {children && (
-        <div className="flex items-center gap-2 sm:gap-2.5 flex-wrap sm:flex-nowrap sm:shrink-0 [&>*]:min-w-0">{children}</div>
+      {(children || showBack) && (
+        <div className="flex items-center gap-2 sm:gap-2.5 flex-wrap sm:flex-nowrap sm:shrink-0 [&>*]:min-w-0">
+          {children}
+          {showBack && <BackToDashboard />}
+        </div>
       )}
     </div>
   )
@@ -108,9 +114,10 @@ export function BreadcrumbHeader({ onBack, backLabel, currentLabel, subtitle, ch
           )}
         </div>
       </nav>
-      {children && (
-        <div className="flex items-center gap-2 sm:gap-2.5 flex-wrap sm:flex-nowrap sm:shrink-0 [&>*]:min-w-0">{children}</div>
-      )}
+      <div className="flex items-center gap-2 sm:gap-2.5 flex-wrap sm:flex-nowrap sm:shrink-0 [&>*]:min-w-0">
+        {children}
+        <BackToDashboard />
+      </div>
     </div>
   )
 }

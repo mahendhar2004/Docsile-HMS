@@ -12,6 +12,7 @@ import {
 import { Button } from "@/components/ui/button"
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs"
 import { BreadcrumbHeader, FilterBar, DateNavigator, SearchInput } from "@/components/layout/header"
+import { BackToDashboard } from "@/components/layout/BackToDashboard"
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import { PatientTable, PatientRow } from "./PatientTable"
@@ -305,6 +306,7 @@ export function PatientsPage({
                     )}
                   </Button>
                 )}
+                <BackToDashboard className="h-9" />
               </div>
             </div>
             {/* Tabs */}
@@ -361,6 +363,7 @@ export function PatientsPage({
                   Add Patient
                 </Button>
               )}
+              <BackToDashboard className="h-9" />
             </div>
           </div>
         )}

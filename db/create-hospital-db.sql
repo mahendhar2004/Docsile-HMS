@@ -158,6 +158,8 @@ CREATE TABLE "Prescription" (
   "temperature"        DOUBLE PRECISION,
   "pulseRate"          INTEGER,
   "spo2"               INTEGER,
+  "heightCm"           DOUBLE PRECISION,
+  "weightKg"           DOUBLE PRECISION,
   "presentComplaint"   TEXT,
   "previousHistory"    TEXT,
   "diagnosis"          TEXT,

@@ -6,6 +6,7 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs"
 import { DuesTab } from "./DuesTab"
 import { FollowUpsTab } from "./FollowUpsTab"
 import { AskSithaAI } from "../../doctor/components/AskSithaAI"
+import { BackToDashboard } from "@/components/layout/BackToDashboard"
 import { cn } from "@/lib/utils"
 
 export function DuesFollowupsPage() {
@@ -78,6 +79,7 @@ export function DuesFollowupsPage() {
             <Sparkles className="h-3.5 w-3.5" />
             {chatOpen ? "Hide Sitha" : "Ask Sitha"}
           </button>
+          <BackToDashboard />
         </div>
       </div>
 

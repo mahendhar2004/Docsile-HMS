@@ -6,6 +6,7 @@ import { Loader2, Printer, Settings2, Settings, RefreshCw, Zap, Sparkles } from 
 import { Button } from "@/components/ui/button"
 import { updateUserPreferences } from "@/lib/user-preferences"
 import { BreadcrumbHeader, FilterBar, DateNavigator, SearchInput, StatBadge } from "@/components/layout/header"
+import { BackToDashboard } from "@/components/layout/BackToDashboard"
 import { Skeleton } from "@/components/ui/skeleton"
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
@@ -308,6 +309,7 @@ export function DoctorPage({
               <Sparkles className="h-4 w-4 md:h-3.5 md:w-3.5" />
               <span className="hidden md:inline">{chatOpen ? "Hide Sitha" : "Ask Sitha"}</span>
             </button>
+            <BackToDashboard className="h-9" />
           </div>
         </div>
       )}

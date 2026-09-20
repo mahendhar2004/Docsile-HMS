@@ -595,7 +595,7 @@ export function PatientRegistrationStepper({ open, onClose, patientType, onSucce
 
   return (
     <Dialog open={open} onOpenChange={() => onClose()}>
-      <DialogContent className="max-w-full h-[100dvh] rounded-none p-0 sm:max-w-4xl sm:h-auto sm:rounded-xl overflow-hidden flex flex-col">
+      <DialogContent className="max-w-full h-[100dvh] rounded-none p-0 sm:max-w-4xl sm:h-auto sm:max-h-[90vh] sm:rounded-xl overflow-hidden flex flex-col">
         <DialogHeader className="px-6 pt-6 pb-4 border-b border-border">
           <DialogTitle>
             {isEditMode ? "Edit" : "Register"} {patientType === "OPD" ? "Out-Patient" : "In-Patient"}

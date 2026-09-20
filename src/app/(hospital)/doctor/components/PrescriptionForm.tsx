@@ -522,43 +522,45 @@ function PrescriptionForm({ patientId, patientName, existingPrescription, refere
             {medicines.map((med, index) => (
               <div
                 key={med.id}
-                className="rounded-lg border border-border/40 p-2 sm:p-0 sm:border-0 sm:rounded-none grid gap-2 items-center grid-cols-[20px_1fr_28px] sm:grid-cols-[20px_2fr_1fr_1fr_2fr_28px]"
+                className="rounded-lg border border-border/40 p-2 space-y-2 sm:p-0 sm:border-0 sm:rounded-none"
               >
-                <span className="text-[11px] font-mono text-muted-foreground/70 tabular-nums text-right">{index + 1}</span>
-                <EditableCombobox
-                  options={medicineOptions}
-                  value={med.name}
-                  onValueChange={v => updateMedicine(med.id, "name", v)}
-                  placeholder="Medicine name"
-                />
-                <Button
-                  variant="ghost"
-                  size="icon-sm"
-                  onClick={() => removeMedicine(med.id)}
-                  className="h-7 w-7 text-muted-foreground hover:text-destructive hover:bg-destructive/10 sm:col-start-6"
-                >
-                  <X className="h-3.5 w-3.5" />
-                </Button>
-                <div className="col-span-3 grid grid-cols-2 gap-2 sm:contents">
+                <div className="grid gap-2 items-center grid-cols-[20px_1fr_28px] sm:grid-cols-[20px_2fr_1fr_1fr_28px]">
+                  <span className="text-[11px] font-mono text-muted-foreground/70 tabular-nums text-right">{index + 1}</span>
+                  <EditableCombobox
+                    options={medicineOptions}
+                    value={med.name}
+                    onValueChange={v => updateMedicine(med.id, "name", v)}
+                    placeholder="Medicine name"
+                  />
+                  <Button
+                    variant="ghost"
+                    size="icon-sm"
+                    onClick={() => removeMedicine(med.id)}
+                    className="h-7 w-7 text-muted-foreground hover:text-destructive hover:bg-destructive/10 col-start-3 row-start-1 sm:col-start-5"
+                  >
+                    <X className="h-3.5 w-3.5" />
+                  </Button>
                   <EditableCombobox
                     options={MEDICINE_DAYS}
                     value={med.days}
                     onValueChange={v => updateMedicine(med.id, "days", v)}
                     placeholder="Days"
+                    className="col-span-3 sm:col-span-1 sm:col-start-3"
                   />
                   <EditableCombobox
                     options={MEDICINE_TIMINGS}
                     value={med.timing}
                     onValueChange={v => updateMedicine(med.id, "timing", v)}
                     placeholder="Timing"
-                  />
-                  <Input
-                    value={med.note}
-                    onChange={e => updateMedicine(med.id, "note", e.target.value)}
-                    placeholder="Note (optional)"
-                    className="col-span-2 sm:col-auto"
+                    className="col-span-3 sm:col-span-1 sm:col-start-4"
                   />
                 </div>
+                <Input
+                  value={med.note}
+                  onChange={e => updateMedicine(med.id, "note", e.target.value)}
+                  placeholder="Note (optional)"
+                  className="sm:ml-7"
+                />
               </div>
             ))}
           </div>

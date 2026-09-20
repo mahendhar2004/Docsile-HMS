@@ -192,14 +192,15 @@ export const DEFAULT_ROLE_PERMISSIONS: Record<string, string[]> = {
   ],
 }
 
-// Check if a permission list includes a specific permission
-export function hasPermission(userPermissions: string[], permission: string): boolean {
-  return userPermissions.includes(permission)
+// Permissions are currently disabled — every check returns true.
+export function hasPermission(_userPermissions: string[], _permission: string): boolean {
+  void _userPermissions; void _permission
+  return true
 }
 
-// Check if a permission list includes any of the given permissions
-export function hasAnyPermission(userPermissions: string[], permissions: string[]): boolean {
-  return permissions.some((p) => userPermissions.includes(p))
+export function hasAnyPermission(_userPermissions: string[], _permissions: string[]): boolean {
+  void _userPermissions; void _permissions
+  return true
 }
 
 // Module to sidebar route mapping (for filtering sidebar based on permissions)

@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef } from "react"
 import { RefreshCw } from "lucide-react"
 import { BreadcrumbHeader, FilterBar, DateNavigator, SearchInput, StatBadge } from "@/components/layout/header"
+import { BackToDashboard } from "@/components/layout/BackToDashboard"
 import { Skeleton } from "@/components/ui/skeleton"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { EyeReadingForm } from "./EyeReadingForm"
@@ -87,24 +88,28 @@ export function WorkupPage({
         />
       ) : (
         <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-2 md:gap-4 bg-white/80 backdrop-blur-md border-b border-border/60 pl-12 md:pl-6 pr-3 md:pr-6 py-2.5 md:py-4 -mx-3 md:-mx-6 -mt-3 md:-mt-6 sticky top-0 z-20">
-          <div className="flex items-center gap-2.5 min-w-0">
-            <div className="min-w-0 flex-1">
-              <h1 className="text-base md:text-lg font-semibold text-foreground tracking-tight leading-tight md:leading-none truncate">Refraction</h1>
-              <p className="hidden md:block text-[13px] text-muted-foreground mt-1.5 leading-none">Pre-consultation assessment</p>
+          <div className="flex items-center justify-between gap-2.5 min-w-0">
+            <div className="flex items-center gap-2.5 min-w-0">
+              <div className="min-w-0 flex-1">
+                <h1 className="text-base md:text-lg font-semibold text-foreground tracking-tight leading-tight md:leading-none truncate">Refraction</h1>
+                <p className="hidden md:block text-[13px] text-muted-foreground mt-1.5 leading-none">Pre-consultation assessment</p>
+              </div>
+              <button
+                onClick={loadQueue}
+                className="h-7 w-7 flex items-center justify-center rounded-md text-muted-foreground hover:text-foreground hover:bg-muted/60 transition-colors shrink-0"
+                title="Refresh"
+              >
+                <RefreshCw className={`h-3.5 w-3.5 ${loading ? "animate-spin" : ""}`} />
+              </button>
             </div>
-            <button
-              onClick={loadQueue}
-              className="h-7 w-7 flex items-center justify-center rounded-md text-muted-foreground hover:text-foreground hover:bg-muted/60 transition-colors shrink-0"
-              title="Refresh"
-            >
-              <RefreshCw className={`h-3.5 w-3.5 ${loading ? "animate-spin" : ""}`} />
-            </button>
+            <BackToDashboard className="md:hidden" />
           </div>
           <div className="hidden md:flex items-center gap-2">
             <StatBadge value={queue.length} label="Total" />
             <StatBadge value={queue.filter(p => ["REGISTERED", "IN_WORKUP"].includes(p.status)).length} label="Optometrist" variant="destructive" />
             <StatBadge value={queue.filter(p => ["WORKUP_DONE", "WITH_DOCTOR"].includes(p.status)).length} label="Doctor" variant="warning" />
             <StatBadge value={queue.filter(p => ["COMPLETED", "MEDICAL_ONLY"].includes(p.status)).length} label="Completed" variant="success" />
+            <BackToDashboard className="h-9" />
           </div>
         </div>
       )}

@@ -109,6 +109,73 @@ function EyeRow4({
   )
 }
 
+function computeNearSph(distanceSph: string, addValue: string): string {
+  const addMatch = addValue.match(/^add\s+([\d.]+)$/i)
+  if (!addMatch) return addValue
+  const addNum = parseFloat(addMatch[1])
+  if (isNaN(addNum)) return addValue
+
+  let distNum = 0
+  if (distanceSph && distanceSph !== "PL") {
+    distNum = parseFloat(distanceSph)
+    if (isNaN(distNum)) distNum = 0
+  }
+
+  const result = distNum + addNum
+  const sign = result >= 0 ? "+" : ""
+  const formatted = result % 1 === 0 ? `${sign}${result}.00` : result % 0.5 === 0 && result % 0.25 !== 0 ? `${sign}${result.toFixed(1)}0` : `${sign}${result.toFixed(2)}`
+  return formatted
+}
+
+const NEAR_FIELDS = [
+  { key: "cyl" as const, label: "CYL", options: CYL_OPTIONS },
+  { key: "axis" as const, label: "AXIS", options: AXIS_OPTIONS },
+  { key: "va" as const, label: "VA", options: VA_OPTIONS },
+]
+
+function NearEyeRow({
+  row, onChange, onChangeAll, distanceRow, showLabels = false,
+}: {
+  row: EyeRow
+  onChange: (f: keyof EyeRow, v: string) => void
+  onChangeAll: (next: EyeRow) => void
+  distanceRow: EyeRow
+  showLabels?: boolean
+}) {
+  function handleSphChange(v: string) {
+    const isAdd = /^add\s+/i.test(v)
+    const nextSph = computeNearSph(distanceRow.sph, v)
+    if (isAdd) {
+      onChangeAll({
+        sph: nextSph,
+        cyl: distanceRow.cyl,
+        axis: distanceRow.axis,
+        va: distanceRow.va,
+      })
+    } else {
+      onChange("sph", nextSph)
+    }
+  }
+  return (
+    <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+      <div>
+        {showLabels && <p className="text-xs font-medium text-muted-foreground mb-1">SPH</p>}
+        <GridCombobox
+          options={NEAR_SPH_OPTIONS}
+          value={row.sph}
+          onValueChange={handleSphChange}
+        />
+      </div>
+      {NEAR_FIELDS.map(({ key, label, options }) => (
+        <div key={key}>
+          {showLabels && <p className="text-xs font-medium text-muted-foreground mb-1">{label}</p>}
+          <GridCombobox options={options} value={row[key]} onValueChange={v => onChange(key, v)} />
+        </div>
+      ))}
+    </div>
+  )
+}
+
 // ─── Main component ───────────────────────────────────────────────────────────
 
 interface Props {
@@ -313,66 +380,6 @@ function EyeReadingForm({
     )
   }
 
-  function computeNearSph(distanceSph: string, addValue: string): string {
-    // addValue is like "add 1", "add 1.25", etc.
-    const addMatch = addValue.match(/^add\s+([\d.]+)$/i)
-    if (!addMatch) return addValue // not an add value, return as-is
-    const addNum = parseFloat(addMatch[1])
-    if (isNaN(addNum)) return addValue
-
-    // Parse distance SPH: "PL" = 0, "+2.00" = 2, "-1.50" = -1.5
-    let distNum = 0
-    if (distanceSph && distanceSph !== "PL") {
-      distNum = parseFloat(distanceSph)
-      if (isNaN(distNum)) distNum = 0
-    }
-
-    const result = distNum + addNum
-    const sign = result >= 0 ? "+" : ""
-    // Format to 2 decimal places, but show clean values
-    const formatted = result % 1 === 0 ? `${sign}${result}.00` : result % 0.5 === 0 && result % 0.25 !== 0 ? `${sign}${result.toFixed(1)}0` : `${sign}${result.toFixed(2)}`
-    return formatted
-  }
-
-  function NearEyeRow({ row, onChange, onChangeAll, distanceRow, showLabels = false }: { row: EyeRow; onChange: (f: keyof EyeRow, v: string) => void; onChangeAll: (next: EyeRow) => void; distanceRow: EyeRow; showLabels?: boolean }) {
-    const NEAR_FIELDS = [
-      { key: "cyl" as const, label: "CYL", options: CYL_OPTIONS },
-      { key: "axis" as const, label: "AXIS", options: AXIS_OPTIONS },
-      { key: "va" as const, label: "VA", options: VA_OPTIONS },
-    ]
-    function handleSphChange(v: string) {
-      const isAdd = /^add\s+/i.test(v)
-      const nextSph = computeNearSph(distanceRow.sph, v)
-      if (isAdd) {
-        onChangeAll({
-          sph: nextSph,
-          cyl: distanceRow.cyl,
-          axis: distanceRow.axis,
-          va: distanceRow.va,
-        })
-      } else {
-        onChange("sph", nextSph)
-      }
-    }
-    return (
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-        <div>
-          {showLabels && <p className="text-xs font-medium text-muted-foreground mb-1">SPH</p>}
-          <GridCombobox
-            options={NEAR_SPH_OPTIONS}
-            value={row.sph}
-            onValueChange={handleSphChange}
-          />
-        </div>
-        {NEAR_FIELDS.map(({ key, label, options }) => (
-          <div key={key}>
-            {showLabels && <p className="text-xs font-medium text-muted-foreground mb-1">{label}</p>}
-            <GridCombobox options={options} value={row[key]} onValueChange={v => onChange(key, v)} />
-          </div>
-        ))}
-      </div>
-    )
-  }
 
   function renderSR() {
     const s = (eye: "re" | "le", dn: "d" | "n") =>

@@ -26,6 +26,7 @@ import RegionTab     from "./tabs/RegionTab"
 import CallAnalyticsTab from "../../call-logs/components/CallAnalyticsTab"
 import { AskSithaAI } from "../../doctor/components/AskSithaAI"
 import { Sparkles } from "lucide-react"
+import { BackToDashboard } from "@/components/layout/BackToDashboard"
 import { cn } from "@/lib/utils"
 
 // ─── TABS ────────────────────────────────────────────
@@ -214,6 +215,7 @@ export default function AnalyticsPage({
               <Sparkles className="h-3.5 w-3.5" />
               {chatOpen ? "Hide Sitha" : "Ask Sitha"}
             </button>
+            <BackToDashboard />
           </div>
         </div>
       </div>
