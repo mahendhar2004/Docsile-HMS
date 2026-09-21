@@ -25,6 +25,23 @@
     "infra": "vercel+supabase-hosted",
     "profile": null
   },
+  "targetStack": {
+    "profile": "supabase-fullstack",
+    "backend": "supabase-edge-functions",
+    "frontend": "react-vite",
+    "mobile": null,
+    "database": "supabase-postgres",
+    "cache": "tanstack-query+supabase-realtime",
+    "auth": "custom-jwt-cookie-kept (jose, NOT migrated to supabase-auth — explicit owner decision)",
+    "deviations": [
+      "auth: kept custom jose JWT instead of Supabase Auth (ADR-005)",
+      "rls-scope: tenant-isolation only, not full RBAC (ADR-002, carried into Phase 3)",
+      "frontend-versions: kept existing React19/Tailwind4/Zustand5/RHF7/Zod4 instead of profile defaults"
+    ],
+    "lockedAt": "2026-09-21T00:00:00Z",
+    "lockedInPhase": 3,
+    "scoringMatrix": "see .sde/phases/3-stack.md Step 1"
+  },
   "architecture": {
     "pattern": "route-group-per-module-monolith",
     "architecturePattern": "modular-monolith-with-managed-data-tier",
