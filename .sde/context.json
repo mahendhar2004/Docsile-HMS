@@ -1,0 +1,102 @@
+{
+  "project": {
+    "name": "docsile-hms",
+    "description": "Hospital Management System (HMS), multi-tenant SaaS (module-gating + subscription/billing fields already present), expected to grow to <20 hospital tenants by month 18. Handles patient registration, OPD/IPD workflows, billing, pharmacy, labs, optical, insurance, analytics, and call-log integration.",
+    "language": "typescript",
+    "approxLoc": 60000
+  },
+  "stack": {
+    "framework": "nextjs",
+    "frameworkVersion": "16.1.6",
+    "runtime": "nodejs",
+    "database": "supabase-postgres",
+    "orm": "supabase-js",
+    "ormVersion": "2.99.1",
+    "auth": "custom-jwt-cookie",
+    "authLibrary": "jose@6.2.1",
+    "testing": null,
+    "frontend": "react19",
+    "buildTool": "next+turbopack",
+    "styling": "tailwindcss4+radix-ui+shadcn",
+    "stateManagement": "zustand5",
+    "serverStateManagement": null,
+    "forms": "react-hook-form7+zod4",
+    "cicd": null,
+    "infra": "vercel+supabase-hosted",
+    "profile": null
+  },
+  "architecture": {
+    "pattern": "route-group-per-module-monolith",
+    "architecturePattern": "modular-monolith-with-managed-data-tier",
+    "entryGroups": ["(auth)", "(hospital)"],
+    "modules": [
+      "analytics", "call-logs", "dashboard", "data", "doctor",
+      "dues-followups", "expenses", "inpatients", "insurance",
+      "labs", "license-tracker", "optical", "patients", "pharmacy",
+      "reports", "settings", "staff", "workup"
+    ],
+    "apiRoutes": ["api/exotel/webhook", "api/logout"],
+    "serverActions": {
+      "files": 17,
+      "exportedFunctions": 229
+    },
+    "clientComponents": 121,
+    "middleware": false,
+    "sharedKernel": ["src/lib/auth.ts", "src/lib/jwt.ts", "src/lib/supabase/server.ts", "src/lib/permissions.ts", "src/lib/db.ts", "src/lib/utils.ts"]
+  },
+  "issues": {
+    "critical": 4,
+    "high": 6,
+    "medium": 6,
+    "low": 4,
+    "total": 20,
+    "analysisDate": "2026-09-21"
+  },
+  "nfr": {
+    "scale": {
+      "usersMonth6": "a few hospitals, tens of staff users per hospital",
+      "usersMonth18": "<20 hospital tenants",
+      "peakRPS": "low (10s, not 100s, per hospital at current scale)",
+      "avgRPS": "low",
+      "trafficPattern": "steady, business-hours-weighted per hospital timezone",
+      "dataGrowth": "medium",
+      "dataGrowthNotes": "patient records, prescriptions, and billing history accumulate per hospital indefinitely; no current archival strategy"
+    },
+    "availability": {
+      "slaTarget": "99.9",
+      "downtimeImpact": "safety-critical",
+      "multiRegion": false,
+      "regions": ["ap-south-1 / India"],
+      "rpoMinutes": 60,
+      "rtoMinutes": 60
+    },
+    "consistency": {
+      "strongConsistencyPaths": ["billing", "payments", "pharmacy-inventory-stock", "bed-availability", "appointment-slots", "queue-position"],
+      "eventualOkPaths": ["dashboards", "analytics", "reports", "call-logs"]
+    },
+    "latency": {
+      "p95ApiMs": 300,
+      "realtimePaths": ["queue-status", "bed-availability", "appointment-board"]
+    },
+    "compliance": {
+      "regimes": ["India-DPDP"],
+      "dataResidency": "region-locked (India)",
+      "sensitiveDataTypes": ["PII", "health"]
+    },
+    "budget": {
+      "monthlyInfraTier": "free-tier",
+      "teamSize": "2-5",
+      "growthHorizonMonths": 18
+    },
+    "capturedAt": "2026-09-21T00:00:00Z",
+    "source": "phase-1-prd"
+  },
+  "notes": {
+    "permissionsDisabled": "requireServerPermission() and all hasPermission() checks are deliberately disabled in src/lib/auth.ts and src/lib/permissions.ts — any authenticated user has full access to all server actions.",
+    "jwtFallbackSecret": "AUTH_SECRET has a hardcoded dev fallback in src/lib/jwt.ts — if env var is missing in prod, all JWTs can be forged.",
+    "adminIntegration": "src/lib/admin-client.ts returns a static config (all modules enabled, hospital type EYE). The real admin-server integration is temporarily disabled.",
+    "supabaseAccess": "All server-side DB access uses the SERVICE_ROLE_KEY. No RLS policies enforced. Auth and access control implemented entirely in application code.",
+    "noTests": "Zero test infrastructure. No jest/vitest/playwright config. Zero test files.",
+    "vercelJson": "vercel.json contains SPA-style rewrite rules (source: /(.*) -> /index.html) which conflict with Next.js App Router server-side rendering."
+  }
+}
