@@ -727,3 +727,69 @@ Modules are migrated in risk order — lowest risk first, safety-critical last. 
 - Final decommission of Next.js app
 
 Each module passes acceptance before its Next.js counterpart is decommissioned: existing behavior preserved, C-1/H-1 fixes verified, test coverage gate (>80% on business-logic service functions) met.
+
+---
+
+## 13. Frontend Component Reuse Strategy (Addendum)
+
+Sections 1-12 designed backend module boundaries (no cross-module imports,
+shared kernel for backend logic). This section closes the equivalent gap on
+the frontend: the current codebase already shows the failure mode this
+guards against — e.g. `PatientActionsModal`, `AddServicesModal`, and
+`PrintReceiptModal` each independently reimplement modal chrome, loading
+state, and form-submit handling instead of sharing one pattern.
+
+### 13.1 Two-Tier Component Model
+
+**Tier 1 — Primitives (`src/components/ui/`)**: kept as-is. The existing
+shadcn/ui + Radix wrappers (`Dialog`, `Sheet`, `Select`, `Table`, `Button`,
+etc.) are the correct foundation and are NOT rebuilt — they're
+low-level, unopinionated, and already reused correctly across the codebase.
+
+**Tier 2 — Composite patterns (new: `src/components/patterns/`)**: one
+canonical implementation per *recurring use case*, built on top of Tier 1,
+used by every module instead of each module inventing its own variant.
+Built once during Phase 6 (Scaffold), before any module's Phase 7
+implementation starts, so there is nothing to copy from:
+
+| Pattern | Replaces (current duplication) | Canonical shape |
+|---|---|---|
+| `<DataModal>` | `PatientActionsModal`, `AddServicesModal`, `PrintReceiptModal`, and ~15 other one-off modals — each hand-rolls open/close state, loading spinner, and error toast | One component: takes a TanStack Query hook + a render-prop body; owns loading/error/empty state and the Sheet/Dialog chrome uniformly |
+| `<PaginatedDataTable>` | Each module's list view (patients, pharmacy stock, lab orders, etc.) currently fetches its own unbounded list with no shared pagination UI | Wraps Tier-1 `Table` + a shared `usePaginatedQuery` hook (see §13.2); one pagination control, one loading-skeleton pattern, reused everywhere |
+| `<FormSection>` | Registration/admission/settings forms each re-implement label+error+field layout around React Hook Form | One layout wrapper around RHF's `useFormContext`, consistent spacing/error display |
+| `<EmptyState>` / `<ErrorState>` | Ad hoc "no data" / error text scattered per module | One component per state, per `frontend-agent.md`'s non-negotiable loading/error/empty rule |
+
+Rule enforced in CI (same ESLint mechanism as the backend's
+`no-cross-module-imports`): a module-level component may not directly
+compose `Dialog`/`Sheet`/`Table` from Tier 1 for one of the four use cases
+above — it must use the Tier 2 pattern. This is what makes "don't build five
+versions of the same modal" a structural rule instead of a code-review
+hope.
+
+### 13.2 Pagination Strategy (closes Issue H-6)
+
+Per the plugin's pagination philosophy (offset-based fits admin
+tables/page-number UIs; cursor-based fits large, ever-growing feeds):
+
+| Data | Strategy | Reasoning |
+|---|---|---|
+| Patient list (date-scoped, the default view) | Offset/page-based (`?page=&pageSize=`) | Bounded by day; small per-page result set; page-number UI matches how reception staff already navigate it |
+| Patient search (across all dates/history) | Cursor-based (`?cursor=&limit=`) | Unbounded — a hospital's full patient history grows indefinitely (per NFR `dataGrowth: medium`); this is exactly the case H-6 flagged (`getPatients()` with no filter returns everything, no LIMIT) |
+| Pharmacy stock, lab orders, inpatient lists | Offset/page-based | Same shape as the patient list — bounded, day/status-scoped views |
+| Reports/analytics | Offset-based, small fixed page sizes | Already aggregate queries, not raw record browsing |
+
+Both strategies are implemented once, in a shared `usePaginatedQuery` /
+`useCursorQuery` hook pair (built on TanStack Query's `keepPreviousData` /
+`useInfiniteQuery`), consumed by `<PaginatedDataTable>` — not
+hand-rolled per module. Corresponding indexes (`hospital_id, created_at`
+composite index for cursor pagination; existing date-filter indexes for
+offset pagination) are added in Phase 4's data model, not left implicit.
+
+### 13.3 What This Does Not Change
+
+This addendum does not add a new architecture layer or module — it's a
+convention within the frontend layer already described in §2's component
+diagram. No new ADR is needed (no credible alternative exists to "don't
+duplicate the same UI pattern five times"); it's recorded here so Phase 6
+scaffolds `src/components/patterns/` from day one instead of it emerging
+ad hoc during Phase 7.
