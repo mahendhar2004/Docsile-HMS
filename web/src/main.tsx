@@ -18,7 +18,11 @@ if (!rootElement) throw new Error("Root element #root not found in index.html")
 async function prepare() {
   if (import.meta.env.DEV && import.meta.env.VITE_USE_MOCKS === "true") {
     const { worker } = await import("./mocks/browser")
-    await worker.start({ onUnhandledRequest: "bypass" })
+    // "warn" (not "bypass") so an unmocked/mismatched endpoint logs the exact
+    // URL to the console instead of silently falling through to Vite's dev
+    // server, which serves index.html for any unmatched path — that HTML
+    // response is what produces "Unexpected token '<' ... is not valid JSON".
+    await worker.start({ onUnhandledRequest: "warn" })
   }
 }
 
