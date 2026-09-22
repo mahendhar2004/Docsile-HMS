@@ -25,7 +25,7 @@ modules produce).
 | 8 | Optical | `/optical` | `optical/*` (products, stock, bills, AR reading, settings) | ✅ |
 | 9 | Labs | `/labs` | `labs/*` (labs, investigations, patient investigations, bills) | ✅ |
 | 10 | Insurance | `/insurance` | `insurance/*` (companies, claims, payments) | ✅ |
-| 11 | Staff | `/staff` | `staff/*` (members, roles, permissions) | ⬜ |
+| 11 | Staff | `/staff` | `staff/*` (members, roles, permissions) | ✅ |
 | 12 | Settings | `/settings` | `settings/*` (33 endpoints — hospital profile, templates, master data) | ⬜ |
 | 13 | Expenses | `/expenses` | `expenses/*` (categories, expenses by date range) | ⬜ |
 | 14 | Dues & Follow-ups | `/dues-followups` | `dues-followups/*` (dues, followups, email templates) | ⬜ |
@@ -492,3 +492,58 @@ web/src/pages/labs/bills-tab.tsx                        — bill generation (pat
 - **`GET /labs/bills` pagination:** Uses `usePaginatedQuery` + `PaginatedDataTable mode="offset"`. Only `date` filter supported by the API (not date range or lab/status/patient filters from old app).
 
 **Build:** `tsc -b && vite build` — zero TypeScript errors (full exit code 0), successful Vite production build. LabsPage chunk: 74.91 kB / 19.75 kB gzip (expected: TanStack Query + multiple tabs + billing form logic). Chunk size warnings are pre-existing project-level warnings.
+
+---
+
+### Page 11 — Staff (`/staff`) — 2026-09-22
+
+Replaced placeholder stub with a fully implemented StaffPage (Members + Roles & Permissions tabs).
+
+**File structure:**
+```
+web/src/lib/permissions.ts                   — verbatim copy of src/lib/permissions.ts for web-app import resolution
+web/src/pages/StaffPage.tsx                  — thin composition root (permission gate + 2-tab layout)
+web/src/pages/staff/types.ts                 — all API types + enum constants verified against real old-app files
+web/src/pages/staff/hooks.ts                 — 11 mutation/query hooks covering all /staff/* endpoints
+web/src/pages/staff/members-tab.tsx          — members list (DataTable with-row-actions), search/filter, create/edit/deactivate/reset-password
+web/src/pages/staff/member-form.tsx          — Dialog: all 15 create/update fields
+web/src/pages/staff/roles-tab.tsx            — role sidebar + permission grid (module-level + individual toggles), seed system roles, delete role
+web/src/pages/staff/role-form.tsx            — Dialog: create/edit role metadata (name, displayName, description)
+```
+
+**Endpoints consumed (11):**
+- `GET /staff/members` → `StaffMember[]` — staff:view
+- `POST /staff/members` → `StaffMember` — staff:create
+- `PATCH /staff/members/{id}` — staff:edit
+- `PATCH /staff/members/{id}/active` → `{ isActive: boolean }` — staff:deactivate
+- `POST /staff/members/{id}/reset-password` → `{ newPassword }` — staff:edit
+- `GET /staff/roles` → `StaffRole[]` — staff:view
+- `POST /staff/roles` — staff:manage_roles
+- `PATCH /staff/roles/{id}` — staff:manage_roles
+- `DELETE /staff/roles/{id}` — staff:manage_roles
+- `PATCH /staff/roles/{id}/permissions` → `{ permissions: string[] }` — staff:manage_roles
+- `POST /staff/roles/seed` — staff:manage_roles
+
+**Permission keys used:**
+`staff:view` (page gate + all reads), `staff:create` (Add Member button), `staff:edit` (edit + reset password),
+`staff:deactivate` (toggle active/inactive), `staff:manage_roles` (all role CRUD + permission grid)
+
+**Verified enum constants (read directly from `src/app/(hospital)/staff/components/StaffPage.tsx`):**
+- `BLOOD_GROUPS = ["A+", "A-", "B+", "B-", "AB+", "AB-", "O+", "O-"]` — line 84, copied verbatim
+- `DEPARTMENTS = ["General", "Ophthalmology", "Optometry", "Pharmacy", "Lab", "Nursing", "Administration", "Front Desk", "Accounts"]` — line 85, copied verbatim
+- `SALARY_TYPES = [{ value: "MONTHLY", label: "Monthly" }, { value: "DAILY", label: "Daily" }, { value: "PER_VISIT", label: "Per Visit" }]` — lines 745-748, copied verbatim
+- Designation: free-text input (not a select) — verified from old app line 711
+
+**Create/Update field shapes (verified against `supabase/functions/staff/types.ts`):**
+- Create body (POST): `name, email, password (min 6), role` [required] + `employeeId, phone, department, designation, qualifications, joiningDate, address, emergencyContact, bloodGroup, salary, salaryType` [optional]
+- Update body (PATCH): all same fields, all optional; uses `name` (not `fullName`) as API key
+- Response: `fullName` (not `name`) per `StaffMemberResponse`
+
+**Key design decisions:**
+- `permissions` field in `StaffRole`: returned as `string[]` (parsed) by the Edge Function per `supabase/functions/staff/types.ts` — NOT JSON-encoded string as OpenAPI spec description implies
+- Permission grid: sources from `web/src/lib/permissions.ts` (mirrored copy of root `src/lib/permissions.ts`). Module-level Switch toggles all perms in a module; individual row Switches toggle one key. Both send a full replacement list to `PATCH /staff/roles/{id}/permissions`
+- Deactivate uses `ConfirmationModal variant="destructive"` (blocking action); activate is immediate (no confirmation — reversible)
+- Reset-password uses a Dialog with password input (needs user input, ConfirmationModal unsuitable) — password min 6 chars validated both client-side and backend
+- `modulePerms` from `ALL_PERMISSIONS as const` is a literal-union array; cast to `string[]` before calling `.includes()` to avoid TypeScript's strict overload
+
+**Build:** `npx tsc -b 2>&1 | grep -E "staff|StaffPage|permissions"` — zero errors in all Staff files.
