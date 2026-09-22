@@ -18,17 +18,20 @@
 import { useState, useMemo } from "react"
 import { format } from "date-fns"
 import {
-  Calendar,
   PhoneIncoming,
   PhoneOutgoing,
   Clock,
   MessageSquare,
 } from "lucide-react"
-import { Input } from "@/components/ui/input"
 import {
+  DatePicker,
   EmptyState,
+  PageToolbar,
   PaginatedDataTable,
+  SearchBar,
+  SingleSelect,
   type ColumnDef,
+  type SelectOption,
 } from "@/components/patterns"
 import { CallDetailSheet } from "./call-detail-sheet"
 import { useCallLogsList } from "./hooks"
@@ -57,10 +60,21 @@ function formatPhone(phone: string | null | undefined): string {
   return phone
 }
 
-function todayLocalISO(): string {
-  const d = new Date()
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`
-}
+// ─── Filter options ───────────────────────────────────────────────────────────
+
+const STATUS_OPTIONS: SelectOption[] = [
+  { value: "all", label: "All Status" },
+  { value: "completed", label: "Answered" },
+  { value: "missed", label: "Missed" },
+  { value: "busy", label: "Busy" },
+  { value: "failed", label: "Failed" },
+]
+
+const DIRECTION_OPTIONS: SelectOption[] = [
+  { value: "all", label: "All Directions" },
+  { value: "inbound", label: "Inbound" },
+  { value: "outbound", label: "Outbound" },
+]
 
 // ─── Props ────────────────────────────────────────────────────────────────────
 
@@ -178,11 +192,14 @@ function buildColumns(): ColumnDef<CallLog>[] {
 // ─── LogsTab ──────────────────────────────────────────────────────────────────
 
 export function LogsTab({ canView, canEdit }: LogsTabProps) {
-  const [date, setDate] = useState<string>(todayLocalISO)
+  const [viewDate, setViewDate] = useState<Date>(() => new Date())
   const [statusFilter, setStatusFilter] = useState<string>("all")
   const [directionFilter, setDirectionFilter] = useState<string>("all")
   const [searchQuery, setSearchQuery] = useState<string>("")
   const [selectedCall, setSelectedCall] = useState<CallLog | null>(null)
+
+  // Convert Date to the string format the API expects
+  const date = format(viewDate, "yyyy-MM-dd")
 
   // Fetch paginated data for the selected date
   const {
@@ -226,57 +243,37 @@ export function LogsTab({ canView, canEdit }: LogsTabProps) {
   return (
     <>
       {/* ── Filter bar ──────────────────────────────────────────────────────── */}
-      <div className="flex flex-col sm:flex-row gap-3 mb-4">
-        {/* Date picker */}
-        <div className="flex items-center gap-2 shrink-0">
-          <Calendar className="h-4 w-4 text-muted-foreground" aria-hidden="true" />
-          <input
-            type="date"
-            value={date}
-            onChange={(e) => { setDate(e.target.value); setPage(1) }}
-            className="px-2.5 py-1.5 border border-border rounded-lg text-xs bg-background focus:outline-none focus:ring-2 focus:ring-ring transition-all"
-            aria-label="Filter by date"
-          />
-        </div>
+      <PageToolbar className="mb-4">
+        <DatePicker
+          value={viewDate}
+          onChange={(d) => { if (d) { setViewDate(d); setPage(1) } }}
+          placeholder="Select date"
+          aria-label="Filter by date"
+        />
 
-        {/* Search */}
-        <div className="relative flex-1">
-          <Input
-            type="text"
-            placeholder="Search by phone, name, or notes..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="h-9 text-sm"
-            aria-label="Search call logs"
-          />
-        </div>
+        <SearchBar
+          variant="standalone"
+          value={searchQuery}
+          onChange={setSearchQuery}
+          placeholder="Search by phone, name, or notes..."
+          aria-label="Search call logs"
+          className="flex-1 min-w-[200px]"
+        />
 
-        {/* Status filter */}
-        <select
+        <SingleSelect
+          options={STATUS_OPTIONS}
           value={statusFilter}
-          onChange={(e) => setStatusFilter(e.target.value)}
-          className="h-9 text-sm border border-border rounded-md px-2 bg-background focus:outline-none focus:ring-2 focus:ring-ring"
-          aria-label="Filter by status"
-        >
-          <option value="all">All Status</option>
-          <option value="completed">Answered</option>
-          <option value="missed">Missed</option>
-          <option value="busy">Busy</option>
-          <option value="failed">Failed</option>
-        </select>
+          onChange={setStatusFilter}
+          placeholder="All Status"
+        />
 
-        {/* Direction filter */}
-        <select
+        <SingleSelect
+          options={DIRECTION_OPTIONS}
           value={directionFilter}
-          onChange={(e) => setDirectionFilter(e.target.value)}
-          className="h-9 text-sm border border-border rounded-md px-2 bg-background focus:outline-none focus:ring-2 focus:ring-ring"
-          aria-label="Filter by direction"
-        >
-          <option value="all">All Directions</option>
-          <option value="inbound">Inbound</option>
-          <option value="outbound">Outbound</option>
-        </select>
-      </div>
+          onChange={setDirectionFilter}
+          placeholder="All Directions"
+        />
+      </PageToolbar>
 
       {/* ── Paginated table ──────────────────────────────────────────────────── */}
       <PaginatedDataTable<CallLog>

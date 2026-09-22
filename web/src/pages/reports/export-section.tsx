@@ -15,7 +15,6 @@
 
 import { useState, useEffect, useCallback, useRef, useMemo } from "react"
 import {
-  Search,
   Download,
   FileSpreadsheet,
   FileText,
@@ -51,6 +50,7 @@ import {
 } from "@/components/ui/table"
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { toast } from "@/components/ui/sonner"
+import { PageToolbar, SearchBar } from "@/components/patterns"
 import { formatDate, formatCurrency } from "@/lib/utils"
 import { useExportData } from "./hooks"
 import {
@@ -467,31 +467,16 @@ export function ExportSection() {
       </Tabs>
 
       {/* Filters bar */}
-      <div className="flex flex-wrap items-center gap-3">
+      <PageToolbar>
         {/* Search */}
-        <div className="relative flex-1 min-w-[200px] max-w-[320px]">
-          <Search
-            className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground"
-            aria-hidden="true"
-          />
-          <Input
-            placeholder={`Search ${config.label.toLowerCase()}...`}
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            className="pl-9 h-9 text-sm"
-            aria-label={`Search ${config.label.toLowerCase()}`}
-          />
-          {search && (
-            <button
-              type="button"
-              onClick={() => setSearch("")}
-              aria-label="Clear search"
-              className="absolute right-2.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
-            >
-              <X className="h-3.5 w-3.5" aria-hidden="true" />
-            </button>
-          )}
-        </div>
+        <SearchBar
+          variant="standalone"
+          value={search}
+          onChange={setSearch}
+          placeholder={`Search ${config.label.toLowerCase()}...`}
+          aria-label={`Search ${config.label.toLowerCase()}`}
+          className="flex-1 min-w-[200px] max-w-[320px]"
+        />
 
         {/* Date range */}
         <div className="flex items-center gap-1.5">
@@ -633,7 +618,7 @@ export function ExportSection() {
             </DropdownMenuContent>
           </DropdownMenu>
         )}
-      </div>
+      </PageToolbar>
 
       {/* Data table */}
       <div className="border rounded-xl bg-white overflow-hidden">

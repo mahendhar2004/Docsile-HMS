@@ -27,19 +27,19 @@ import {
   Eye,
   Loader2,
   Pencil,
-  Search,
   Trash2,
   Upload,
   X,
   XCircle,
 } from "lucide-react"
 import { toast } from "sonner"
-import { Input } from "@/components/ui/input"
 import { Skeleton } from "@/components/ui/skeleton"
 import {
   ConfirmationModal,
   EmptyState,
   ErrorState,
+  PageToolbar,
+  SearchBar,
   SingleSelect,
 } from "@/components/patterns"
 import type { SelectOption } from "@/components/patterns"
@@ -368,45 +368,33 @@ export function LicensesList({ createOpen, onCreateOpenChange }: LicensesListPro
       </div>
 
       {/* ── Filters ────────────────────────────────────────────────────────────── */}
-      <div className="bg-white rounded-xl shadow-sm border border-border/60 p-4">
-        <div className="flex flex-col sm:flex-row gap-3">
-          <div className="relative flex-1">
-            <Search
-              className="h-4 w-4 text-muted-foreground absolute left-2.5 top-2.5"
-              aria-hidden="true"
-            />
-            <Input
-              type="text"
-              placeholder="Search licenses..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="pl-9 h-9 text-sm"
-              aria-label="Search licenses by name, number, or issuing authority"
-            />
-          </div>
+      <PageToolbar>
+        <SearchBar
+          variant="standalone"
+          value={searchQuery}
+          onChange={setSearchQuery}
+          placeholder="Search licenses..."
+          aria-label="Search licenses by name, number, or issuing authority"
+          className="flex-1 min-w-[200px]"
+        />
 
-          <div className="w-full sm:w-[170px]">
-            <SingleSelect
-              options={STATUS_FILTER_OPTIONS}
-              value={statusFilter}
-              onChange={(v) => setStatusFilter(v as StatusFilterValue)}
-              placeholder="All Statuses"
-            />
-          </div>
+        <SingleSelect
+          options={STATUS_FILTER_OPTIONS}
+          value={statusFilter}
+          onChange={(v) => setStatusFilter(v as StatusFilterValue)}
+          placeholder="All Statuses"
+        />
 
-          {/* Only show category filter if there is more than just "All Categories" */}
-          {categoryOptions.length > 1 && (
-            <div className="w-full sm:w-[180px]">
-              <SingleSelect
-                options={categoryOptions}
-                value={categoryFilter}
-                onChange={setCategoryFilter}
-                placeholder="All Categories"
-              />
-            </div>
-          )}
-        </div>
-      </div>
+        {/* Only show category filter if there is more than just "All Categories" */}
+        {categoryOptions.length > 1 && (
+          <SingleSelect
+            options={categoryOptions}
+            value={categoryFilter}
+            onChange={setCategoryFilter}
+            placeholder="All Categories"
+          />
+        )}
+      </PageToolbar>
 
       {/* ── License cards ───────────────────────────────────────────────────────── */}
       {filteredLicenses.length === 0 ? (

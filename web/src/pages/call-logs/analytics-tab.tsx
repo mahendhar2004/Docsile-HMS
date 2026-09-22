@@ -40,6 +40,7 @@ import {
   ThemedBarChart,
   EmptyState,
   ErrorState,
+  PageToolbar,
   SegmentedControl,
 } from "@/components/patterns"
 import type { DonutChartSlice } from "@/components/patterns"
@@ -203,7 +204,7 @@ export function AnalyticsTab({ canView, filter, onFilterChange }: AnalyticsTabPr
   return (
     <div className="space-y-6">
       {/* ── Filter selector ──────────────────────────────────────────────────── */}
-      <div className="flex items-center justify-between">
+      <PageToolbar className="justify-between">
         <h2 className="text-sm font-semibold text-foreground">Analytics Period</h2>
         <SegmentedControl
           options={FILTER_OPTIONS}
@@ -211,7 +212,7 @@ export function AnalyticsTab({ canView, filter, onFilterChange }: AnalyticsTabPr
           onValueChange={(v) => onFilterChange(v as AnalyticsFilter)}
           aria-label="Analytics time period"
         />
-      </div>
+      </PageToolbar>
 
       {/* ── Today's stats tiles (always from /call-logs/stats) ──────────────── */}
       <section aria-label="Today's call statistics">

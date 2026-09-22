@@ -92,28 +92,28 @@ export default function AnalyticsPage() {
       <PageHeader
         title="Analytics"
         description="Hospital analytics — revenue, patient trends, doctor performance, and operational insights."
+        toolbar={
+          <>
+            <SingleSelect
+              options={FILTER_OPTIONS}
+              value={filter}
+              onChange={(v) => setFilter(v as TimeFilter)}
+              placeholder="Select period"
+              aria-label="Select time filter"
+            />
+
+            {filter === "custom" && (
+              <DateRangePicker
+                value={customRange}
+                onChange={setCustomRange}
+                toDate={new Date()}
+                placeholder="Select date range"
+                aria-label="Custom date range"
+              />
+            )}
+          </>
+        }
       />
-
-      {/* ── Filter controls ────────────────────────────────────────────────── */}
-      <div className="flex flex-wrap items-center gap-3" role="group" aria-label="Analytics time filter">
-        <SingleSelect
-          options={FILTER_OPTIONS}
-          value={filter}
-          onChange={(v) => setFilter(v as TimeFilter)}
-          placeholder="Select period"
-          aria-label="Select time filter"
-        />
-
-        {filter === "custom" && (
-          <DateRangePicker
-            value={customRange}
-            onChange={setCustomRange}
-            toDate={new Date()}
-            placeholder="Select date range"
-            aria-label="Custom date range"
-          />
-        )}
-      </div>
 
       {/* ── Tabs ──────────────────────────────────────────────────────────── */}
       <Tabs defaultValue="overview">
