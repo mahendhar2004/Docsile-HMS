@@ -421,3 +421,34 @@ captured in the phase docs.
   18 modules with placeholder pages) — both running in parallel, neither
   touching `src/`. This tracker created in response to the project owner
   asking for a running record so nothing gets missed across 233 endpoints.
+- **2026-09-22** — Phase 6 scaffold complete on both surfaces, independently
+  verified (not just trusted from the agent reports):
+  - Frontend (`web/`): 19 routes confirmed matching the 18-module list
+    exactly by reading router.tsx directly; `npm run build` and
+    `npm run test` re-run manually — both pass. Tier 1 primitives (24
+    ported as-is + 1 adapted) and Tier 2 pattern library (real
+    implementations, 60-330 lines each, not stubs) confirmed on disk.
+    Committed.
+  - Backend (`supabase/functions/`): route counts cross-checked
+    programmatically per module against `openapi.yaml` — all 20 modules
+    match exactly, 233=233, 0 mismatches. `_shared/auth.ts` confirmed:
+    no hardcoded AUTH_SECRET fallback (throws if missing), jti checked
+    against `token_revocation` (H-1). `call-logs/index.ts` confirmed:
+    exotel webhook now fails closed (401) if `EXOTEL_WEBHOOK_TOKEN` is
+    unset, fixing H-2's original fail-open bug. Static routes (e.g.
+    `/patients/search`) confirmed registered before dynamic ones
+    (`/patients/:id`) where needed. **Not verified**: `deno check` could
+    not be run (Deno not installed in this environment) — must run
+    before first deployment, per the scaffold's own handoff notes.
+  - This is scaffold/skeleton only — every service.ts function still
+    throws `NotImplementedError`. The Module Status Summary table above
+    stays ⬜ until Phase 7 replaces stubs with real logic module by
+    module; scaffold completion is tracked here in prose, not by
+    flipping those checkboxes early.
+  - Phase 7 handoff notes from the backend scaffold (not yet done):
+    finalize `auth/repository.ts`'s logout token_revocation insert
+    (currently a stub even though the read-side jti check is real),
+    and register the 3 new permission keys (`billing:*`, `call_logs:*`,
+    `queue:view`) in `src/lib/permissions.ts` — already flagged in
+    Known Deferred Items above, repeating here since it's now blocking
+    Phase 7 start, not just a future concern.
