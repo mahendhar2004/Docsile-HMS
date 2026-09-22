@@ -30,7 +30,7 @@ corresponding old `src/app/(...)/<module>` code has 🗑️.
 | # | Module | Endpoints | Backend | Frontend | Verified | Old code removed |
 |---|---|---|---|---|---|---|
 | 1 | auth | 3 | ✅ | ⬜ | ⬜ | ⬜ |
-| 2 | health | 2 | ⬜ | n/a | ⬜ | n/a |
+| 2 | health | 2 | ✅ | n/a | ⬜ | n/a |
 | 3 | patient-care | 28 | ✅ | ⬜ | ⬜ | ⬜ |
 | 4 | billing | 5 | ✅ | ⬜ | ⬜ | ⬜ |
 | 5 | pharmacy | 21 | ✅ | ⬜ | ⬜ | ⬜ |
@@ -95,8 +95,8 @@ work progresses, not appended to.
 ### health (2)
 | Status | Method | Path | Permission | Source |
 |---|---|---|---|---|
-| ⬜ | GET | /health | public | new |
-| ⬜ | GET | /health/db | public | new |
+| ✅ | GET | /health | public | new |
+| ✅ | GET | /health/db | public | new |
 
 ### patient-care (28)
 | Status | Method | Path | Permission | Source |
@@ -976,3 +976,10 @@ captured in the phase docs.
   `index.ts` not modified — route wiring and permission guards correct from Phase 6 scaffold.
   `deno check` not run — Deno not installed in this environment.
   dashboard module Status Summary Backend column: ⬜ → ✅.
+- **2026-09-22** — Caught a real gap after Waves 1-4 were otherwise "complete": ADR-004's wave
+  table only names 18 of the 20 modules — `health` and `workup` were never assigned to any wave
+  and had been sitting at ⬜ the whole time, unnoticed until this PROGRESS.md review. Implemented
+  `health` directly (2 endpoints — liveness always returns ok; DB-health runs a lightweight
+  `select(head:true,count:'exact')` against HospitalProfile and reports latency + degraded status
+  on error). `workup` (4 endpoints) dispatched to a dedicated agent, following the already-verified
+  3-parallel-query-merge pattern from the queue module's `/queue/workup` implementation.

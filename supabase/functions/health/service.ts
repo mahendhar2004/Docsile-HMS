@@ -1,14 +1,23 @@
 /**
- * Business logic stubs for the health module.
+ * Business logic for the health module.
+ *
+ * Both endpoints are public (no auth) and must stay simple — a health check that
+ * itself depends on complex logic defeats the purpose. getDbHealth is the only
+ * one that touches the database; getLiveness never does (it must report "up"
+ * even if the DB is unreachable, so callers can distinguish "function is down"
+ * from "function is up but DB is down").
  */
 
-import { NotImplementedError } from '../_shared/errors.ts';
+import { getSupabaseClient } from '../_shared/supabase-client.ts';
+import { HealthRepository } from './repository.ts';
 import type { HealthResponse, DbHealthResponse } from './types.ts';
 
 export async function getLiveness(): Promise<HealthResponse> {
-  throw new NotImplementedError('health.getLiveness — Phase 7');
+  return { status: 'ok' };
 }
 
 export async function getDbHealth(): Promise<DbHealthResponse> {
-  throw new NotImplementedError('health.getDbHealth — Phase 7');
+  const repo = new HealthRepository(getSupabaseClient());
+  const { ok, latencyMs } = await repo.checkConnectivity();
+  return { status: ok ? 'ok' : 'degraded', latencyMs };
 }
