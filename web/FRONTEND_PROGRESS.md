@@ -30,7 +30,7 @@ modules produce).
 | 13 | Expenses | `/expenses` | `expenses/*` (categories, expenses by date range) | ✅ |
 | 14 | Dues & Follow-ups | `/dues-followups` | `dues-followups/*` (dues, followups, email templates) | ✅ |
 | 15 | Call Logs | `/call-logs` | `call-logs/*` (list, stats, notes, patient link, sync) | ✅ |
-| 16 | License Tracker | `/license-tracker` | `license-tracker/*` (CRUD + document) | ⬜ |
+| 16 | License Tracker | `/license-tracker` | `license-tracker/*` (CRUD + document) | ✅ |
 | 17 | Analytics | `/analytics` | `analytics/*` (19 endpoints) | ⬜ |
 | 18 | Reports | `/reports` | `reports/*` (17 endpoints — patient search, summaries, bulk exports) | ⬜ |
 
@@ -783,3 +783,56 @@ Scalars: `peakHour, quietHour`
 - Notes: save button disabled when notes unchanged or empty (backend requires `notes.min(1)`).
 
 **Build:** `tsc -b && vite build` — zero TypeScript errors (exit code 0), successful Vite production build. CallLogsPage chunk: 31.59 kB / 8.36 kB gzip.
+
+---
+
+### Page 16 — License Tracker (`/license-tracker`) — 2026-09-22
+
+Replaced placeholder stub with a fully implemented LicenseTrackerPage.
+
+**File structure:**
+```
+web/src/pages/LicenseTrackerPage.tsx                  — thin composition root (permission gate + PageHeader + "Add License" button)
+web/src/pages/license-tracker/types.ts                — License interface, LICENSE_CATEGORIES, getLicenseStatus(), Storage helpers
+web/src/pages/license-tracker/hooks.ts                — TanStack Query hooks for all 6 license-tracker endpoints
+web/src/pages/license-tracker/license-form.tsx        — Dialog: create/edit form (local state, matches old app pattern)
+web/src/pages/license-tracker/licenses-list.tsx       — Card-based list: summary stats, filters, per-card actions, document upload/remove
+```
+
+**Endpoints consumed (6):**
+- `GET /license-tracker` → `License[]` — licenses:view
+- `POST /license-tracker` → `License` — licenses:create
+- `PATCH /license-tracker/{id}` → void — licenses:edit
+- `DELETE /license-tracker/{id}` → void — licenses:delete
+- `PATCH /license-tracker/{id}/document` → void body `{ documentUrl }` — licenses:edit
+- `DELETE /license-tracker/{id}/document` → void (server handles Storage deletion) — licenses:edit
+
+**Permission keys used (cross-checked against OpenAPI x-permission):**
+- `licenses:view` — page gate + list query
+- `licenses:create` — "Add License" PageHeader button + POST /license-tracker
+- `licenses:edit` — edit button per card + PATCH /license-tracker/{id} + document upload/remove buttons + PATCH/DELETE /license-tracker/{id}/document
+- `licenses:delete` — delete button per card + DELETE /license-tracker/{id}
+
+**LICENSE_CATEGORIES enum (11 values — copied verbatim from old app LicenseForm.tsx line 16-28):**
+`"Medical Registration"`, `"Drug License"`, `"Fire Safety"`, `"Trade License"`, `"NABH Accreditation"`,
+`"Bio-Medical Waste"`, `"Pollution Control"`, `"AERB (Radiology)"`, `"Lift License"`, `"Building Compliance"`, `"Other"`
+
+**License field names (verified against supabase/functions/license-tracker/types.ts LicenseSchema + old LicenseTrackerPage.tsx):**
+`id, name, licenseNumber, issuingBody, category, issueDate, expiryDate, reminderDays, status, documentUrl, notes, hospitalId, createdBy, createdAt, updatedAt`
+Note: UI label for `issuingBody` is "Issuing Authority" — matches old app LicenseForm.tsx label text.
+
+**Expiring-soon threshold:** Per-license `reminderDays` field (NOT a hardcoded global). Status computation is client-side via `getLicenseStatus(expiryDate, reminderDays)` matching old app exactly:
+- `daysLeft < 0` → "Expired" (red border + badge)
+- `daysLeft <= reminderDays` → "Expiring Soon" (amber)
+- else → "Active" (green)
+Default `reminderDays = 30` (from old app LicenseForm.tsx line 67).
+
+**Document attachment (matches old app flow):**
+- Upload: client uploads file to Supabase Storage bucket `license-documents` via `supabase.storage.from(...).upload()`, then PATCH `/license-tracker/{id}/document` with `{ documentUrl }`.
+- Remove: DELETE `/license-tracker/{id}/document` — server derives Storage path and handles deletion. Client sends no body.
+- View/Download: fetches public URL as blob + `URL.createObjectURL`.
+- Max file size: 10 MB. Accepted types: `.pdf,.jpg,.jpeg,.png`.
+
+**Layout:** Card-based (not DataTable) — matches old app UI. 4-tile summary row + filter bar (search + status select + dynamic category select) + left-bordered cards with status badge, countdown chip, date columns, and document action row.
+
+**Build:** `tsc -b && vite build` — zero TypeScript errors (full exit 0), successful production build. LicenseTrackerPage chunk: 19.25 kB / 6.10 kB gzip.
