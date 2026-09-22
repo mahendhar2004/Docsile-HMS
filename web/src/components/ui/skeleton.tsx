@@ -5,7 +5,7 @@
  * Uses --color-muted background and Tailwind's animate-pulse.
  *
  * For text skeletons, use rounded-full + specific widths/heights.
- * For card/block skeletons, use rounded-[--radius-lg] + height.
+ * For card/block skeletons, use rounded-[var(--radius-lg)] + height.
  *
  * Usage:
  *   // A line of text
@@ -15,7 +15,7 @@
  *   <Skeleton className="h-10 w-10 rounded-full" />
  *
  *   // A card block
- *   <Skeleton className="h-32 w-full rounded-[--radius-lg]" />
+ *   <Skeleton className="h-32 w-full rounded-[var(--radius-lg)]" />
  *
  * Note: DataTable and DataModal roll their own inline skeleton rows —
  * this primitive is for general-purpose use (e.g. StatCard loading state).
@@ -32,7 +32,7 @@ const Skeleton = React.forwardRef<HTMLDivElement, SkeletonProps>(
       ref={ref}
       aria-hidden="true"
       className={cn(
-        "animate-pulse bg-[--color-muted] rounded-[--radius-sm]",
+        "animate-pulse bg-[var(--color-muted)] rounded-[var(--radius-sm)]",
         className
       )}
       {...props}

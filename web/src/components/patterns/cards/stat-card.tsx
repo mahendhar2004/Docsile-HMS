@@ -77,17 +77,17 @@ const trendConfig: Record<
 > = {
   up: {
     icon: TrendingUp,
-    colorClass: "text-[--color-success-soft-foreground]",
+    colorClass: "text-[var(--color-success-soft-foreground)]",
     ariaLabel: "trending up",
   },
   down: {
     icon: TrendingDown,
-    colorClass: "text-[--color-error-soft-foreground]",
+    colorClass: "text-[var(--color-error-soft-foreground)]",
     ariaLabel: "trending down",
   },
   neutral: {
     icon: Minus,
-    colorClass: "text-[--color-neutral-soft-foreground]",
+    colorClass: "text-[var(--color-neutral-soft-foreground)]",
     ariaLabel: "no change",
   },
 }
@@ -99,7 +99,7 @@ function StatCardSkeleton() {
     <div aria-busy="true" aria-label="Loading metric">
       <div className="flex items-start justify-between mb-3">
         <Skeleton className="h-4 w-28" />
-        <Skeleton className="h-8 w-8 rounded-[--radius-sm]" />
+        <Skeleton className="h-8 w-8 rounded-[var(--radius-sm)]" />
       </div>
       <Skeleton className="h-8 w-20 mb-2" />
       <Skeleton className="h-3 w-24 rounded-full" />
@@ -137,7 +137,7 @@ const StatCard = React.forwardRef<HTMLDivElement, StatCardProps>(
                 <p
                   className={cn(
                     "text-[length:var(--text-body)] font-medium",
-                    "text-[--color-muted-foreground] leading-[--leading-tight]"
+                    "text-[var(--color-muted-foreground)] leading-[var(--leading-tight)]"
                   )}
                 >
                   {label}
@@ -148,8 +148,8 @@ const StatCard = React.forwardRef<HTMLDivElement, StatCardProps>(
                     aria-hidden="true"
                     className={cn(
                       "shrink-0 flex items-center justify-center",
-                      "h-9 w-9 rounded-[--radius-sm]",
-                      "bg-[--color-accent] text-[--color-accent-foreground]"
+                      "h-9 w-9 rounded-[var(--radius-sm)]",
+                      "bg-[var(--color-accent)] text-[var(--color-accent-foreground)]"
                     )}
                   >
                     {icon}
@@ -161,7 +161,7 @@ const StatCard = React.forwardRef<HTMLDivElement, StatCardProps>(
               <p
                 className={cn(
                   "text-[length:var(--text-display)] font-semibold tabular-nums",
-                  "text-[--color-foreground] leading-none mb-2"
+                  "text-[var(--color-foreground)] leading-none mb-2"
                 )}
               >
                 {value}
@@ -198,7 +198,7 @@ function TrendBadge({ trend }: { trend: StatCardTrend }) {
       <TrendIcon size={13} aria-hidden="true" strokeWidth={2.5} />
       <span>{trend.delta}</span>
       {trend.label && (
-        <span className="text-[--color-muted-foreground] font-normal">
+        <span className="text-[var(--color-muted-foreground)] font-normal">
           {trend.label}
         </span>
       )}

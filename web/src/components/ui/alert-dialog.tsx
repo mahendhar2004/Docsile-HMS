@@ -27,8 +27,8 @@ const ALERT_ANIMATION_CSS = `
 const alertContentVariants = cva(
   [
     'fixed left-1/2 top-1/2 z-50 -translate-x-1/2 -translate-y-1/2',
-    'w-full bg-[var(--color-surface)] rounded-[--radius-lg]',
-    'shadow-[--shadow-overlay] p-6 outline-none',
+    'w-full bg-[var(--color-surface)] rounded-[var(--radius-lg)]',
+    'shadow-[var(--shadow-overlay)] p-6 outline-none',
   ],
   {
     variants: {
@@ -162,7 +162,7 @@ const AlertDialogCancel = React.forwardRef<
     className={cn(
       'inline-flex items-center justify-center gap-2',
       'px-4 py-2 text-sm font-medium rounded-[var(--radius-sm)]',
-      'shadow-[--shadow-border]',
+      'shadow-[var(--shadow-border)]',
       'bg-[var(--color-card)] text-[var(--color-foreground)]',
       'hover:bg-[var(--color-muted)] transition-colors duration-[var(--duration-micro)]',
       'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-ring)]',

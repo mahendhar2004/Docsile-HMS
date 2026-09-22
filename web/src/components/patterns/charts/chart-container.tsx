@@ -60,7 +60,7 @@ function ChartSkeleton({ height }: { height: number }) {
       <Skeleton className="h-3 w-60" />
       {/* Chart area */}
       <Skeleton
-        className="w-full rounded-[--radius-lg] mt-4"
+        className="w-full rounded-[var(--radius-lg)] mt-4"
         style={{ height }}
       />
     </div>
@@ -86,13 +86,13 @@ function ChartEmpty({
       <span
         aria-hidden="true"
         className={cn(
-          "flex items-center justify-center h-12 w-12 rounded-[--radius-lg]",
-          "bg-[--color-muted] text-[--color-muted-foreground]"
+          "flex items-center justify-center h-12 w-12 rounded-[var(--radius-lg)]",
+          "bg-[var(--color-muted)] text-[var(--color-muted-foreground)]"
         )}
       >
         <BarChart2 size={22} strokeWidth={1.5} />
       </span>
-      <p className="text-[length:var(--text-body)] text-[--color-muted-foreground] max-w-[200px] leading-[--leading-normal]">
+      <p className="text-[length:var(--text-body)] text-[var(--color-muted-foreground)] max-w-[200px] leading-[var(--leading-normal)]">
         {message}
       </p>
     </div>
@@ -119,8 +119,8 @@ const ChartContainer = React.forwardRef<HTMLDivElement, ChartContainerProps>(
       <div
         ref={ref}
         className={cn(
-          "rounded-[--radius-lg] bg-[--color-card]",
-          "shadow-[--shadow-card] p-5 flex flex-col gap-4",
+          "rounded-[var(--radius-lg)] bg-[var(--color-card)]",
+          "shadow-[var(--shadow-card)] p-5 flex flex-col gap-4",
           className
         )}
       >
@@ -131,7 +131,7 @@ const ChartContainer = React.forwardRef<HTMLDivElement, ChartContainerProps>(
               <h3
                 className={cn(
                   "text-[length:var(--text-subtitle)] font-semibold",
-                  "text-[--color-foreground] leading-[--leading-tight]"
+                  "text-[var(--color-foreground)] leading-[var(--leading-tight)]"
                 )}
               >
                 {title}
@@ -141,7 +141,7 @@ const ChartContainer = React.forwardRef<HTMLDivElement, ChartContainerProps>(
               <p
                 className={cn(
                   "text-[length:var(--text-caption)]",
-                  "text-[--color-muted-foreground] leading-[--leading-normal]"
+                  "text-[var(--color-muted-foreground)] leading-[var(--leading-normal)]"
                 )}
               >
                 {description}

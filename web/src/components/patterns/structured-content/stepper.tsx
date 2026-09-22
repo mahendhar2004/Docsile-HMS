@@ -55,22 +55,22 @@ function StepBubble({ step, index }: { step: StepperStep; index: number }) {
       className={cn(
         "relative z-10 flex h-8 w-8 shrink-0 items-center justify-center",
         "rounded-full border-2 text-xs font-semibold",
-        "transition-colors duration-[--duration-macro]",
+        "transition-colors duration-[var(--duration-macro)]",
         isCompleted && [
-          "border-[--color-primary] bg-[--color-primary]",
-          "text-[--color-primary-foreground]",
+          "border-[var(--color-primary)] bg-[var(--color-primary)]",
+          "text-[var(--color-primary-foreground)]",
         ],
         isActive && [
-          "border-[--color-primary] bg-[--color-surface]",
-          "text-[--color-primary]",
+          "border-[var(--color-primary)] bg-[var(--color-surface)]",
+          "text-[var(--color-primary)]",
         ],
         isError && [
-          "border-[--color-error] bg-[--color-error-soft]",
-          "text-[--color-error-soft-foreground]",
+          "border-[var(--color-error)] bg-[var(--color-error-soft)]",
+          "text-[var(--color-error-soft-foreground)]",
         ],
         !isCompleted && !isActive && !isError && [
-          "border-[--color-border] bg-[--color-surface]",
-          "text-[--color-muted-foreground]",
+          "border-[var(--color-border)] bg-[var(--color-surface)]",
+          "text-[var(--color-muted-foreground)]",
         ]
       )}
     >
@@ -96,10 +96,10 @@ function StepConnector({ completed }: { completed: boolean }) {
       <div
         className={cn(
           "h-full w-full rounded-full",
-          "transition-colors duration-[--duration-macro]",
+          "transition-colors duration-[var(--duration-macro)]",
           completed
-            ? "bg-[--color-primary]"
-            : "bg-[--color-border]"
+            ? "bg-[var(--color-primary)]"
+            : "bg-[var(--color-border)]"
         )}
       />
     </div>
@@ -133,19 +133,19 @@ const Stepper = React.forwardRef<HTMLElement, StepperProps>(
                   <div className="mt-1.5 text-center px-1">
                     <p
                       className={cn(
-                        "text-[length:var(--text-caption)] font-medium leading-[--leading-tight]",
+                        "text-[length:var(--text-caption)] font-medium leading-[var(--leading-tight)]",
                         "whitespace-nowrap",
-                        step.state === "active" && "text-[--color-primary]",
-                        step.state === "completed" && "text-[--color-foreground]",
-                        step.state === "error" && "text-[--color-error-soft-foreground]",
-                        step.state === "upcoming" && "text-[--color-muted-foreground]"
+                        step.state === "active" && "text-[var(--color-primary)]",
+                        step.state === "completed" && "text-[var(--color-foreground)]",
+                        step.state === "error" && "text-[var(--color-error-soft-foreground)]",
+                        step.state === "upcoming" && "text-[var(--color-muted-foreground)]"
                       )}
                     >
                       {step.label}
                     </p>
 
                     {step.description && (
-                      <p className="text-[10px] text-[--color-muted-foreground] mt-0.5">
+                      <p className="text-[10px] text-[var(--color-muted-foreground)] mt-0.5">
                         {step.description}
                       </p>
                     )}

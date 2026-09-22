@@ -28,14 +28,14 @@ const selectTriggerVariants = cva(
     // Layout
     "flex w-full items-center justify-between gap-2 whitespace-nowrap",
     // Border & surface
-    "border border-[--color-border] bg-[--color-surface]",
-    "rounded-[--radius]",
+    "border border-[var(--color-border)] bg-[var(--color-surface)]",
+    "rounded-[var(--radius)]",
     // Typography
-    "text-[--color-foreground]",
+    "text-[var(--color-foreground)]",
     // Placeholder
-    "[&[data-placeholder]>span]:text-[--color-muted-foreground]",
+    "[&[data-placeholder]>span]:text-[var(--color-muted-foreground)]",
     // Focus
-    "focus:outline-none focus:ring-2 focus:ring-[--color-ring] focus:ring-offset-1",
+    "focus:outline-none focus:ring-2 focus:ring-[var(--color-ring)] focus:ring-offset-1",
     // Disabled
     "disabled:cursor-not-allowed disabled:opacity-50",
     // Motion
@@ -49,7 +49,7 @@ const selectTriggerVariants = cva(
         lg: "h-12 px-4 text-base",
       },
       error: {
-        true: "border-[--color-error] focus:ring-[--color-error]",
+        true: "border-[var(--color-error)] focus:ring-[var(--color-error)]",
         false: "",
       },
     },
@@ -78,7 +78,7 @@ const SelectTrigger = React.forwardRef<
   >
     {children}
     <SelectPrimitive.Icon asChild>
-      <ChevronDown className="h-4 w-4 shrink-0 text-[--color-muted-foreground]" aria-hidden="true" />
+      <ChevronDown className="h-4 w-4 shrink-0 text-[var(--color-muted-foreground)]" aria-hidden="true" />
     </SelectPrimitive.Icon>
   </SelectPrimitive.Trigger>
 ))
@@ -128,9 +128,9 @@ const SelectContent = React.forwardRef<
         // blur shadow, making the dropdown read as clearly elevated above
         // the page (no separate border property needed).
         "relative z-50 overflow-hidden",
-        "rounded-[--radius]",
-        "bg-[--color-popover] text-[--color-popover-foreground]",
-        "shadow-[--shadow-popover]",
+        "rounded-[var(--radius)]",
+        "bg-[var(--color-popover)] text-[var(--color-popover-foreground)]",
+        "shadow-[var(--shadow-popover)]",
         // Entrance
         "animate-zoom-in",
         // Width matches trigger when popper
@@ -166,7 +166,7 @@ const SelectLabel = React.forwardRef<
 >(({ className, ...props }, ref) => (
   <SelectPrimitive.Label
     ref={ref}
-    className={cn("px-2 py-1.5 text-xs font-medium text-[--color-muted-foreground]", className)}
+    className={cn("px-2 py-1.5 text-xs font-medium text-[var(--color-muted-foreground)]", className)}
     {...props}
   />
 ))
@@ -183,9 +183,9 @@ const SelectItem = React.forwardRef<
     className={cn(
       // Layout
       "relative flex w-full cursor-pointer select-none items-center",
-      "rounded-[--radius-sm] py-1.5 pl-2 pr-8 text-sm outline-none",
+      "rounded-[var(--radius-sm)] py-1.5 pl-2 pr-8 text-sm outline-none",
       // States
-      "focus:bg-[--color-accent] focus:text-[--color-accent-foreground]",
+      "focus:bg-[var(--color-accent)] focus:text-[var(--color-accent-foreground)]",
       "data-[disabled]:pointer-events-none data-[disabled]:opacity-50",
       // Motion
       "motion-interactive",
@@ -211,7 +211,7 @@ const SelectSeparator = React.forwardRef<
 >(({ className, ...props }, ref) => (
   <SelectPrimitive.Separator
     ref={ref}
-    className={cn("-mx-1 my-1 h-px bg-[--color-border]", className)}
+    className={cn("-mx-1 my-1 h-px bg-[var(--color-border)]", className)}
     {...props}
   />
 ))

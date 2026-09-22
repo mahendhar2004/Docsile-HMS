@@ -37,9 +37,9 @@ const ComboboxContent = React.forwardRef<
         // Surface — --shadow-popover bundles the hairline ring + a strong
         // blur shadow, making this panel read as clearly elevated above
         // the page (no separate border property needed).
-        "rounded-[--radius]",
-        "bg-[--color-popover] text-[--color-popover-foreground]",
-        "shadow-[--shadow-popover]",
+        "rounded-[var(--radius)]",
+        "bg-[var(--color-popover)] text-[var(--color-popover-foreground)]",
+        "shadow-[var(--shadow-popover)]",
         // Entrance — uses keyframe defined in index.css
         "animate-zoom-in",
         className

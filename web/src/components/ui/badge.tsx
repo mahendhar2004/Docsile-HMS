@@ -29,33 +29,33 @@ const badgeVariants = cva(
       variant: {
         // Solid fill — border stays transparent (fill provides definition).
         default:
-          "bg-[--color-primary] text-[--color-primary-foreground] border-transparent",
+          "bg-[var(--color-primary)] text-[var(--color-primary-foreground)] border-transparent",
         // Neutral surfaces — use the standard border token for definition.
         secondary:
-          "bg-[--color-secondary] text-[--color-secondary-foreground] border-[--color-border]",
+          "bg-[var(--color-secondary)] text-[var(--color-secondary-foreground)] border-[var(--color-border)]",
         outline:
-          "border-[--color-border] bg-transparent text-[--color-foreground]",
+          "border-[var(--color-border)] bg-transparent text-[var(--color-foreground)]",
         muted:
-          "bg-[--color-muted] text-[--color-muted-foreground] border-[--color-border]",
+          "bg-[var(--color-muted)] text-[var(--color-muted-foreground)] border-[var(--color-border)]",
         // Soft-colour badges: 20% alpha tonal border so the pill reads as a
         // deliberate coloured surface rather than a flat washed-out fill.
         // Same var-based opacity pattern as patterns/status/status-pill.tsx
         // (a sibling component) — tracks the base token if it's ever retuned.
         success:
-          "bg-[--color-success-soft] text-[--color-success-soft-foreground] border-[--color-success]/20",
+          "bg-[var(--color-success-soft)] text-[var(--color-success-soft-foreground)] border-[var(--color-success)]/20",
         warning:
-          "bg-[--color-warning-soft] text-[--color-warning-soft-foreground] border-[--color-warning]/20",
+          "bg-[var(--color-warning-soft)] text-[var(--color-warning-soft-foreground)] border-[var(--color-warning)]/20",
         error:
-          "bg-[--color-error-soft] text-[--color-error-soft-foreground] border-[--color-error]/20",
+          "bg-[var(--color-error-soft)] text-[var(--color-error-soft-foreground)] border-[var(--color-error)]/20",
         info:
-          "bg-[--color-info-soft] text-[--color-info-soft-foreground] border-[--color-info]/20",
+          "bg-[var(--color-info-soft)] text-[var(--color-info-soft-foreground)] border-[var(--color-info)]/20",
         neutral:
-          "bg-[--color-neutral-soft] text-[--color-neutral-soft-foreground] border-[--color-neutral]/20",
+          "bg-[var(--color-neutral-soft)] text-[var(--color-neutral-soft-foreground)] border-[var(--color-neutral)]/20",
       },
       /** Shape */
       shape: {
-        pill: "rounded-[--radius-full]",
-        square: "rounded-[--radius-xs]",
+        pill: "rounded-[var(--radius-full)]",
+        square: "rounded-[var(--radius-xs)]",
       },
       /** Size */
       size: {

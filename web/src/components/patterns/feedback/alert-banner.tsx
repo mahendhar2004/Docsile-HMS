@@ -44,27 +44,27 @@ import { cn } from "@/lib/utils"
 
 const bannerVariants = cva(
   [
-    "flex items-start gap-3 rounded-[--radius] border px-4 py-3",
-    "text-[length:var(--text-body)] leading-[--leading-normal]",
+    "flex items-start gap-3 rounded-[var(--radius)] border px-4 py-3",
+    "text-[length:var(--text-body)] leading-[var(--leading-normal)]",
   ].join(" "),
   {
     variants: {
       variant: {
         info: [
-          "bg-[--color-info-soft] border-[--color-info]/40",
-          "text-[--color-info-soft-foreground]",
+          "bg-[var(--color-info-soft)] border-[var(--color-info)]/40",
+          "text-[var(--color-info-soft-foreground)]",
         ].join(" "),
         success: [
-          "bg-[--color-success-soft] border-[--color-success]/40",
-          "text-[--color-success-soft-foreground]",
+          "bg-[var(--color-success-soft)] border-[var(--color-success)]/40",
+          "text-[var(--color-success-soft-foreground)]",
         ].join(" "),
         warning: [
-          "bg-[--color-warning-soft] border-[--color-warning]/40",
-          "text-[--color-warning-soft-foreground]",
+          "bg-[var(--color-warning-soft)] border-[var(--color-warning)]/40",
+          "text-[var(--color-warning-soft-foreground)]",
         ].join(" "),
         error: [
-          "bg-[--color-error-soft] border-[--color-error]/40",
-          "text-[--color-error-soft-foreground]",
+          "bg-[var(--color-error-soft)] border-[var(--color-error)]/40",
+          "text-[var(--color-error-soft-foreground)]",
         ].join(" "),
       },
     },
@@ -159,10 +159,10 @@ const AlertBanner = React.forwardRef<HTMLDivElement, AlertBannerProps>(
             className={cn(
               "shrink-0 -mr-1 mt-0.5",
               "flex items-center justify-center",
-              "h-5 w-5 rounded-[--radius-xs]",
+              "h-5 w-5 rounded-[var(--radius-xs)]",
               "opacity-60 hover:opacity-100",
               "motion-interactive focus-visible:outline-none",
-              "focus-visible:ring-2 focus-visible:ring-[--color-ring]",
+              "focus-visible:ring-2 focus-visible:ring-[var(--color-ring)]",
               "focus-visible:ring-offset-1"
             )}
           >

@@ -639,7 +639,7 @@ export function PaginatedDataTable<TRow>(props: PaginatedDataTableProps<TRow>) {
     return (
       <div
         className={cn(
-          "rounded-[--radius-lg] bg-[--color-card] overflow-hidden shadow-[--shadow-card]",
+          "rounded-[var(--radius-lg)] bg-[var(--color-card)] overflow-hidden shadow-[var(--shadow-card)]",
           className,
         )}
       >
@@ -684,7 +684,7 @@ export function PaginatedDataTable<TRow>(props: PaginatedDataTableProps<TRow>) {
   return (
     <div
       className={cn(
-        "rounded-[--radius-lg] bg-[--color-card] overflow-hidden shadow-[--shadow-card]",
+        "rounded-[var(--radius-lg)] bg-[var(--color-card)] overflow-hidden shadow-[var(--shadow-card)]",
         className,
       )}
     >

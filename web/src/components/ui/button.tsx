@@ -21,15 +21,15 @@ const buttonVariants = cva(
         // outline in particular moves off `bg-transparent` onto a card
         // surface so it doesn't disappear against tinted page backgrounds.
         primary:
-          "bg-primary text-primary-foreground hover:bg-primary/90 shadow-[--shadow-card] rounded-sm",
+          "bg-primary text-primary-foreground hover:bg-primary/90 shadow-[var(--shadow-card)] rounded-sm",
         secondary:
-          "bg-secondary text-secondary-foreground hover:bg-secondary/80 shadow-[--shadow-border] rounded-sm",
+          "bg-secondary text-secondary-foreground hover:bg-secondary/80 shadow-[var(--shadow-border)] rounded-sm",
         outline:
-          "bg-[--color-card] text-foreground hover:bg-muted shadow-[--shadow-border] rounded-sm",
+          "bg-[var(--color-card)] text-foreground hover:bg-muted shadow-[var(--shadow-border)] rounded-sm",
         ghost:
           "bg-transparent text-foreground hover:bg-muted rounded-sm",
         destructive:
-          "bg-destructive text-destructive-foreground hover:bg-destructive/90 shadow-[--shadow-card] rounded-sm",
+          "bg-destructive text-destructive-foreground hover:bg-destructive/90 shadow-[var(--shadow-card)] rounded-sm",
         link:
           "bg-transparent text-primary underline-offset-4 hover:underline h-auto p-0",
       },

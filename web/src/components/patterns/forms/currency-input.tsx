@@ -81,7 +81,7 @@ const CurrencyInput = React.forwardRef<HTMLInputElement, CurrencyInputProps>(
     return (
       <div
         className={cn(
-          "flex items-center w-full border rounded-[--radius-sm] bg-surface",
+          "flex items-center w-full border rounded-[var(--radius-sm)] bg-surface",
           hasError
             ? "border-error focus-within:ring-2 focus-within:ring-error"
             : "border-border focus-within:ring-2 focus-within:ring-ring focus-within:border-ring",

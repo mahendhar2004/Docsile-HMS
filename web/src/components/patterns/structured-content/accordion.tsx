@@ -56,7 +56,7 @@ const AccordionItem = React.forwardRef<
   <RadixAccordion.Item
     ref={ref}
     className={cn(
-      "border-b border-[--color-border] last:border-0",
+      "border-b border-[var(--color-border)] last:border-0",
       className
     )}
     {...props}
@@ -75,13 +75,13 @@ const AccordionTrigger = React.forwardRef<
       className={cn(
         "flex flex-1 items-center justify-between",
         "py-3.5 pr-1 text-left",
-        "text-[length:var(--text-body)] font-medium text-[--color-foreground]",
+        "text-[length:var(--text-body)] font-medium text-[var(--color-foreground)]",
         "cursor-pointer select-none",
         "motion-interactive",
-        "hover:text-[--color-primary]",
+        "hover:text-[var(--color-primary)]",
         "focus-visible:outline-none focus-visible:ring-2",
-        "focus-visible:ring-[--color-ring] focus-visible:ring-offset-1",
-        "rounded-[--radius-xs]",
+        "focus-visible:ring-[var(--color-ring)] focus-visible:ring-offset-1",
+        "rounded-[var(--radius-xs)]",
         // Disabled
         "disabled:pointer-events-none disabled:opacity-50",
         className
@@ -94,8 +94,8 @@ const AccordionTrigger = React.forwardRef<
         strokeWidth={2}
         aria-hidden="true"
         className={cn(
-          "shrink-0 text-[--color-muted-foreground]",
-          "transition-transform duration-[--duration-macro]",
+          "shrink-0 text-[var(--color-muted-foreground)]",
+          "transition-transform duration-[var(--duration-macro)]",
           "[transition-timing-function:var(--ease-fluid)]",
           // Radix sets data-state="open" on the trigger when expanded
           "data-[state=open]:rotate-180"
@@ -130,8 +130,8 @@ const AccordionContent = React.forwardRef<
     <div
       className={cn(
         "pb-4 pt-0.5",
-        "text-[length:var(--text-body)] text-[--color-muted-foreground]",
-        "leading-[--leading-relaxed]"
+        "text-[length:var(--text-body)] text-[var(--color-muted-foreground)]",
+        "leading-[var(--leading-relaxed)]"
       )}
     >
       {children}
@@ -180,8 +180,8 @@ function AccordionList({ items, className, ...rootProps }: AccordionListProps) {
   return (
     <AccordionRoot
       className={cn(
-        "rounded-[--radius-md] shadow-[--shadow-card]",
-        "bg-[--color-card] px-4",
+        "rounded-[var(--radius-md)] shadow-[var(--shadow-card)]",
+        "bg-[var(--color-card)] px-4",
         className
       )}
       {...(rootProps as React.ComponentProps<typeof RadixAccordion.Root>)}

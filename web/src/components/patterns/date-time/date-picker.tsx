@@ -225,8 +225,8 @@ export function DatePicker({
         className={cn(
           "w-auto p-0",
           "motion-dialog-in",
-          "shadow-[--shadow-popover]",
-          "rounded-[--radius-lg]",
+          "shadow-[var(--shadow-popover)]",
+          "rounded-[var(--radius-lg)]",
           "overflow-hidden"
         )}
         align="start"

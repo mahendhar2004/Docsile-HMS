@@ -39,9 +39,9 @@ export function Breadcrumbs({ items, className = "" }: BreadcrumbsProps) {
             to="/dashboard"
             aria-label="Home"
             className={[
-              "flex items-center rounded-[--radius-xs] p-0.5",
-              "text-[--color-muted-foreground] hover:text-[--color-foreground]",
-              "motion-interactive outline-none focus-visible:ring-2 focus-visible:ring-[--color-ring]",
+              "flex items-center rounded-[var(--radius-xs)] p-0.5",
+              "text-[var(--color-muted-foreground)] hover:text-[var(--color-foreground)]",
+              "motion-interactive outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-ring)]",
             ].join(" ")}
           >
             <Home size={14} aria-hidden="true" />
@@ -53,7 +53,7 @@ export function Breadcrumbs({ items, className = "" }: BreadcrumbsProps) {
           return (
             <React.Fragment key={`${item.label}-${index}`}>
               {/* Separator */}
-              <li aria-hidden="true" className="flex items-center text-[--color-muted-foreground]">
+              <li aria-hidden="true" className="flex items-center text-[var(--color-muted-foreground)]">
                 <ChevronRight size={12} />
               </li>
 
@@ -64,8 +64,8 @@ export function Breadcrumbs({ items, className = "" }: BreadcrumbsProps) {
                     className={[
                       "font-medium",
                       isLast
-                        ? "text-[--color-foreground]"
-                        : "text-[--color-muted-foreground]",
+                        ? "text-[var(--color-foreground)]"
+                        : "text-[var(--color-muted-foreground)]",
                     ].join(" ")}
                     aria-current={isLast ? "page" : undefined}
                   >
@@ -75,9 +75,9 @@ export function Breadcrumbs({ items, className = "" }: BreadcrumbsProps) {
                   <Link
                     to={item.href}
                     className={[
-                      "rounded-[--radius-xs] px-0.5",
-                      "text-[--color-muted-foreground] hover:text-[--color-foreground]",
-                      "motion-interactive outline-none focus-visible:ring-2 focus-visible:ring-[--color-ring]",
+                      "rounded-[var(--radius-xs)] px-0.5",
+                      "text-[var(--color-muted-foreground)] hover:text-[var(--color-foreground)]",
+                      "motion-interactive outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-ring)]",
                     ].join(" ")}
                   >
                     {item.label}

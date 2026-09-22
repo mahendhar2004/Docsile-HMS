@@ -43,7 +43,7 @@ const tabsTriggerVariants = cva(
           'px-3.5 py-2 -mb-px rounded-t-[var(--radius-sm)] border-b-2 border-transparent',
           'text-[var(--color-muted-foreground)]',
           'hover:text-[var(--color-foreground)] hover:bg-[var(--color-surface)]/60',
-          'data-[state=active]:bg-[var(--color-surface)] data-[state=active]:shadow-[--shadow-xs]',
+          'data-[state=active]:bg-[var(--color-surface)] data-[state=active]:shadow-[var(--shadow-xs)]',
           'data-[state=active]:border-[var(--color-primary)]',
           'data-[state=active]:text-[var(--color-primary)]',
           'data-[state=active]:font-semibold',

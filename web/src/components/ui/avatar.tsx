@@ -31,7 +31,7 @@ const avatarVariants = cva(
     // Hairline ring so the avatar boundary reads clearly against
     // both light and image backgrounds (e.g. a white avatar on a
     // white card, or the fallback swatch against a pale sidebar).
-    "shadow-[--shadow-border]",
+    "shadow-[var(--shadow-border)]",
   ],
   {
     variants: {
@@ -105,7 +105,7 @@ const AvatarFallback = React.forwardRef<
       ref={ref}
       className={cn(
         "flex h-full w-full items-center justify-center rounded-full",
-        "bg-[--color-muted] text-[--color-muted-foreground]",
+        "bg-[var(--color-muted)] text-[var(--color-muted-foreground)]",
         "font-semibold uppercase tracking-wide",
         fallbackTextSize[size],
         className

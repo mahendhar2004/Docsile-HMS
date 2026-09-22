@@ -31,14 +31,14 @@ import { cn } from "@/lib/utils"
 
 const cardVariants = cva(
   [
-    "rounded-[--radius-lg]",
-    "bg-[--color-card] text-[--color-card-foreground]",
+    "rounded-[var(--radius-lg)]",
+    "bg-[var(--color-card)] text-[var(--color-card-foreground)]",
   ],
   {
     variants: {
       variant: {
-        elevated: "shadow-[--shadow-card]",
-        flat: "shadow-[--shadow-border]",
+        elevated: "shadow-[var(--shadow-card)]",
+        flat: "shadow-[var(--shadow-border)]",
       },
     },
     defaultVariants: {
@@ -62,8 +62,8 @@ const Card = React.forwardRef<HTMLDivElement, CardProps>(
         cardVariants({ variant }),
         interactive && [
           "motion-interactive cursor-pointer",
-          "hover:shadow-[--shadow-card-hover] hover:bg-[--color-surface]",
-          "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[--color-ring] focus-visible:ring-offset-2",
+          "hover:shadow-[var(--shadow-card-hover)] hover:bg-[var(--color-surface)]",
+          "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-ring)] focus-visible:ring-offset-2",
         ],
         className
       )}
@@ -97,7 +97,7 @@ const CardTitle = React.forwardRef<
   <h3
     ref={ref}
     className={cn(
-      "text-[length:var(--text-subtitle)] font-semibold leading-[--leading-tight] text-[--color-foreground]",
+      "text-[length:var(--text-subtitle)] font-semibold leading-[var(--leading-tight)] text-[var(--color-foreground)]",
       className
     )}
     {...props}
@@ -114,7 +114,7 @@ const CardDescription = React.forwardRef<
   <p
     ref={ref}
     className={cn(
-      "text-[length:var(--text-body)] text-[--color-muted-foreground] leading-[--leading-normal]",
+      "text-[length:var(--text-body)] text-[var(--color-muted-foreground)] leading-[var(--leading-normal)]",
       className
     )}
     {...props}

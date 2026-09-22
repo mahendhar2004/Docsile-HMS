@@ -66,14 +66,14 @@ export function PageHeader({
         )}
 
         <h1
-          className="text-[length:var(--text-title)] font-bold leading-[--leading-tight] tracking-tight truncate text-[--color-foreground]"
+          className="text-[length:var(--text-title)] font-bold leading-[var(--leading-tight)] tracking-tight truncate text-[var(--color-foreground)]"
         >
           {title}
         </h1>
 
         {description && (
           <p
-            className="mt-1 text-[length:var(--text-body)] leading-[--leading-normal] text-[--color-muted-foreground]"
+            className="mt-1 text-[length:var(--text-body)] leading-[var(--leading-normal)] text-[var(--color-muted-foreground)]"
           >
             {description}
           </p>

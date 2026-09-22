@@ -27,18 +27,18 @@ const pillVariants = cva(
   // Base — all pills share this shell
   [
     "inline-flex items-center justify-center",
-    "rounded-[--radius-full]",
+    "rounded-[var(--radius-full)]",
     "font-medium leading-none whitespace-nowrap",
     "select-none",
   ].join(" "),
   {
     variants: {
       bucket: {
-        success: "bg-[--color-success-soft] text-[--color-success-soft-foreground] border border-[--color-success]/30",
-        warning: "bg-[--color-warning-soft] text-[--color-warning-soft-foreground] border border-[--color-warning]/30",
-        error:   "bg-[--color-error-soft]   text-[--color-error-soft-foreground]   border border-[--color-error]/30",
-        info:    "bg-[--color-info-soft]    text-[--color-info-soft-foreground]    border border-[--color-info]/30",
-        neutral: "bg-[--color-neutral-soft] text-[--color-neutral-soft-foreground] border border-[--color-neutral]/30",
+        success: "bg-[var(--color-success-soft)] text-[var(--color-success-soft-foreground)] border border-[var(--color-success)]/30",
+        warning: "bg-[var(--color-warning-soft)] text-[var(--color-warning-soft-foreground)] border border-[var(--color-warning)]/30",
+        error:   "bg-[var(--color-error-soft)]   text-[var(--color-error-soft-foreground)]   border border-[var(--color-error)]/30",
+        info:    "bg-[var(--color-info-soft)]    text-[var(--color-info-soft-foreground)]    border border-[var(--color-info)]/30",
+        neutral: "bg-[var(--color-neutral-soft)] text-[var(--color-neutral-soft-foreground)] border border-[var(--color-neutral)]/30",
       } satisfies Record<SemanticBucket, string>,
       size: {
         sm: "h-5 px-2 text-[10px]",
@@ -56,11 +56,11 @@ const pillVariants = cva(
 /* ─── Optional dot indicator ────────────────────────────────────────────────── */
 
 const dotColor: Record<SemanticBucket, string> = {
-  success: "bg-[--color-success]",
-  warning: "bg-[--color-warning]",
-  error:   "bg-[--color-error]",
-  info:    "bg-[--color-info]",
-  neutral: "bg-[--color-neutral]",
+  success: "bg-[var(--color-success)]",
+  warning: "bg-[var(--color-warning)]",
+  error:   "bg-[var(--color-error)]",
+  info:    "bg-[var(--color-info)]",
+  neutral: "bg-[var(--color-neutral)]",
 }
 
 /* ─── Component ─────────────────────────────────────────────────────────────── */

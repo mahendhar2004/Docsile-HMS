@@ -43,25 +43,25 @@ const FilterChip = React.forwardRef<HTMLButtonElement, FilterChipProps>(
         onClick={onToggle}
         className={cn(
           // Layout
-          "inline-flex items-center gap-1.5 rounded-[--radius-full]",
+          "inline-flex items-center gap-1.5 rounded-[var(--radius-full)]",
           // Size & typography
           "h-7 px-3 text-xs font-medium leading-none whitespace-nowrap",
           // Motion
           "motion-interactive",
           // Focus
-          "focus:outline-none focus-visible:ring-2 focus-visible:ring-[--color-ring] focus-visible:ring-offset-1",
+          "focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-ring)] focus-visible:ring-offset-1",
           // Disabled
           "disabled:pointer-events-none disabled:opacity-50",
           // Default (unselected) state
           !selected && [
-            "border border-[--color-border] bg-[--color-surface]",
-            "text-[--color-muted-foreground]",
-            "hover:border-[--color-primary] hover:text-[--color-foreground]",
+            "border border-[var(--color-border)] bg-[var(--color-surface)]",
+            "text-[var(--color-muted-foreground)]",
+            "hover:border-[var(--color-primary)] hover:text-[var(--color-foreground)]",
           ],
           // Selected state — primary-tinted
           selected && [
-            "border border-[--color-primary]/20",
-            "bg-[--color-accent] text-[--color-accent-foreground]",
+            "border border-[var(--color-primary)]/20",
+            "bg-[var(--color-accent)] text-[var(--color-accent-foreground)]",
             "font-semibold",
           ],
           className
@@ -75,8 +75,8 @@ const FilterChip = React.forwardRef<HTMLButtonElement, FilterChipProps>(
             className={cn(
               "inline-flex h-4 min-w-4 items-center justify-center rounded-full px-1 tabular-nums text-[10px] font-semibold leading-none",
               selected
-                ? "bg-[--color-primary] text-[--color-primary-foreground]"
-                : "bg-[--color-muted] text-[--color-muted-foreground]"
+                ? "bg-[var(--color-primary)] text-[var(--color-primary-foreground)]"
+                : "bg-[var(--color-muted)] text-[var(--color-muted-foreground)]"
             )}
           >
             {count}

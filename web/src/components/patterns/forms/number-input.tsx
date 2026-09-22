@@ -81,7 +81,7 @@ const NumberInput = React.forwardRef<HTMLInputElement, NumberInputProps>(
           />
           <div
             className={cn(
-              "flex flex-col border border-l-0 rounded-r-[--radius-sm] border-border bg-surface",
+              "flex flex-col border border-l-0 rounded-r-[var(--radius-sm)] border-border bg-surface",
               hasError && "border-error",
               disabled && "opacity-50"
             )}
@@ -96,7 +96,7 @@ const NumberInput = React.forwardRef<HTMLInputElement, NumberInputProps>(
                 "flex flex-1 items-center justify-center px-1.5 border-b border-border",
                 "text-muted-foreground hover:text-foreground hover:bg-muted",
                 "disabled:opacity-40 disabled:cursor-not-allowed",
-                "rounded-tr-[--radius-sm] motion-interactive"
+                "rounded-tr-[var(--radius-sm)] motion-interactive"
               )}
             >
               <ChevronUp className="h-3 w-3" aria-hidden="true" />
@@ -111,7 +111,7 @@ const NumberInput = React.forwardRef<HTMLInputElement, NumberInputProps>(
                 "flex flex-1 items-center justify-center px-1.5",
                 "text-muted-foreground hover:text-foreground hover:bg-muted",
                 "disabled:opacity-40 disabled:cursor-not-allowed",
-                "rounded-br-[--radius-sm] motion-interactive"
+                "rounded-br-[var(--radius-sm)] motion-interactive"
               )}
             >
               <ChevronDown className="h-3 w-3" aria-hidden="true" />

@@ -31,7 +31,7 @@ const Table = React.forwardRef<
 >(({ className, containerClassName, ...props }, ref) => (
   <div
     className={cn(
-      "relative w-full overflow-x-auto overflow-y-hidden rounded-[--radius-lg] bg-[--color-card] shadow-[--shadow-card]",
+      "relative w-full overflow-x-auto overflow-y-hidden rounded-[var(--radius-lg)] bg-[var(--color-card)] shadow-[var(--shadow-card)]",
       containerClassName,
     )}
   >

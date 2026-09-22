@@ -89,13 +89,13 @@ const ErrorState = React.forwardRef<HTMLDivElement, ErrorStateProps>(
           aria-hidden="true"
           className={cn(
             "flex items-center justify-center mb-4",
-            "h-14 w-14 rounded-[--radius-xl]",
-            "bg-[--color-error-soft]"
+            "h-14 w-14 rounded-[var(--radius-xl)]",
+            "bg-[var(--color-error-soft)]"
           )}
         >
           <OctagonX
             size={24}
-            className="text-[--color-error-soft-foreground]"
+            className="text-[var(--color-error-soft-foreground)]"
             strokeWidth={2}
           />
         </span>
@@ -103,7 +103,7 @@ const ErrorState = React.forwardRef<HTMLDivElement, ErrorStateProps>(
         <h3
           className={cn(
             "text-[length:var(--text-subtitle)] font-semibold",
-            "text-[--color-foreground] leading-[--leading-tight] mb-1.5"
+            "text-[var(--color-foreground)] leading-[var(--leading-tight)] mb-1.5"
           )}
         >
           {title}
@@ -112,7 +112,7 @@ const ErrorState = React.forwardRef<HTMLDivElement, ErrorStateProps>(
         <p
           className={cn(
             "text-[length:var(--text-body)]",
-            "text-[--color-muted-foreground] leading-[--leading-normal]",
+            "text-[var(--color-muted-foreground)] leading-[var(--leading-normal)]",
             "max-w-xs"
           )}
         >

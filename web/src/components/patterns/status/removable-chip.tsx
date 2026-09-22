@@ -43,11 +43,11 @@ const RemovableChip = React.forwardRef<HTMLSpanElement, RemovableChipProps>(
         ref={ref}
         className={cn(
           // Layout & shape
-          "inline-flex items-center rounded-[--radius-full]",
+          "inline-flex items-center rounded-[var(--radius-full)]",
           // Surface — uses secondary/muted palette so chips don't compete
           // with primary content; the × button is the only interaction affordance
-          "bg-[--color-secondary] text-[--color-secondary-foreground]",
-          "shadow-[--shadow-border]",
+          "bg-[var(--color-secondary)] text-[var(--color-secondary-foreground)]",
+          "shadow-[var(--shadow-border)]",
           // Typography
           "font-medium leading-none whitespace-nowrap select-none",
           // Disabled
@@ -73,13 +73,13 @@ const RemovableChip = React.forwardRef<HTMLSpanElement, RemovableChipProps>(
             // Layout
             "inline-flex items-center justify-center shrink-0 rounded-full",
             // Color
-            "text-[--color-muted-foreground]",
+            "text-[var(--color-muted-foreground)]",
             // Hover
-            "hover:bg-[--color-muted] hover:text-[--color-foreground]",
+            "hover:bg-[var(--color-muted)] hover:text-[var(--color-foreground)]",
             // Motion
             "motion-interactive",
             // Focus
-            "focus:outline-none focus-visible:ring-1 focus-visible:ring-[--color-ring]",
+            "focus:outline-none focus-visible:ring-1 focus-visible:ring-[var(--color-ring)]",
             sizeClasses.btn
           )}
         >

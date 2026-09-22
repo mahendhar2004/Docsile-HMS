@@ -120,7 +120,7 @@ function InpatientBoardSkeleton() {
   return (
     <div className="space-y-2" aria-busy="true" aria-label="Loading inpatient board">
       {Array.from({ length: 5 }).map((_, i) => (
-        <Skeleton key={i} className="h-12 w-full rounded-[--radius-sm]" />
+        <Skeleton key={i} className="h-12 w-full rounded-[var(--radius-sm)]" />
       ))}
     </div>
   )

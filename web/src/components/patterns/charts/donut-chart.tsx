@@ -138,7 +138,7 @@ function ThemedDonutChart({
           <span
             className={cn(
               "text-[length:var(--text-title)] font-semibold tabular-nums",
-              "text-[--color-foreground] leading-none"
+              "text-[var(--color-foreground)] leading-none"
             )}
           >
             {totalValue}
@@ -147,7 +147,7 @@ function ThemedDonutChart({
             <span
               className={cn(
                 "text-[length:var(--text-caption)] mt-0.5",
-                "text-[--color-muted-foreground]"
+                "text-[var(--color-muted-foreground)]"
               )}
             >
               {totalLabel}

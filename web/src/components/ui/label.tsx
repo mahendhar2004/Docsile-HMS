@@ -16,7 +16,7 @@ const Label = React.forwardRef<
     className={cn(
       // Use the text-body token (14 px) so label text is anchored to the
       // same typographic scale as body copy rather than being an ad-hoc size.
-      "text-[length:var(--text-body)] font-medium leading-none text-[--color-foreground] select-none",
+      "text-[length:var(--text-body)] font-medium leading-none text-[var(--color-foreground)] select-none",
       "peer-disabled:cursor-not-allowed peer-disabled:opacity-70",
       className
     )}

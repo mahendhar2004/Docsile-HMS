@@ -40,7 +40,7 @@ const TooltipContent = React.forwardRef<
         'z-50 rounded-[var(--radius-sm)]',
         'bg-[var(--color-foreground)] text-[var(--color-surface)]',
         'px-3 py-1.5 text-[length:var(--text-caption)] font-medium',
-        'shadow-[--shadow-popover]',
+        'shadow-[var(--shadow-popover)]',
         'select-none',
         className,
       )}

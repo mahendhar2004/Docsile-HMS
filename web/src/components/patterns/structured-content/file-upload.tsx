@@ -104,11 +104,11 @@ function ProgressBar({ value }: { value: number }) {
       aria-valuenow={pct}
       aria-valuemin={0}
       aria-valuemax={100}
-      className="h-1 w-full rounded-full bg-[--color-muted] overflow-hidden"
+      className="h-1 w-full rounded-full bg-[var(--color-muted)] overflow-hidden"
     >
       <div
         className={cn(
-          "h-full rounded-full bg-[--color-primary]",
+          "h-full rounded-full bg-[var(--color-primary)]",
           "transition-[width] duration-300 ease-out"
         )}
         style={{ width: `${pct}%` }}
@@ -215,15 +215,15 @@ const FileUpload = React.forwardRef<HTMLDivElement, FileUploadProps>(
           onDrop={onDrop}
           className={cn(
             "flex flex-col items-center justify-center gap-2",
-            "rounded-[--radius-lg] border-2 border-dashed",
+            "rounded-[var(--radius-lg)] border-2 border-dashed",
             "px-6 py-10 text-center",
             "motion-interactive cursor-pointer select-none",
             "focus-visible:outline-none focus-visible:ring-2",
-            "focus-visible:ring-[--color-ring] focus-visible:ring-offset-2",
+            "focus-visible:ring-[var(--color-ring)] focus-visible:ring-offset-2",
             // States
             isDragging && !disabled
-              ? "border-[--color-primary] bg-[--color-accent]"
-              : "border-[--color-border] bg-[--color-muted] hover:border-[--color-primary] hover:bg-[--color-accent]",
+              ? "border-[var(--color-primary)] bg-[var(--color-accent)]"
+              : "border-[var(--color-border)] bg-[var(--color-muted)] hover:border-[var(--color-primary)] hover:bg-[var(--color-accent)]",
             disabled && "opacity-50 cursor-not-allowed pointer-events-none"
           )}
         >
@@ -232,18 +232,18 @@ const FileUpload = React.forwardRef<HTMLDivElement, FileUploadProps>(
             className={cn(
               "flex items-center justify-center h-10 w-10 rounded-full mb-1",
               isDragging
-                ? "bg-[--color-accent] text-[--color-primary]"
-                : "bg-[--color-surface] text-[--color-muted-foreground]"
+                ? "bg-[var(--color-accent)] text-[var(--color-primary)]"
+                : "bg-[var(--color-surface)] text-[var(--color-muted-foreground)]"
             )}
           >
             <Upload size={20} strokeWidth={1.5} />
           </span>
 
           <div>
-            <p className="text-[length:var(--text-body)] font-medium text-[--color-foreground]">
+            <p className="text-[length:var(--text-body)] font-medium text-[var(--color-foreground)]">
               {isDragging ? "Drop files here" : "Click to browse or drag files"}
             </p>
-            <p className="text-[length:var(--text-caption)] text-[--color-muted-foreground] mt-0.5">
+            <p className="text-[length:var(--text-caption)] text-[var(--color-muted-foreground)] mt-0.5">
               {accept ? formatAcceptLabel(accept) : "All file types"}
               {maxSize ? ` · Max ${formatBytes(maxSize)}` : ""}
             </p>
@@ -282,10 +282,10 @@ const FileUpload = React.forwardRef<HTMLDivElement, FileUploadProps>(
                 <li
                   key={item.id}
                   className={cn(
-                    "flex items-start gap-3 rounded-[--radius]",
-                    "border border-[--color-border] bg-[--color-surface]",
+                    "flex items-start gap-3 rounded-[var(--radius)]",
+                    "border border-[var(--color-border)] bg-[var(--color-surface)]",
                     "px-3 py-2.5",
-                    isFailed && "border-[--color-error] bg-[--color-error-soft]"
+                    isFailed && "border-[var(--color-error)] bg-[var(--color-error-soft)]"
                   )}
                 >
                   {/* File icon */}
@@ -294,8 +294,8 @@ const FileUpload = React.forwardRef<HTMLDivElement, FileUploadProps>(
                     className={cn(
                       "shrink-0 mt-0.5",
                       isFailed
-                        ? "text-[--color-error-soft-foreground]"
-                        : "text-[--color-muted-foreground]"
+                        ? "text-[var(--color-error-soft-foreground)]"
+                        : "text-[var(--color-muted-foreground)]"
                     )}
                   >
                     <FileText size={18} strokeWidth={1.5} />
@@ -308,20 +308,20 @@ const FileUpload = React.forwardRef<HTMLDivElement, FileUploadProps>(
                         className={cn(
                           "text-[length:var(--text-body)] font-medium truncate",
                           isFailed
-                            ? "text-[--color-error-soft-foreground]"
-                            : "text-[--color-foreground]"
+                            ? "text-[var(--color-error-soft-foreground)]"
+                            : "text-[var(--color-foreground)]"
                         )}
                       >
                         {item.file.name}
                       </p>
-                      <span className="text-[length:var(--text-caption)] text-[--color-muted-foreground] shrink-0">
+                      <span className="text-[length:var(--text-caption)] text-[var(--color-muted-foreground)] shrink-0">
                         {formatBytes(item.file.size)}
                       </span>
                     </div>
 
                     {/* Error message */}
                     {isFailed && item.errorMessage && (
-                      <p className="text-[length:var(--text-caption)] text-[--color-error-soft-foreground] mt-0.5">
+                      <p className="text-[length:var(--text-caption)] text-[var(--color-error-soft-foreground)] mt-0.5">
                         {item.errorMessage}
                       </p>
                     )}
@@ -330,7 +330,7 @@ const FileUpload = React.forwardRef<HTMLDivElement, FileUploadProps>(
                     {isUploading && (
                       <div className="mt-1.5">
                         <ProgressBar value={item.progress!} />
-                        <p className="text-[10px] text-[--color-muted-foreground] mt-0.5">
+                        <p className="text-[10px] text-[var(--color-muted-foreground)] mt-0.5">
                           {item.progress}%
                         </p>
                       </div>
@@ -342,14 +342,14 @@ const FileUpload = React.forwardRef<HTMLDivElement, FileUploadProps>(
                     {isDone && (
                       <CheckCircle2
                         size={16}
-                        className="text-[--color-success]"
+                        className="text-[var(--color-success)]"
                         aria-label="Upload complete"
                       />
                     )}
                     {isFailed && (
                       <AlertCircle
                         size={16}
-                        className="text-[--color-error-soft-foreground]"
+                        className="text-[var(--color-error-soft-foreground)]"
                         aria-label="Upload failed"
                       />
                     )}
@@ -359,11 +359,11 @@ const FileUpload = React.forwardRef<HTMLDivElement, FileUploadProps>(
                       onClick={() => onRemove(item.id)}
                       className={cn(
                         "flex items-center justify-center",
-                        "h-5 w-5 rounded-[--radius-xs]",
-                        "text-[--color-muted-foreground]",
-                        "hover:text-[--color-foreground]",
+                        "h-5 w-5 rounded-[var(--radius-xs)]",
+                        "text-[var(--color-muted-foreground)]",
+                        "hover:text-[var(--color-foreground)]",
                         "motion-interactive focus-visible:outline-none",
-                        "focus-visible:ring-2 focus-visible:ring-[--color-ring]",
+                        "focus-visible:ring-2 focus-visible:ring-[var(--color-ring)]",
                         "focus-visible:ring-offset-1"
                       )}
                     >

@@ -62,11 +62,11 @@ export interface TimelineProps {
 /* ─── Dot color map ─────────────────────────────────────────────────────────── */
 
 const dotColors: Record<TimelineVariant, string> = {
-  default: "bg-[--color-muted-foreground]",
-  success: "bg-[--color-success]",
-  warning: "bg-[--color-warning]",
-  error: "bg-[--color-error]",
-  info: "bg-[--color-info]",
+  default: "bg-[var(--color-muted-foreground)]",
+  success: "bg-[var(--color-success)]",
+  warning: "bg-[var(--color-warning)]",
+  error: "bg-[var(--color-error)]",
+  info: "bg-[var(--color-info)]",
 }
 
 /* ─── Timestamp formatter ───────────────────────────────────────────────────── */
@@ -96,7 +96,7 @@ const Timeline = React.forwardRef<HTMLOListElement, TimelineProps>(
         <p
           className={cn(
             "py-8 text-center",
-            "text-[length:var(--text-body)] text-[--color-muted-foreground]",
+            "text-[length:var(--text-body)] text-[var(--color-muted-foreground)]",
             className
           )}
         >
@@ -124,7 +124,7 @@ const Timeline = React.forwardRef<HTMLOListElement, TimelineProps>(
                   aria-hidden="true"
                   className={cn(
                     "relative z-10 mt-1 h-2.5 w-2.5 shrink-0 rounded-full",
-                    "ring-2 ring-[--color-surface]",
+                    "ring-2 ring-[var(--color-surface)]",
                     dotColors[variant]
                   )}
                 />
@@ -132,7 +132,7 @@ const Timeline = React.forwardRef<HTMLOListElement, TimelineProps>(
                 {!isLast && (
                   <div
                     aria-hidden="true"
-                    className="mt-1 w-px flex-1 bg-[--color-border]"
+                    className="mt-1 w-px flex-1 bg-[var(--color-border)]"
                   />
                 )}
               </div>
@@ -143,7 +143,7 @@ const Timeline = React.forwardRef<HTMLOListElement, TimelineProps>(
                   <p
                     className={cn(
                       "text-[length:var(--text-body)] font-medium",
-                      "text-[--color-foreground] leading-[--leading-tight]"
+                      "text-[var(--color-foreground)] leading-[var(--leading-tight)]"
                     )}
                   >
                     {event.title}
@@ -152,7 +152,7 @@ const Timeline = React.forwardRef<HTMLOListElement, TimelineProps>(
                     dateTime={event.timestamp}
                     className={cn(
                       "text-[length:var(--text-caption)]",
-                      "text-[--color-muted-foreground]"
+                      "text-[var(--color-muted-foreground)]"
                     )}
                   >
                     {formatTimestamp(event.timestamp)}
@@ -163,8 +163,8 @@ const Timeline = React.forwardRef<HTMLOListElement, TimelineProps>(
                   <p
                     className={cn(
                       "text-[length:var(--text-body)]",
-                      "text-[--color-muted-foreground]",
-                      "leading-[--leading-normal]"
+                      "text-[var(--color-muted-foreground)]",
+                      "leading-[var(--leading-normal)]"
                     )}
                   >
                     {event.description}

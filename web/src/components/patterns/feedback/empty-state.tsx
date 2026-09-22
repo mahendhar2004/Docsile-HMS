@@ -77,8 +77,8 @@ const EmptyState = React.forwardRef<HTMLDivElement, EmptyStateProps>(
             aria-hidden="true"
             className={cn(
               "mb-4 flex items-center justify-center",
-              "h-16 w-16 rounded-[--radius-xl]",
-              "bg-[--color-muted] text-[--color-muted-foreground]"
+              "h-16 w-16 rounded-[var(--radius-xl)]",
+              "bg-[var(--color-muted)] text-[var(--color-muted-foreground)]"
             )}
           >
             {icon}
@@ -88,7 +88,7 @@ const EmptyState = React.forwardRef<HTMLDivElement, EmptyStateProps>(
         <h3
           className={cn(
             "text-[length:var(--text-subtitle)] font-semibold",
-            "text-[--color-foreground] leading-[--leading-tight] mb-1.5"
+            "text-[var(--color-foreground)] leading-[var(--leading-tight)] mb-1.5"
           )}
         >
           {title}
@@ -98,7 +98,7 @@ const EmptyState = React.forwardRef<HTMLDivElement, EmptyStateProps>(
           <p
             className={cn(
               "text-[length:var(--text-body)]",
-              "text-[--color-muted-foreground] leading-[--leading-normal]",
+              "text-[var(--color-muted-foreground)] leading-[var(--leading-normal)]",
               "max-w-xs"
             )}
           >

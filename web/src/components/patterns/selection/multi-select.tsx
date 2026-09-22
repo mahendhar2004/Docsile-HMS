@@ -56,8 +56,8 @@ export interface MultiSelectOption {
 const triggerWrapperVariants = cva(
   [
     "relative flex w-full flex-wrap items-center gap-1",
-    "rounded-[--radius] border border-[--color-border] bg-[--color-surface]",
-    "text-[--color-foreground]",
+    "rounded-[var(--radius)] border border-[var(--color-border)] bg-[var(--color-surface)]",
+    "text-[var(--color-foreground)]",
     "cursor-pointer",
     "motion-interactive",
   ].join(" "),
@@ -69,11 +69,11 @@ const triggerWrapperVariants = cva(
         lg: "min-h-12 px-4 py-2 text-base",
       },
       error: {
-        true: "border-[--color-error]",
+        true: "border-[var(--color-error)]",
         false: "",
       },
       open: {
-        true: "ring-2 ring-[--color-ring] ring-offset-1",
+        true: "ring-2 ring-[var(--color-ring)] ring-offset-1",
         false: "",
       },
       disabled: {
@@ -210,14 +210,14 @@ const MultiSelect = React.forwardRef<HTMLDivElement, MultiSelectProps>(
 
               {/* Overflow count */}
               {overflowCount > 0 && (
-                <span className="text-[--color-muted-foreground] text-xs font-medium px-1">
+                <span className="text-[var(--color-muted-foreground)] text-xs font-medium px-1">
                   +{overflowCount} more
                 </span>
               )}
 
               {/* Placeholder when nothing selected */}
               {selectedOptions.length === 0 && (
-                <span className="flex-1 text-[--color-muted-foreground] truncate">
+                <span className="flex-1 text-[var(--color-muted-foreground)] truncate">
                   {placeholder}
                 </span>
               )}
@@ -238,19 +238,19 @@ const MultiSelect = React.forwardRef<HTMLDivElement, MultiSelectProps>(
                     }}
                     className={cn(
                       "flex h-4 w-4 items-center justify-center rounded-full",
-                      "text-[--color-muted-foreground] hover:text-[--color-foreground]",
+                      "text-[var(--color-muted-foreground)] hover:text-[var(--color-foreground)]",
                       "motion-interactive"
                     )}
                   >
                     <X className="h-3 w-3" aria-hidden="true" />
                   </span>
                 )}
-                <ChevronsUpDown className="h-4 w-4 text-[--color-muted-foreground]" aria-hidden="true" />
+                <ChevronsUpDown className="h-4 w-4 text-[var(--color-muted-foreground)]" aria-hidden="true" />
               </span>
             </div>
           </ComboboxTrigger>
 
-          <ComboboxContent className="w-[var(--radix-popover-trigger-width)] shadow-[--shadow-popover] rounded-[--radius-md]">
+          <ComboboxContent className="w-[var(--radix-popover-trigger-width)] shadow-[var(--shadow-popover)] rounded-[var(--radius-md)]">
             <Command>
               <CommandInput placeholder={searchPlaceholder} />
               <CommandList>
@@ -272,8 +272,8 @@ const MultiSelect = React.forwardRef<HTMLDivElement, MultiSelectProps>(
                           aria-hidden="true"
                           className={cn(
                             "mr-2 flex h-4 w-4 shrink-0 items-center justify-center rounded",
-                            "border border-[--color-border]",
-                            isSelected && "border-[--color-primary] bg-[--color-primary]"
+                            "border border-[var(--color-border)]",
+                            isSelected && "border-[var(--color-primary)] bg-[var(--color-primary)]"
                           )}
                         >
                           <Check

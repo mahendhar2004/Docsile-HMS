@@ -56,10 +56,10 @@ const triggerVariants = cva(
     // Layout
     "flex w-full items-center justify-between gap-2 whitespace-nowrap",
     // Surface
-    "rounded-[--radius] border border-[--color-border] bg-[--color-surface]",
-    "text-[--color-foreground]",
+    "rounded-[var(--radius)] border border-[var(--color-border)] bg-[var(--color-surface)]",
+    "text-[var(--color-foreground)]",
     // Focus (passed via data attr from Popover.Trigger)
-    "focus:outline-none focus-visible:ring-2 focus-visible:ring-[--color-ring] focus-visible:ring-offset-1",
+    "focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-ring)] focus-visible:ring-offset-1",
     // Disabled
     "disabled:cursor-not-allowed disabled:opacity-50",
     // Motion
@@ -73,7 +73,7 @@ const triggerVariants = cva(
         lg: "h-12 px-4 text-base",
       },
       error: {
-        true: "border-[--color-error] focus-visible:ring-[--color-error]",
+        true: "border-[var(--color-error)] focus-visible:ring-[var(--color-error)]",
         false: "",
       },
     },
@@ -166,7 +166,7 @@ const SingleSelect = React.forwardRef<HTMLButtonElement, SingleSelectProps>(
             <span
               className={cn(
                 "flex-1 truncate text-left",
-                !selectedOption && "text-[--color-muted-foreground]"
+                !selectedOption && "text-[var(--color-muted-foreground)]"
               )}
             >
               {selectedOption ? selectedOption.label : placeholder}
@@ -187,14 +187,14 @@ const SingleSelect = React.forwardRef<HTMLButtonElement, SingleSelectProps>(
                   }}
                   className={cn(
                     "flex h-4 w-4 items-center justify-center rounded-full",
-                    "text-[--color-muted-foreground] hover:text-[--color-foreground]",
+                    "text-[var(--color-muted-foreground)] hover:text-[var(--color-foreground)]",
                     "motion-interactive"
                   )}
                 >
                   <X className="h-3 w-3" aria-hidden="true" />
                 </span>
               )}
-              <ChevronsUpDown className="h-4 w-4 text-[--color-muted-foreground]" aria-hidden="true" />
+              <ChevronsUpDown className="h-4 w-4 text-[var(--color-muted-foreground)]" aria-hidden="true" />
             </span>
           </button>
         </ComboboxTrigger>
@@ -202,7 +202,7 @@ const SingleSelect = React.forwardRef<HTMLButtonElement, SingleSelectProps>(
         <ComboboxContent
           className={cn(
             contentWidth === "match" && "w-[var(--radix-popover-trigger-width)]",
-            "shadow-[--shadow-popover] rounded-[--radius-md]"
+            "shadow-[var(--shadow-popover)] rounded-[var(--radius-md)]"
           )}
         >
           <Command>
