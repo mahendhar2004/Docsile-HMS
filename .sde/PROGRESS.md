@@ -43,7 +43,7 @@ corresponding old `src/app/(...)/<module>` code has 🗑️.
 | 12 | settings | 33 | ✅ | ⬜ | ⬜ | ⬜ |
 | 13 | analytics | 19 | ✅ | ⬜ | ⬜ | ⬜ |
 | 14 | reports | 17 | ✅ | ⬜ | ⬜ | ⬜ |
-| 15 | workup | 4 | ⬜ | ⬜ | ⬜ | ⬜ |
+| 15 | workup | 4 | ✅ | ⬜ | ⬜ | ⬜ |
 | 16 | expenses | 10 | ✅ | ⬜ | ⬜ | ⬜ |
 | 17 | dues-followups | 8 | ✅ | ⬜ | ⬜ | ⬜ |
 | 18 | call-logs | 8 | ✅ | ⬜ | ⬜ | ⬜ |
@@ -348,10 +348,10 @@ work progresses, not appended to.
 ### workup (4)
 | Status | Method | Path | Permission | Source |
 |---|---|---|---|---|
-| ⬜ | GET | /workup/queue | `workup:view` | `getWorkupQueue` |
-| ⬜ | GET | /workup/patients/{patientId} | `workup:view` | `getPatientForWorkup` |
-| ⬜ | POST | /workup/patients/{patientId}/eye-readings | `workup:create` | `saveEyeReading` (upsert) |
-| ⬜ | POST | /workup/patients/{patientId}/start | `workup:create` | `startWorkup` — **no-op, deprecated, keep for compat only** |
+| ✅ | GET | /workup/queue | `workup:view` | `getWorkupQueue` |
+| ✅ | GET | /workup/patients/{patientId} | `workup:view` | `getPatientForWorkup` |
+| ✅ | POST | /workup/patients/{patientId}/eye-readings | `workup:create` | `saveEyeReading` (upsert) |
+| ✅ | POST | /workup/patients/{patientId}/start | `workup:create` | `startWorkup` — **no-op, deprecated, keep for compat only** |
 
 ### expenses (10)
 | Status | Method | Path | Permission | Source |
@@ -983,3 +983,47 @@ captured in the phase docs.
   `select(head:true,count:'exact')` against HospitalProfile and reports latency + degraded status
   on error). `workup` (4 endpoints) dispatched to a dedicated agent, following the already-verified
   3-parallel-query-merge pattern from the queue module's `/queue/workup` implementation.
+- **2026-09-22** — Phase 7 catch-up: `workup` module backend complete (4 endpoints). Wave-plan
+  omission (ADR-004 never assigned this module to a wave) caught during post-Wave-4 PROGRESS.md
+  review and closed as a standalone session.
+  `types.ts` corrected: scaffold had invented field names (`rightSphere`, `leftSphere`, etc.)
+  that do not exist in the EyeReading table. Replaced with actual DB columns: `readingDate`
+  (YYYY-MM-DD, upsert key), `autoRefractometer`, `glassesReading`, `previousPrescription`,
+  `presentPrescription`, `clinicalFindings` — all TEXT (nullable), verified against
+  supabase-migration.sql.
+  `repository.ts` implements `WorkupRepository` with 6 methods: `getWorkupQueue` (3-parallel-query
+  merge pattern identical to queue/repository.ts `getWorkupQueue` — appointment+prescription+
+  eye-reading today, merge by patientId, A wins, nested relations filtered to today in-process,
+  `computeStatus` inlined matching doctor/queue module implementations); `getPatientForWorkup`
+  (single patient, hospital_id-scoped, nested EyeReading+Prescription filtered to today in-process);
+  `findTodayEyeReading` (maybeSingle — determines upsert direction); `findUnlinkedPrescription`
+  (2-query approach: today's prescriptions → EyeReading.prescriptionId IN those IDs → find first
+  unclaimed; this actually works, unlike the old code's `.is("eyeReadingId", null)` filter on
+  Prescription which referenced a non-existent column and silently failed — see note below);
+  `insertEyeReading` (status always 'COMPLETED', hospital_id always set); `updateEyeReading`
+  (records updatedBy). Every direct EyeReading/Prescription query scoped by hospital_id (ADR-007).
+  `service.ts` implements all 4 functions:
+  — `getWorkupQueue`: delegates to WorkupRepository.getWorkupQueue().
+  — `getPatientForWorkup`: 404 via NotFoundError if patient not found or wrong hospital.
+  — `saveEyeReading` (upsert): normalizes readingDate to IST YYYY-MM-DD, checks for existing
+    eye reading → UPDATE if found, INSERT if not. On INSERT, calls `findUnlinkedPrescription`
+    to link the new reading to today's first unlinked prescription (prescriptionId set on insert).
+  — `startWorkup`: intentional no-op (deprecated, openapi.yaml deprecated: true).
+  `index.ts` not modified (no bugs found — all 4 routes already correctly wired in Phase 6 scaffold).
+  **Eye-reading-to-prescription linking fix:** The old Next.js code queried `.is("eyeReadingId", null)`
+  on the Prescription table. `eyeReadingId` is not a DB column on Prescription (only EyeReading has
+  `prescriptionId` FK to Prescription.id). PostgREST would return an error for this unknown column
+  filter; the error was silently swallowed via destructuring only `{ data: todayPrescription }` —
+  so `todayPrescription` was always null and prescriptions were never actually linked. The new
+  implementation uses the correct two-query approach (prescriptions → EyeReading.prescriptionId IN
+  ids → find first unclaimed) which will properly link readings to prescriptions going forward.
+  `deno check` not run — Deno not installed in this environment (same constraint as all prior modules).
+  workup module Status Summary Backend column: ⬜ → ✅.
+- **2026-09-22** — Post-hoc review found one real gap in the workup module before commit:
+  `updateEyeReading` had no `hospital_id` filter in its WHERE clause at all (unlike the
+  `findUnlinkedPrescription` EyeReading read, which is safely transitively scoped via an
+  already-hospital_id-filtered Prescription query). Confirmed EyeReading does carry `hospital_id`
+  since the Phase 4 backfill migration, so there was no excuse for the omission. Fixed to add
+  `.eq('hospital_id', this.hospitalId)`. This is the same class of gap as patient-care's
+  `updatePrescriptionById` fix earlier in Wave 2 — repository methods must self-scope by
+  hospital_id rather than relying on the id alone or on caller discipline.
