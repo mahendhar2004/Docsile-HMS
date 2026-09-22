@@ -29,7 +29,7 @@ corresponding old `src/app/(...)/<module>` code has 🗑️.
 
 | # | Module | Endpoints | Backend | Frontend | Verified | Old code removed |
 |---|---|---|---|---|---|---|
-| 1 | auth | 3 | ⬜ | ⬜ | ⬜ | ⬜ |
+| 1 | auth | 3 | ✅ | ⬜ | ⬜ | ⬜ |
 | 2 | health | 2 | ⬜ | n/a | ⬜ | n/a |
 | 3 | patient-care | 28 | ⬜ | ⬜ | ⬜ | ⬜ |
 | 4 | billing | 5 | ⬜ | ⬜ | ⬜ | ⬜ |
@@ -84,9 +84,9 @@ work progresses, not appended to.
 ### auth (3)
 | Status | Method | Path | Permission | Source |
 |---|---|---|---|---|
-| ⬜ | POST | /auth/login | public | `(auth)/login/actions.ts` |
-| ⬜ | POST | /auth/refresh | cookie-only | new (ADR-005 refresh rotation) |
-| ⬜ | POST | /auth/logout | cookie-only | `api/logout/route.ts` |
+| ✅ | POST | /auth/login | public | `(auth)/login/actions.ts` |
+| ✅ | POST | /auth/refresh | cookie-only | new (ADR-005 refresh rotation) |
+| ✅ | POST | /auth/logout | cookie-only | `api/logout/route.ts` |
 
 ### health (2)
 | Status | Method | Path | Permission | Source |
@@ -421,6 +421,14 @@ captured in the phase docs.
   18 modules with placeholder pages) — both running in parallel, neither
   touching `src/`. This tracker created in response to the project owner
   asking for a running record so nothing gets missed across 233 endpoints.
+- **2026-09-22** — Phase 7 Wave 1: `auth` module backend complete. `repository.ts`
+  implements `findUserByEmail`, `getRolePermissions`, `insertRevocation`, `findRevocation`,
+  `touchLastLogin`. `service.ts` implements `login` (bcrypt verify + role permissions fetch +
+  dual JWT signing), `refresh` (jose verify + revocation check + rotation + fresh permissions
+  re-fetch), and `logout` (best-effort decodeJwt on both tokens + allSettled dual revocation).
+  `deno.json` updated: `bcryptjs@2.4.3` added to import map. `index.ts` and `types.ts`
+  required no changes. `deno check` not run — Deno not installed in this environment (same
+  constraint as Phase 6 scaffold). Auth module Status Summary Backend column: ⬜ → ✅.
 - **2026-09-22** — Phase 6 scaffold complete on both surfaces, independently
   verified (not just trusted from the agent reports):
   - Frontend (`web/`): 19 routes confirmed matching the 18-module list
