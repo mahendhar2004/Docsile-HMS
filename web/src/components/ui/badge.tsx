@@ -1,40 +1,117 @@
+/**
+ * ui/badge.tsx
+ *
+ * Badge primitive — small inline label for categorization, status indication,
+ * or numeric counts. Two shape variants: pill (default) and square.
+ *
+ * For entity-level status display (patient/bill/claim status strings mapped
+ * to semantic colors), use patterns/status/StatusPill instead — it wraps
+ * Badge with the status-map lookup.
+ */
+
 import * as React from "react"
 import { cva, type VariantProps } from "class-variance-authority"
-
 import { cn } from "@/lib/utils"
 
+/* ─── Variants ──────────────────────────────────────────────────────────────── */
+
 const badgeVariants = cva(
-  "inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2",
+  // Base
+  [
+    "inline-flex items-center justify-center gap-1",
+    "font-medium leading-none whitespace-nowrap",
+    "border border-transparent",
+    "select-none",
+  ].join(" "),
   {
     variants: {
+      /** Color intent */
       variant: {
         default:
-          "border-transparent bg-primary text-primary-foreground hover:bg-primary/80",
+          "bg-[--color-primary] text-[--color-primary-foreground]",
         secondary:
-          "border-transparent bg-secondary text-secondary-foreground hover:bg-secondary/80",
-        destructive:
-          "border-transparent bg-destructive text-destructive-foreground hover:bg-destructive/80",
-        outline: "text-foreground",
-        success: "border-transparent bg-success/10 text-success",
-        warning: "border-transparent bg-warning/10 text-warning",
-        info: "border-transparent bg-info/10 text-info",
-        muted: "border-transparent bg-muted text-muted-foreground",
+          "bg-[--color-secondary] text-[--color-secondary-foreground]",
+        outline:
+          "border-[--color-border] bg-transparent text-[--color-foreground]",
+        muted:
+          "bg-[--color-muted] text-[--color-muted-foreground]",
+        success:
+          "bg-[--color-success-soft] text-[--color-success-soft-foreground]",
+        warning:
+          "bg-[--color-warning-soft] text-[--color-warning-soft-foreground]",
+        error:
+          "bg-[--color-error-soft] text-[--color-error-soft-foreground]",
+        info:
+          "bg-[--color-info-soft] text-[--color-info-soft-foreground]",
+        neutral:
+          "bg-[--color-neutral-soft] text-[--color-neutral-soft-foreground]",
+      },
+      /** Shape */
+      shape: {
+        pill: "rounded-[--radius-full]",
+        square: "rounded-[--radius-xs]",
+      },
+      /** Size */
+      size: {
+        sm: "h-5 px-1.5 text-[10px]",
+        md: "h-6 px-2 text-xs",
+        lg: "h-7 px-2.5 text-sm",
       },
     },
     defaultVariants: {
       variant: "default",
+      shape: "pill",
+      size: "md",
     },
   }
 )
 
 export interface BadgeProps
-  extends React.HTMLAttributes<HTMLDivElement>,
+  extends React.HTMLAttributes<HTMLSpanElement>,
     VariantProps<typeof badgeVariants> {}
 
-function Badge({ className, variant, ...props }: BadgeProps) {
-  return (
-    <div className={cn(badgeVariants({ variant }), className)} {...props} />
+const Badge = React.forwardRef<HTMLSpanElement, BadgeProps>(
+  ({ className, variant, shape, size, ...props }, ref) => (
+    <span
+      ref={ref}
+      className={cn(badgeVariants({ variant, shape, size }), className)}
+      {...props}
+    />
   )
+)
+Badge.displayName = "Badge"
+
+/* ─── CountBadge ────────────────────────────────────────────────────────────── */
+// Numeric badge — fixed circular dimensions so single and double digit
+// counts look consistent. Used for notification counts and row totals.
+
+export interface CountBadgeProps extends React.HTMLAttributes<HTMLSpanElement> {
+  count: number
+  /** When count exceeds this, display "{max}+" instead of the raw number */
+  max?: number
+  variant?: VariantProps<typeof badgeVariants>["variant"]
 }
 
-export { Badge, badgeVariants }
+const CountBadge = React.forwardRef<HTMLSpanElement, CountBadgeProps>(
+  ({ count, max = 99, variant = "default", className, ...props }, ref) => {
+    const display = count > max ? `${max}+` : String(count)
+    return (
+      <span
+        ref={ref}
+        aria-label={`${count} items`}
+        className={cn(
+          badgeVariants({ variant, shape: "pill", size: "sm" }),
+          // Fixed minimum width so "1" and "99+" are the same height
+          "min-w-[1.25rem] tabular-nums",
+          className
+        )}
+        {...props}
+      >
+        {display}
+      </span>
+    )
+  }
+)
+CountBadge.displayName = "CountBadge"
+
+export { Badge, CountBadge, badgeVariants }
