@@ -26,7 +26,7 @@ modules produce).
 | 9 | Labs | `/labs` | `labs/*` (labs, investigations, patient investigations, bills) | ✅ |
 | 10 | Insurance | `/insurance` | `insurance/*` (companies, claims, payments) | ✅ |
 | 11 | Staff | `/staff` | `staff/*` (members, roles, permissions) | ✅ |
-| 12 | Settings | `/settings` | `settings/*` (33 endpoints — hospital profile, templates, master data) | ⬜ |
+| 12 | Settings | `/settings` | `settings/*` (33 endpoints — hospital profile, templates, master data) | ✅ |
 | 13 | Expenses | `/expenses` | `expenses/*` (categories, expenses by date range) | ✅ |
 | 14 | Dues & Follow-ups | `/dues-followups` | `dues-followups/*` (dues, followups, email templates) | ⬜ |
 | 15 | Call Logs | `/call-logs` | `call-logs/*` (list, stats, notes, patient link, sync) | ⬜ |
@@ -600,3 +600,61 @@ HTML5 drag-and-drop with `GripVertical` icon — NOT up/down buttons. `draggable
 - lg:col-span-2 right: search input + category Select filter + sort Select + expense rows (inline edit/delete buttons appear on hover)
 
 **Build:** `npx tsc -b 2>&1 | grep -i expenses` — zero TypeScript errors in all expenses files. Remaining build errors are in `settings/` (concurrently built, out of scope).
+
+---
+
+### Page 12 — Settings (`/settings`) — 2026-09-22
+
+Replaced placeholder stub with a fully implemented SettingsPage (sidebar-style section switcher, 10 sub-scopes, 33 endpoints).
+
+**File structure:**
+```
+web/src/pages/SettingsPage.tsx                              — thin composition root (permission gate + sidebar-style section nav)
+web/src/pages/settings/types.ts                             — all TypeScript interfaces + enum constants verified against old app
+web/src/pages/settings/hooks.ts                             — TanStack Query hooks for all 10 sub-scopes (query key factory + CRUD hooks)
+web/src/pages/settings/service-templates-section.tsx        — full CRUD: list table + create/edit Dialog + delete ConfirmationModal
+web/src/pages/settings/hospital-profile-section.tsx         — GET/PATCH hospital profile + PATCH nav-style (integrated)
+web/src/pages/settings/print-config-section.tsx             — GET/PATCH print config with item ordering, add/remove receipt types
+web/src/pages/settings/prescription-templates-section.tsx   — full CRUD: code+name+clinical notes+medicines array+investigations+followUp
+web/src/pages/settings/inpatient-templates-section.tsx      — full CRUD: code+name+operationName+provisionDiagnosis+medicines array
+web/src/pages/settings/packages-section.tsx                 — full CRUD: nested inclusions + subItems + auto-computed totalAmount
+web/src/pages/settings/surgeries-section.tsx                — full CRUD: doctorNames+onDutyDoctors (JSON-encoded arrays), operationProcedure+Details Textarea
+web/src/pages/settings/discharges-section.tsx               — full CRUD: dischargeDiagnosis+conditionAtDischarge+Textarea fields
+web/src/pages/settings/medicine-master-section.tsx          — full CRUD: name+category+defaultTiming+defaultDays+defaultNote+sortOrder
+```
+
+**Endpoints consumed (33 across 10 sub-scopes):**
+- `GET /settings/service-templates`, `POST`, `PATCH /{id}`, `DELETE /{id}` — settings:view / settings:edit
+- `GET /settings/hospital-profile`, `PATCH /settings/hospital-profile` — settings:view / settings:edit
+- `PATCH /settings/nav-style` — settings:edit (integrated in HospitalProfileSection)
+- `GET /settings/print-config`, `PATCH /settings/print-config` — settings:view / settings:edit
+- `GET /settings/prescription-templates`, `POST`, `PATCH /{id}`, `DELETE /{id}` — settings:view / settings:edit
+- `GET /settings/inpatient-templates`, `POST`, `PATCH /{id}`, `DELETE /{id}` — settings:view / settings:edit
+- `GET /settings/packages`, `POST`, `PATCH /{id}`, `DELETE /{id}` — settings:view / settings:edit
+- `GET /settings/surgeries`, `POST`, `PATCH /{id}`, `DELETE /{id}` — settings:view / settings:edit
+- `GET /settings/discharges`, `POST`, `PATCH /{id}`, `DELETE /{id}` — settings:view / settings:edit
+- `GET /settings/medicine-master`, `POST`, `PATCH /{id}`, `DELETE /{id}` — settings:view / settings:edit
+
+**Permission keys used (verified from src/lib/permissions.ts — only 2 exist):**
+- `settings:view` — page gate + all reads
+- `settings:edit` — all write operations; passed as `canEdit` prop to each section
+
+**Key verified field names and enum constants (all read from real old-app files):**
+- Service categories: `["Consultation", "Diagnostic", "Procedure", "Optical", "Other"]` — from old SettingsPage.tsx CATEGORY_OPTIONS
+- Medicine categories: `["Eye Drop", "Tablet", "Capsule", "Ointment", "Injection", "Syrup", "Other"]` — from MedicineMasterTab
+- Prescription timings: 16 values "1-1-1" through "Monthly" — from MEDICINE_TIMINGS constant
+- Prescription days: 13 values "1" through "Continuous" — from MEDICINE_DAYS constant
+- Package inclusions: `["Room Charges", "Medicine", "Consumables", "Surgery Charges", "Doctor Fee", "Nursing Care", "Food", "Lab Tests"]` — from PackageDialog
+- Print item types: `"cash" | "prescription" | "readings" | "report"` — from DefaultPrintConfig in src/lib/default-print.ts
+- Nav style values: `"side"` and `"top"` — verified from handleNavStyleChange in old HospitalTab
+- `InpatientTemplate.provisionDiagnosis` — NOT `provisionalDiagnosis`; field name verified from InpatientTemplateRow type in old SettingsPage.tsx
+- `doctorNames` and `onDutyDoctors` in Surgeries: returned as JSON-encoded strings by API; parsed via JSON.parse() matching old app behavior
+
+**Key architectural decisions:**
+- Sidebar-style vertical secondary nav (not horizontal tabs) — better UX with 10 sections, sections grouped into Templates / Master Data / Hospital Setup
+- Nav style integrated in HospitalProfileSection (not its own section) — matches old app's HospitalTab that included both profile and nav style in one form
+- Print config: local parsePrintConfig() helper with defensive typing for the free-form JSON blob; item ordering with move-up/move-down buttons; DropdownMenu to add new receipt types
+- useMedicineMaster() called inside prescription/inpatient form dialogs for medicine name autocomplete (via plain HTML datalist); safe because hook is called when dialog mounts
+- useState initializer pattern for form state (not useEffect reset) — avoids unnecessary re-renders on dialog close
+
+**Build:** `npx tsc -b 2>&1 | grep -i settings` — zero TypeScript errors in all settings files.
