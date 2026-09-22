@@ -48,7 +48,7 @@ corresponding old `src/app/(...)/<module>` code has 🗑️.
 | 17 | dues-followups | 8 | ✅ | ⬜ | ⬜ | ⬜ |
 | 18 | call-logs | 8 | ✅ | ⬜ | ⬜ | ⬜ |
 | 19 | license-tracker | 6 | ✅ | ⬜ | ⬜ | ⬜ |
-| 20 | dashboard | 2 | ⬜ | ⬜ | ⬜ | ⬜ |
+| 20 | dashboard | 2 | ✅ | ⬜ | ⬜ | ⬜ |
 | | **Total** | **234** | | | | |
 
 Scaffold status (Phase 6, structural skeleton — not counted as "Backend
@@ -404,8 +404,8 @@ work progresses, not appended to.
 ### dashboard (2)
 | Status | Method | Path | Permission | Source |
 |---|---|---|---|---|
-| ⬜ | GET | /dashboard/summary | `reports:view` | Aggregates today's patient + revenue stats |
-| ⬜ | GET | /dashboard/quick-stats | `reports:view` | YTD/MTD totals, active inpatient count |
+| ✅ | GET | /dashboard/summary | `reports:view` | Aggregates today's patient + revenue stats |
+| ✅ | GET | /dashboard/quick-stats | `reports:view` | YTD/MTD totals, active inpatient count |
 
 ---
 
@@ -927,3 +927,22 @@ captured in the phase docs.
   `index.ts` not modified — all 16 route wirings and permission guards correct from Phase 6 scaffold.
   `deno check` not run — Deno not installed in this environment.
   optical module Status Summary Backend column: ⬜ → ✅.
+- **2026-09-22** — Phase 7 Wave 4: `dashboard` module backend complete (2 endpoints). The old
+  DashboardClient.tsx is pure navigation UI — no data fetching, so there was no old actions.ts
+  to reference for parity. Data definitions were sourced from other already-implemented modules:
+  `getTodaySummary` uses the IST-correct `istDayBounds` helper (same implementation as
+  billing/repository.ts) for today's window; `getQuickStats` uses UTC midnight boundaries
+  (matching analytics/service.ts's `resolveDateRange`). Revenue column names sourced directly
+  from analytics/repository.ts: Prescription (total/amountPaid/balanceDue),
+  PharmacyBill (billAmount/paidAmount/balanceDue), LabBill (total/amountPaid/balanceDue),
+  OpticalBill (billAmount/paidAmount/balanceDue), InPatient (netAmount/totalReceivedAmount/
+  balanceAmount). Status filters match analytics exactly: non-CANCELLED for Prescription,
+  PharmacyBill, OpticalBill; no filter for LabBill; InPatient active count by
+  `.neq('status', 'DISCHARGED')`. `pendingWorkup` (summary only) is approximate:
+  max(0, newPatientsToday - eyeReadingsToday) using EyeReading.readingDate IST window;
+  a precise per-patient workup join is the queue endpoint's responsibility.
+  `repository.ts` implements `getTodaySummary` (8 parallel queries) and `getQuickStats`
+  (13 parallel queries). `service.ts` implements two thin orchestrators.
+  `index.ts` not modified — route wiring and permission guards correct from Phase 6 scaffold.
+  `deno check` not run — Deno not installed in this environment.
+  dashboard module Status Summary Backend column: ⬜ → ✅.
