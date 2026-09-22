@@ -294,28 +294,28 @@ work progresses, not appended to.
 | ⬜ | PATCH | /settings/medicine-master/{id} | `settings:edit` | `updateMedicineMaster` |
 | ⬜ | DELETE | /settings/medicine-master/{id} | `settings:edit` | `deleteMedicineMaster` |
 
-### analytics (19) — all require `reports:view`, all share `?filter=today|week|month|year|custom&customStart&customEnd`
-| Status | Method | Path | Source |
-|---|---|---|---|
-| ⬜ | GET | /analytics/overview | `getAnalyticsOverview` |
-| ⬜ | GET | /analytics/gender-distribution | `getGenderDistribution` |
-| ⬜ | GET | /analytics/age-distribution | `getAgeDistribution` |
-| ⬜ | GET | /analytics/revenue-by-category | `getRevenueByCategory` |
-| ⬜ | GET | /analytics/time-series | `getTimeSeries` |
-| ⬜ | GET | /analytics/top-services | `getTopServices` |
-| ⬜ | GET | /analytics/expense-breakdown | `getExpenseBreakdown` |
-| ⬜ | GET | /analytics/financial-summary | `getFinancialSummary` |
-| ⬜ | GET | /analytics/payment-mode-breakdown | `getPaymentModeBreakdown` |
-| ⬜ | GET | /analytics/doctor-performance | `getDoctorPerformance` |
-| ⬜ | GET | /analytics/status-distribution | `getStatusDistribution` |
-| ⬜ | GET | /analytics/common-diagnoses | `getCommonDiagnoses` |
-| ⬜ | GET | /analytics/common-medicines | `getCommonMedicines` |
-| ⬜ | GET | /analytics/top-prescribed-investigations | `getTopPrescribedInvestigations` |
-| ⬜ | GET | /analytics/top-pharmacy-sales | `getTopPharmacySales` |
-| ⬜ | GET | /analytics/top-lab-tests | `getTopLabTests` |
-| ⬜ | GET | /analytics/referral-stats | `getReferralStats` |
-| ⬜ | GET | /analytics/surgery-breakdown | `getSurgeryBreakdown` |
-| ⬜ | GET | /analytics/region-stats | `getRegionStats` |
+### analytics (19) — all share `?filter=today|week|month|year|custom&customStart&customEnd`
+| Status | Method | Path | Permission | Source |
+|---|---|---|---|---|
+| ⬜ | GET | /analytics/overview | `reports:view` | `getAnalyticsOverview` |
+| ⬜ | GET | /analytics/gender-distribution | `reports:view` | `getGenderDistribution` |
+| ⬜ | GET | /analytics/age-distribution | `reports:view` | `getAgeDistribution` |
+| ⬜ | GET | /analytics/revenue-by-category | `reports:view` | `getRevenueByCategory` |
+| ⬜ | GET | /analytics/time-series | `reports:view` | `getTimeSeries` |
+| ⬜ | GET | /analytics/top-services | `reports:view` | `getTopServices` |
+| ⬜ | GET | /analytics/expense-breakdown | `reports:view` | `getExpenseBreakdown` |
+| ⬜ | GET | /analytics/financial-summary | `reports:view` | `getFinancialSummary` |
+| ⬜ | GET | /analytics/payment-mode-breakdown | `reports:view` | `getPaymentModeBreakdown` |
+| ⬜ | GET | /analytics/doctor-performance | `reports:view` | `getDoctorPerformance` |
+| ⬜ | GET | /analytics/status-distribution | `reports:view` | `getStatusDistribution` |
+| ⬜ | GET | /analytics/common-diagnoses | `reports:view` | `getCommonDiagnoses` |
+| ⬜ | GET | /analytics/common-medicines | `reports:view` | `getCommonMedicines` |
+| ⬜ | GET | /analytics/top-prescribed-investigations | `reports:view` | `getTopPrescribedInvestigations` |
+| ⬜ | GET | /analytics/top-pharmacy-sales | `reports:view` | `getTopPharmacySales` |
+| ⬜ | GET | /analytics/top-lab-tests | `reports:view` | `getTopLabTests` |
+| ⬜ | GET | /analytics/referral-stats | `reports:view` | `getReferralStats` |
+| ⬜ | GET | /analytics/surgery-breakdown | `reports:view` | `getSurgeryBreakdown` |
+| ⬜ | GET | /analytics/region-stats | `reports:view` | `getRegionStats` |
 
 ### reports (17)
 | Status | Method | Path | Permission | Source |
@@ -384,7 +384,7 @@ work progresses, not appended to.
 | ⬜ | PATCH | /call-logs/{id}/patient | `call_logs:edit` (new) | `linkCallToPatient` |
 | ⬜ | GET | /call-logs/patients/search | `call_logs:view` (new) | `searchPatients` |
 | ⬜ | POST | /call-logs/sync | `call_logs:sync` (new) | `syncExotelCalls` |
-| ⬜ | POST | /call-logs/webhook/exotel | token-only (no JWT) | `api/exotel/webhook/route.ts` — **fix H-2 fail-open bug during porting, do not carry it forward** |
+| ⬜ | POST | /call-logs/webhook/exotel | `token-only` (no JWT, see openapi.yaml description) | `api/exotel/webhook/route.ts` — **fix H-2 fail-open bug during porting, do not carry it forward** |
 
 ### license-tracker (6)
 | Status | Method | Path | Permission | Source |
