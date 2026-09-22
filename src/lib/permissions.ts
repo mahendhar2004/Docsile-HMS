@@ -134,6 +134,28 @@ export const ALL_PERMISSIONS = {
       { key: "data:export", label: "Export Data" },
     ],
   },
+  billing: {
+    label: "Billing",
+    permissions: [
+      { key: "billing:view", label: "View Billing" },
+      { key: "billing:create", label: "Record Payments" },
+      { key: "billing:delete", label: "Void Payments (Admin Only)" },
+    ],
+  },
+  queue: {
+    label: "Queue",
+    permissions: [
+      { key: "queue:view", label: "View Queue Boards" },
+    ],
+  },
+  call_logs: {
+    label: "Call Logs",
+    permissions: [
+      { key: "call_logs:view", label: "View Call Logs" },
+      { key: "call_logs:edit", label: "Edit Call Logs" },
+      { key: "call_logs:sync", label: "Sync Call Logs from Exotel" },
+    ],
+  },
 } as const
 
 // Flat list of all permission keys
@@ -161,6 +183,8 @@ export const DEFAULT_ROLE_PERMISSIONS: Record<string, string[]> = {
     "insurance:view",
     "dues:view",
     "reports:view",
+    "billing:view",
+    "queue:view",
   ],
   RECEPTIONIST: [
     "dashboard:view",
@@ -174,6 +198,9 @@ export const DEFAULT_ROLE_PERMISSIONS: Record<string, string[]> = {
     "insurance:view", "insurance:create",
     "dues:view", "dues:edit",
     "expenses:view", "expenses:create",
+    "billing:view", "billing:create",
+    "queue:view",
+    "call_logs:view", "call_logs:edit", "call_logs:sync",
   ],
   OPTOMETRIST: [
     "dashboard:view",
@@ -189,6 +216,7 @@ export const DEFAULT_ROLE_PERMISSIONS: Record<string, string[]> = {
     "doctor:view",
     "inpatients:view", "inpatients:edit",
     "dues:view",
+    "queue:view",
   ],
 }
 
