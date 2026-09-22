@@ -24,7 +24,7 @@ modules produce).
 | 7 | Pharmacy | `/pharmacy` | `pharmacy/*` (medicines, stock, suppliers, purchase orders, bills) | ✅ |
 | 8 | Optical | `/optical` | `optical/*` (products, stock, bills, AR reading, settings) | ✅ |
 | 9 | Labs | `/labs` | `labs/*` (labs, investigations, patient investigations, bills) | ✅ |
-| 10 | Insurance | `/insurance` | `insurance/*` (companies, claims, payments) | ⬜ |
+| 10 | Insurance | `/insurance` | `insurance/*` (companies, claims, payments) | ✅ |
 | 11 | Staff | `/staff` | `staff/*` (members, roles, permissions) | ⬜ |
 | 12 | Settings | `/settings` | `settings/*` (33 endpoints — hospital profile, templates, master data) | ⬜ |
 | 13 | Expenses | `/expenses` | `expenses/*` (categories, expenses by date range) | ⬜ |
@@ -362,6 +362,74 @@ web/src/pages/optical/settings-tab.tsx               — printHeaderKey setting 
 - `ColumnDef` uses `cell:` (not `render:`) for cell renderers
 
 **Build:** `npx tsc -b 2>&1 | grep optical` — zero optical-specific TypeScript errors.
+
+---
+
+### Page 10 — Insurance (`/insurance`) — 2026-09-22
+
+Replaced placeholder stub with a fully implemented InsurancePage (2-tab layout: Claims primary, Companies secondary).
+
+**File structure:**
+```
+web/src/pages/InsurancePage.tsx                        — thin composition root (permission gate + Tabs)
+web/src/pages/insurance/types.ts                       — all API types + enum constants + option lists
+web/src/pages/insurance/hooks.ts                       — TanStack Query hooks for all 12 insurance endpoints
+web/src/pages/insurance/companies-tab.tsx              — company CRUD (PaginatedDataTable + inline add + edit Dialog + deactivate ConfirmationModal)
+web/src/pages/insurance/claims-tab.tsx                 — claims list (PaginatedDataTable + status filter + row click detail)
+web/src/pages/insurance/claim-detail-panel.tsx         — Sheet: full claim lifecycle (Overview/Financials tabs + timeline + key dates + rejection cards + status change + payment)
+web/src/pages/insurance/create-claim-form.tsx          — Dialog: inpatient search + company select + policy fields + preauth amount
+web/src/pages/insurance/claim-status-form.tsx          — Dialog: status update with FULL field set per transition
+web/src/pages/insurance/payment-form.tsx               — Dialog: patient payment with insurance-specific payment modes
+```
+
+**Endpoints consumed:**
+- `GET /insurance/companies?page=N&pageSize=N` — insurance:view (paginated list)
+- `GET /insurance/companies?paginated=false` — insurance:view (dropdown)
+- `POST /insurance/companies` — insurance:edit
+- `PATCH /insurance/companies/{id}` — insurance:edit
+- `DELETE /insurance/companies/{id}` — insurance:edit (soft-delete)
+- `GET /insurance/claims?page=N&pageSize=N&status=...` — insurance:view
+- `POST /insurance/claims` — insurance:create
+- `GET /insurance/claims/{id}` — insurance:view
+- `PATCH /insurance/claims/{id}/status` — insurance:edit (FULL field set: status + notes + amount + rejectionReason + settlementReference + deductions)
+- `PATCH /insurance/claims/{id}/details` — insurance:edit
+- `POST /insurance/claims/{id}/payments` — insurance:edit
+- `GET /insurance/inpatients/search?q=...` — insurance:view
+
+**Permission keys used:**
+`insurance:view` (page gate + all reads), `insurance:create` (new claim), `insurance:edit` (all write actions)
+
+**Key verified enum/field values (against old Next.js app):**
+
+- `InsuranceClaimStatus` (13-value enum from `src/lib/types.ts`):
+  `PREAUTH_SUBMITTED | PREAUTH_QUERY | PREAUTH_APPROVED | PREAUTH_REJECTED | ENHANCEMENT_CLAIMED | ENHANCEMENT_QUERY | ENHANCEMENT_APPROVED | ENHANCEMENT_REJECTED | FINAL_BILL_SUBMITTED | SETTLED | PARTIALLY_SETTLED | CLAIM_REJECTED | CLOSED`
+
+- Status transitions: verified from `InsuranceStatusBadge.tsx INS_STATUS_TRANSITIONS`
+
+- Status update field logic (from `InsuranceClaimDetail.tsx`):
+  - `needsAmount`: PREAUTH_APPROVED | ENHANCEMENT_CLAIMED | ENHANCEMENT_APPROVED | SETTLED | PARTIALLY_SETTLED
+  - `needsRejection`: PREAUTH_REJECTED | ENHANCEMENT_REJECTED | CLAIM_REJECTED
+  - `needsSettlement` (adds settlementRef + deductions): SETTLED | PARTIALLY_SETTLED
+  - Notes: always shown
+
+- `PATCH /insurance/claims/{id}/status` body (full, per `UpdateClaimStatusSchema`):
+  `{ status, notes?, amount?, rejectionReason?, settlementReference?, deductions? }`
+
+- Insurance payment modes (from `InsuranceClaimDetail.tsx` line 28 `PAYMENT_MODES`):
+  `["Cash", "UPI", "Card", "Bank Transfer", "Cheque"]`
+  NOTE: "Bank Transfer" not "NEFT"/"Online" — different from billing module.
+
+- Relation to insured (from `InsuranceClaimForm.tsx` `RELATION_OPTIONS`):
+  `["Self", "Spouse", "Child", "Parent", "Other"]`
+
+- InsuranceClaim field names verified against `src/lib/types.ts InsuranceClaim`:
+  All 40+ fields matched exactly including `doctorNames` (JSON string[]), `statusHistory` (JSON), `packageInclusions` (JSON).
+
+- InsuranceCompany DB fields verified against `supabase/functions/insurance/types.ts`:
+  `name, tpaName, contactNumber, email, address, isActive`
+  (NOT `contactPerson`/`phone` which appear in OpenAPI but don't exist as DB columns per the supabase types comment)
+
+**Build:** `npx tsc -b` and `npm run build` — zero TypeScript errors in all insurance files. Full production build succeeds. InsurancePage chunk: 39.53 kB / 8.81 kB gzip. Chunk size warnings are pre-existing project-level, not new.
 
 ---
 
