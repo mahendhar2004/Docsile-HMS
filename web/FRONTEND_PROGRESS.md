@@ -28,7 +28,7 @@ modules produce).
 | 11 | Staff | `/staff` | `staff/*` (members, roles, permissions) | ✅ |
 | 12 | Settings | `/settings` | `settings/*` (33 endpoints — hospital profile, templates, master data) | ✅ |
 | 13 | Expenses | `/expenses` | `expenses/*` (categories, expenses by date range) | ✅ |
-| 14 | Dues & Follow-ups | `/dues-followups` | `dues-followups/*` (dues, followups, email templates) | ⬜ |
+| 14 | Dues & Follow-ups | `/dues-followups` | `dues-followups/*` (dues, followups, email templates) | ✅ |
 | 15 | Call Logs | `/call-logs` | `call-logs/*` (list, stats, notes, patient link, sync) | ⬜ |
 | 16 | License Tracker | `/license-tracker` | `license-tracker/*` (CRUD + document) | ⬜ |
 | 17 | Analytics | `/analytics` | `analytics/*` (19 endpoints) | ⬜ |
@@ -658,3 +658,60 @@ web/src/pages/settings/medicine-master-section.tsx          — full CRUD: name+
 - useState initializer pattern for form state (not useEffect reset) — avoids unnecessary re-renders on dialog close
 
 **Build:** `npx tsc -b 2>&1 | grep -i settings` — zero TypeScript errors in all settings files.
+
+---
+
+### Page 14 — Dues & Follow-ups (`/dues-followups`) — 2026-09-22
+
+Replaced placeholder stub with a fully implemented DuesFollowupsPage (2-tab layout).
+
+**File structure:**
+```
+web/src/pages/DuesFollowupsPage.tsx                    — thin composition root (permission gate + PageHeader + Tabs)
+web/src/pages/dues-followups/types.ts                  — all types verified against old app + supabase functions
+web/src/pages/dues-followups/hooks.ts                  — 6 query hooks + 2 mutation hooks (8 endpoints total)
+web/src/pages/dues-followups/dues-tab.tsx              — paginated dues list + mark-paid ConfirmationModal
+web/src/pages/dues-followups/followups-tab.tsx         — paginated follow-ups list + send-email row action
+web/src/pages/dues-followups/send-email-form.tsx       — Dialog: template picker (SingleSelect) + send via Sitha AI
+```
+
+**Endpoints consumed:**
+- `GET /dues-followups/dues?page=N&pageSize=N` → `DueRecord[]` (x-permission: dues:view)
+- `GET /dues-followups/followups?page=N&pageSize=N` → `FollowUpRecord[]` (x-permission: dues:view)
+- `PATCH /dues-followups/dues/{id}/mark-paid` → body: `{ type, paymentMode?, amount? }` (x-permission: dues:edit)
+- `GET /dues-followups/doctors` → `string[]` (x-permission: dues:view)
+- `GET /dues-followups/departments` → `string[]` (x-permission: dues:view)
+- `GET /dues-followups/email-templates` → `EmailTemplate[]` code+name (x-permission: dues:view)
+- `GET /dues-followups/hospital-name` → `string` (x-permission: dues:view)
+- `POST /dues-followups/send-email` → body: `{ patientId, templateId, customMessage? }` (x-permission: dues:edit)
+
+**Permission keys used (cross-checked against src/lib/permissions.ts — only dues:view and dues:edit exist):**
+- `dues:view` — page gate + all reads
+- `dues:edit` — mark-paid action + send-email action
+
+**Key verified field names (read from old app + supabase types — all match exactly):**
+
+DueRecord (from `src/app/(hospital)/dues-followups/actions.ts` + `supabase/functions/dues-followups/types.ts`):
+`id, type ("OPD"|"IPD"|"LAB"|"PHARMACY"), patientId, patientName, uhid, phone, services, totalAmount, amountPaid, balanceDue, date, prescriptionNumber?, labBillNumber?, pharmacyBillNumber?`
+
+FollowUpRecord (same sources):
+`id, type ("OPD"|"IPD"), patientId, patientName, uhid, phone, email (string|null), followUpDate, doctorName, department, diagnosis, additionalNotes, lastVisitDate, isOverdue`
+
+EmailTemplate (from `supabase/functions/dues-followups/types.ts`):
+`code, name`
+
+MarkPaidBody (from `supabase/functions/dues-followups/types.ts` MarkPaidSchema):
+`type: "prescription"|"inpatient"|"labBill"|"pharmacyBill"` (NOT the DueRecord.type enum — mapped via dueTypeToMarkPaidType())
+
+SendEmailBody (from `supabase/functions/dues-followups/types.ts` SendEmailSchema):
+`patientId (UHID), templateId (template code), customMessage?` — backend resolves patient email from UHID
+
+**Key implementation decisions:**
+- **No server-side filters for dues/followups:** The API (`/dues-followups/dues` and `/dues-followups/followups`) only accepts `page` and `pageSize` — no search/type/date/doctor/department filter params. Doctor and department list endpoints are loaded (hooks.ts) but the followups endpoint does not accept those as query params. Filter UI is omitted rather than faking client-side filtering on one page of paginated data.
+- **ConfirmationModal variant="warning"** for mark-paid: money-affecting but not destructive (paying off a real debt).
+- **additionalNotes JSON parsing:** `parseAdditionalNotes()` in followups-tab.tsx mirrors the old FollowUpsTab.tsx pattern — tries JSON.parse, extracts `.notes` or `.value`, falls back to raw string.
+- **Badge variants (verified against old DuesTab.tsx):** OPD→secondary, LAB→info, PHARMACY→warning, IPD→outline. Overdue badge uses `variant="error"` (new app has no "destructive" variant).
+- **Send-email patientId:** Sends `FollowUpRecord.patientId` (the UHID, e.g. "P-001") — the backend (service.ts sendEmail()) looks up patient email from DB. Not the email address itself.
+- **No summary stat cards:** The API returns `{ data, meta.total }` but no summary aggregates (totalOutstanding, opdCount, etc.). The old app computed these in the server action but the new Edge Function `getDues/getFollowups` services do not. Total record count shown as a text line above the table.
+
+**Build:** `npx tsc -b 2>&1 | grep -i dues` — zero TypeScript errors. Full `npx tsc -b` exit code 0 (no errors project-wide).
