@@ -38,12 +38,12 @@ components in `web/src/components/`. They're reviewed via a dev-only route,
 
 | Item | Status | Notes |
 |---|---|---|
-| Color tokens (extend existing + full status-color set) | ⬜ | success/warning/error/info/neutral + entity-specific status colors |
-| Typography scale | ⬜ | font sizes, weights, line-heights as reusable tokens |
-| Spacing scale | ⬜ | confirm/extend Tailwind's default scale usage conventions |
-| Motion tokens | ⬜ | easing curves (micro vs. macro), duration tokens, keyframes for entrance/exit |
-| Shadow/elevation scale | ⬜ | already partially exists — confirm/extend |
-| Radius scale | ⬜ | already exists — confirm reuse, no changes expected |
+| Color tokens (extend existing + full status-color set) | ✅ | Added error/neutral solid + soft (tinted bg) variants for all 5 status colors — soft variants are what StatusPill/chips use |
+| Typography scale | ✅ | `--text-display/title/subtitle/body/caption` + leading tokens in index.css |
+| Spacing scale | ✅ | Confirmed: using Tailwind's default scale as-is, no override needed |
+| Motion tokens | ✅ | `--ease-micro`/`--ease-fluid`/`--ease-spring` + duration tokens + dialog/sheet/list-item/toast keyframes + `.motion-*` utility classes, all CSS-only (no JS animation lib — kept intentional to not add runtime weight) |
+| Shadow/elevation scale | ✅ | Confirmed existing xs/sm/md/lg scale is sufficient, no changes |
+| Radius scale | ✅ | Confirmed existing scale is sufficient, no changes |
 
 ## Buttons
 
