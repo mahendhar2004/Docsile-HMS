@@ -31,7 +31,7 @@ modules produce).
 | 14 | Dues & Follow-ups | `/dues-followups` | `dues-followups/*` (dues, followups, email templates) | ✅ |
 | 15 | Call Logs | `/call-logs` | `call-logs/*` (list, stats, notes, patient link, sync) | ✅ |
 | 16 | License Tracker | `/license-tracker` | `license-tracker/*` (CRUD + document) | ✅ |
-| 17 | Analytics | `/analytics` | `analytics/*` (19 endpoints) | ⬜ |
+| 17 | Analytics | `/analytics` | `analytics/*` (19 endpoints) | ✅ |
 | 18 | Reports | `/reports` | `reports/*` (17 endpoints — patient search, summaries, bulk exports) | ⬜ |
 
 Already done: Login (`/login`), App shell/router, session store, API client, query
@@ -836,3 +836,89 @@ Default `reminderDays = 30` (from old app LicenseForm.tsx line 67).
 **Layout:** Card-based (not DataTable) — matches old app UI. 4-tile summary row + filter bar (search + status select + dynamic category select) + left-bordered cards with status badge, countdown chip, date columns, and document action row.
 
 **Build:** `tsc -b && vite build` — zero TypeScript errors (full exit 0), successful production build. LicenseTrackerPage chunk: 19.25 kB / 6.10 kB gzip.
+
+---
+
+### Page 17 — Analytics (`/analytics`) — 2026-09-22
+
+Replaced placeholder stub with a fully implemented AnalyticsPage (5-tab layout, 19 endpoints).
+
+**File structure:**
+```
+web/src/pages/AnalyticsPage.tsx                  — thin composition: permission gate + filter control + Tabs
+web/src/pages/analytics/types.ts                 — all 19 API type shapes, verified against old app actions.ts
+web/src/pages/analytics/hooks.ts                 — 19 TanStack Query hooks, one per endpoint, ANALYTICS_STALE=5min
+web/src/pages/analytics/overview-tab.tsx         — 5 queries: overview, gender, age, revenue-by-category, status-distribution
+web/src/pages/analytics/patients-tab.tsx         — 6 queries: time-series, gender, referrals, diagnoses, medicines, overview
+web/src/pages/analytics/revenue-tab.tsx          — 5 queries: financial-summary, expense-breakdown, time-series, revenue-by-category, payment-mode
+web/src/pages/analytics/performance-tab.tsx      — 9 queries: doctor-performance, top-services, referrals, surgery-breakdown, investigations, pharmacy-sales, lab-tests, medicines, overview
+web/src/pages/analytics/region-tab.tsx           — 1 query: region-stats
+```
+
+**Endpoints consumed (all 19, verified against .sde/schemas/openapi.yaml /analytics/* paths):**
+- `GET /analytics/overview` → `AnalyticsOverview` (31 fields)
+- `GET /analytics/gender-distribution` → `GenderDistribution` (male, female, other)
+- `GET /analytics/age-distribution` → `AgeGroup[]` (label, count; 8 groups: 0-10 through 71+)
+- `GET /analytics/revenue-by-category` → `RevenueByCategory[]` (category, amount, color; 5 categories)
+- `GET /analytics/time-series` → `TimeSeriesPoint[]` (date, patients, revenue, collected, expenses)
+- `GET /analytics/top-services` → `TopService[]` (name, count, revenue)
+- `GET /analytics/expense-breakdown` → `ExpenseByCategory[]` (category, amount, color)
+- `GET /analytics/financial-summary` → `FinancialSummary` (includes discountByModule + dailyBreakdown)
+- `GET /analytics/payment-mode-breakdown` → `PaymentModeBreakdown[]` (mode, amount, percentage)
+- `GET /analytics/doctor-performance` → `DoctorPerformance[]` (name, patients, revenue)
+- `GET /analytics/status-distribution` → `StatusDistribution[]` (status, count)
+- `GET /analytics/common-diagnoses` → `CommonDiagnosis[]` (diagnosis, count, percentage)
+- `GET /analytics/common-medicines` → `CommonMedicine[]` (name, count, percentage)
+- `GET /analytics/top-prescribed-investigations` → `CommonInvestigation[]` (name, count, percentage)
+- `GET /analytics/top-pharmacy-sales` → `PharmacySaleStat[]` (name, quantity, revenue)
+- `GET /analytics/top-lab-tests` → `LabTestStat[]` (name, count, revenue)
+- `GET /analytics/referral-stats` → `ReferralStat[]` (name, count)
+- `GET /analytics/surgery-breakdown` → `SurgeryBreakdown[]` (name, count)
+- `GET /analytics/region-stats` → `RegionStat[]` (region, total, newPatients, returning, percentage)
+
+**Tab → endpoint mapping (matches old app AnalyticsPage.tsx loadData exactly):**
+- Overview: overview, gender-distribution, age-distribution, revenue-by-category, status-distribution
+- Patients: time-series, gender-distribution, referral-stats, common-diagnoses, common-medicines
+- Revenue & Finance: financial-summary, expense-breakdown, time-series, revenue-by-category, payment-mode-breakdown
+- Performance: top-services, doctor-performance, referral-stats, surgery-breakdown, top-prescribed-investigations, top-pharmacy-sales, top-lab-tests, common-medicines
+- Region: region-stats
+
+**Filter mechanics:**
+- Shared at page level via `useState<TimeFilter>("today")`
+- `SingleSelect` with options: today | week | month | year | custom
+- `DateRangePicker` shown only when `filter === "custom"`; converts `DateRange` → `yyyy-MM-dd` strings
+- Filter + customStart/customEnd passed as props to each tab; all query keys include them so filter change triggers refetch
+
+**Chart type decisions (verified against old app tab files):**
+- Revenue Mix (overview): `ThemedDonutChart` — old app used PieChart donut with SOURCE_COLORS
+- Gender Distribution: `ThemedDonutChart` — old app used PieChart donut
+- Status Distribution: `ThemedDonutChart` — additional donut in Overview tab
+- Daily Patient Volume: `ThemedAreaChart` single-series — old app used AreaChart with area fill
+- Referral Sources: `ThemedDonutChart` — old app used PieChart donut
+- Common Diagnoses/Medicines: `ThemedDonutChart` — old app used PieChart donut
+- Revenue vs Expenses Trend: `ThemedAreaChart` multi-series (Collected + Expenses) — old app used multi-series AreaChart
+- Revenue by Department: `ThemedDonutChart` — old app used PieChart donut
+- Payment Mode Breakdown: `ThemedDonutChart` — old app used PieChart donut
+- Expense Breakdown: `ThemedDonutChart` — old app used PieChart donut
+- Region New vs Returning: `ThemedBarChart` stacked horizontal — old app used custom stacked div bars
+- Regional Distribution: `ThemedDonutChart` — old app used PieChart donut
+- Doctor Leaderboard, Top Services, Surgery Breakdown, Medicine Lists, Investigation Lists, Lab Test Lists, Region Leaderboard: ranked div-based lists with proportional bars — matches old app exactly (no chart library needed)
+
+**Financial Summary + Discount bars:** Custom proportional div bars (not chart library) — matches old app's OverviewTab.tsx and RevenueTab.tsx patterns.
+
+**Daily Ledger:** HTML table with PDF download (window.open print) — exact same implementation as RevenueTab.tsx, matching field names: date, billed, collected, expenses, discount, dues.
+
+**Key verified field names and enum values (all read from old app actions.ts):**
+- `TimeFilter = "today" | "week" | "month" | "year" | "custom"` (EXACT — same as query param values)
+- Custom params: `customStart` and `customEnd` (exact param names from OpenAPI + old app)
+- `AnalyticsOverview.totalConsultationRevenue` (not consultationRevenue), `totalInpatientRevenue`, etc.
+- `FinancialSummary.discountByModule`: keys are `consultations`, `labs`, `pharmacy`, `optical`, `inpatient`
+- `DailyFinancial`: `date, billed, collected, discount, dues, expenses` (not revenue/amount variants)
+- `RevenueByCategory.category` values (5): `"Consultations"`, `"Labs"`, `"Pharmacy"`, `"Optical"`, `"In-Patient"`
+- `CommonDiagnosis.diagnosis` (field name is `diagnosis`, not `name`)
+- STATUS_COLORS: 10 status keys verified from analytics-shared.tsx (REGISTERED/IN_WORKUP/WORKUP_DONE/WITH_DOCTOR/VISITED/COMPLETED/MEDICAL_ONLY/MOVED/CANCELLED/NO_SHOW)
+- `RegionStat.getInsightBadge()` thresholds: copied exactly from RegionTab.tsx (pct>=0.6 Strong, >=0.3 Stable, >=0.15 Opportunity, else Focus Needed)
+
+**Permission:** `reports:view` — page gate only; all endpoints use the same permission.
+
+**Build:** `npx tsc -b 2>&1 | grep -i analytics` — zero errors. Full `npx tsc -b` — zero errors project-wide.
