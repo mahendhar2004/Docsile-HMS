@@ -309,7 +309,7 @@ export function LicensesList({ createOpen, onCreateOpenChange }: LicensesListPro
           {Array.from({ length: 4 }).map((_, i) => (
             <div
               key={i}
-              className="bg-white rounded-xl border border-gray-100 p-5 space-y-3"
+              className="rounded-[var(--radius-lg)] bg-[var(--color-card)] shadow-[var(--shadow-card)] p-5 space-y-3"
             >
               <Skeleton className="h-5 w-2/3" />
               <Skeleton className="h-4 w-1/2" />
@@ -349,19 +349,19 @@ export function LicensesList({ createOpen, onCreateOpenChange }: LicensesListPro
 
       {/* ── Summary stats ──────────────────────────────────────────────────────── */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-        <div className="bg-white rounded-xl border border-border/60 shadow-sm px-4 py-3">
+        <div className="rounded-[var(--radius-lg)] bg-[var(--color-card)] shadow-[var(--shadow-card)] px-4 py-3">
           <p className="text-xs text-muted-foreground">Total</p>
           <p className="text-2xl font-bold text-foreground">{summary.total}</p>
         </div>
-        <div className="bg-white rounded-xl border border-green-100 shadow-sm px-4 py-3">
+        <div className="rounded-[var(--radius-lg)] bg-[var(--color-success-soft)] shadow-[var(--shadow-card)] px-4 py-3">
           <p className="text-xs text-green-600">Active</p>
           <p className="text-2xl font-bold text-green-700">{summary.active}</p>
         </div>
-        <div className="bg-white rounded-xl border border-amber-100 shadow-sm px-4 py-3">
+        <div className="rounded-[var(--radius-lg)] bg-[var(--color-warning-soft)] shadow-[var(--shadow-card)] px-4 py-3">
           <p className="text-xs text-amber-600">Expiring Soon</p>
           <p className="text-2xl font-bold text-amber-700">{summary.expiring}</p>
         </div>
-        <div className="bg-white rounded-xl border border-red-100 shadow-sm px-4 py-3">
+        <div className="rounded-[var(--radius-lg)] bg-[var(--color-error-soft)] shadow-[var(--shadow-card)] px-4 py-3">
           <p className="text-xs text-red-600">Expired</p>
           <p className="text-2xl font-bold text-red-700">{summary.expired}</p>
         </div>
@@ -439,7 +439,7 @@ export function LicensesList({ createOpen, onCreateOpenChange }: LicensesListPro
               <article
                 key={lic.id}
                 aria-label={`License: ${lic.name}`}
-                className={`bg-white rounded-xl border border-gray-100 border-l-4 ${cfg.borderClass} shadow-sm px-5 py-4 hover:shadow-md transition-shadow`}
+                className={`rounded-[var(--radius-lg)] bg-[var(--color-card)] border-l-4 ${cfg.borderClass} shadow-[var(--shadow-card)] px-5 py-4 hover:shadow-md transition-shadow`}
               >
                 <div className="flex items-start gap-4">
                   {/* Left: category label + name + meta */}

@@ -124,7 +124,7 @@ export function LabsTab() {
 
       {/* Loading skeleton */}
       {isLoading && (
-        <div className="rounded-xl border border-border bg-white overflow-hidden">
+        <div className="rounded-[var(--radius-lg)] bg-[var(--color-card)] shadow-[var(--shadow-card)] overflow-hidden">
           <div className="bg-muted/50 px-4 py-2.5 border-b border-border flex gap-8">
             {Array.from({ length: 4 }).map((_, i) => (
               <Skeleton key={i} className="h-3 w-20" />

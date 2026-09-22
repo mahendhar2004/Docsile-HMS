@@ -296,7 +296,7 @@ export function InvestigationAssignmentForm({
           <p className="text-xs font-semibold text-blue-700 uppercase tracking-wider mb-2 px-1">
             {category}
           </p>
-          <div className="rounded-xl border border-border bg-white overflow-hidden">
+          <div className="rounded-[var(--radius-lg)] bg-[var(--color-card)] shadow-[var(--shadow-card)] overflow-hidden">
             <table className="w-full text-sm" aria-label={`${category} investigations`}>
               <thead>
                 <tr className="bg-muted border-b border-border">
@@ -387,7 +387,7 @@ export function InvestigationAssignmentForm({
 
       {/* Empty search result */}
       {filtered.length === 0 && (
-        <div className="rounded-xl border border-border bg-white py-16 text-center">
+        <div className="rounded-[var(--radius-lg)] bg-[var(--color-card)] shadow-[var(--shadow-card)] py-16 text-center">
           <p className="font-medium text-muted-foreground">
             No investigations found
           </p>

@@ -84,7 +84,7 @@ export function PendingTab() {
 
       {/* Loading state */}
       {isLoading && (
-        <div className="rounded-xl border border-border bg-white overflow-hidden divide-y divide-border/40">
+        <div className="rounded-[var(--radius-lg)] bg-[var(--color-card)] shadow-[var(--shadow-card)] overflow-hidden divide-y divide-border/40">
           {Array.from({ length: 5 }).map((_, i) => (
             <div key={i} className="flex items-center gap-3 px-4 py-3">
               <Skeleton className="h-4 w-20" />
@@ -118,7 +118,7 @@ export function PendingTab() {
         <div
           role="list"
           aria-label="Patients with pending investigations"
-          className="rounded-xl border border-border bg-white overflow-hidden divide-y divide-border/40"
+          className="rounded-[var(--radius-lg)] bg-[var(--color-card)] shadow-[var(--shadow-card)] overflow-hidden divide-y divide-border/40"
         >
           {patients.map((p) => (
             <div

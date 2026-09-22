@@ -308,7 +308,7 @@ export function OpticalBillForm({ onSuccess, onCancel }: OpticalBillFormProps) {
       {/* ── Left: Form ───────────────────────────────────────────────────────── */}
       <div className="md:col-span-8 space-y-5">
         {/* Patient Lookup */}
-        <div className="rounded-xl border border-border bg-card p-4 space-y-3">
+        <div className="rounded-[var(--radius-lg)] bg-[var(--color-card)] shadow-[var(--shadow-card)] p-4 space-y-3">
           <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
             Patient
           </p>
@@ -414,7 +414,7 @@ export function OpticalBillForm({ onSuccess, onCancel }: OpticalBillFormProps) {
         </div>
 
         {/* Add Items */}
-        <div className="rounded-xl border border-border bg-card p-4 space-y-3">
+        <div className="rounded-[var(--radius-lg)] bg-[var(--color-card)] shadow-[var(--shadow-card)] p-4 space-y-3">
           <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
             Add Items
           </p>
@@ -622,7 +622,7 @@ export function OpticalBillForm({ onSuccess, onCancel }: OpticalBillFormProps) {
         </div>
 
         {/* Payment details */}
-        <div className="rounded-xl border border-border bg-card p-4 space-y-4">
+        <div className="rounded-[var(--radius-lg)] bg-[var(--color-card)] shadow-[var(--shadow-card)] p-4 space-y-4">
           <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
             Payment
           </p>
@@ -669,7 +669,7 @@ export function OpticalBillForm({ onSuccess, onCancel }: OpticalBillFormProps) {
 
       {/* ── Right: Summary ────────────────────────────────────────────────────── */}
       <div className="md:col-span-4">
-        <div className="sticky top-24 rounded-xl border border-border bg-card p-4 space-y-4">
+        <div className="sticky top-24 rounded-[var(--radius-lg)] bg-[var(--color-card)] shadow-[var(--shadow-card)] p-4 space-y-4">
           <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
             Bill Summary
           </p>

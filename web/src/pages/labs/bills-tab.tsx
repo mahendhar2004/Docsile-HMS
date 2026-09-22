@@ -102,7 +102,7 @@ function BillCard({
   const balance = total - form.amountPaid
 
   return (
-    <div className="rounded-xl border border-border bg-white overflow-hidden">
+    <div className="rounded-[var(--radius-lg)] bg-[var(--color-card)] shadow-[var(--shadow-card)] overflow-hidden">
       {/* Card header */}
       <div className="bg-muted/50 px-4 py-3 border-b border-border">
         <h4 className="font-semibold text-sm">{lab.name}</h4>
@@ -564,7 +564,7 @@ export function BillsTab() {
       {/* ── BILLING SECTION ────────────────────────────────────────────────────── */}
       <section
         aria-label="Generate lab bills"
-        className="rounded-xl border border-blue-100 bg-white p-5 space-y-4"
+        className="rounded-[var(--radius-lg)] bg-[var(--color-card)] shadow-[var(--shadow-card)] p-5 space-y-4"
       >
         <p className="text-xs font-semibold text-blue-700 uppercase tracking-wider px-1">
           Generate Lab Bills
@@ -665,7 +665,7 @@ export function BillsTab() {
 
         {/* No prescription state */}
         {patientData?.patient && !patientData.prescription && (
-          <div className="rounded-xl border border-border bg-white py-12 text-center">
+          <div className="rounded-[var(--radius-lg)] bg-[var(--color-card)] shadow-[var(--shadow-card)] py-12 text-center">
             <FileText
               className="h-8 w-8 mx-auto mb-2 text-muted-foreground opacity-40"
               aria-hidden="true"
@@ -682,7 +682,7 @@ export function BillsTab() {
           labGroups.length === 0 &&
           (patientData.unassigned?.length ?? 0) === 0 &&
           completedBills.length === 0 && (
-            <div className="rounded-xl border border-border bg-white py-12 text-center">
+            <div className="rounded-[var(--radius-lg)] bg-[var(--color-card)] shadow-[var(--shadow-card)] py-12 text-center">
               <FileText
                 className="h-8 w-8 mx-auto mb-2 text-muted-foreground opacity-40"
                 aria-hidden="true"
@@ -840,7 +840,7 @@ export function BillsTab() {
           const bill = billsQuery.data.find((b) => b.id === expandedBillId)
           if (!bill) return null
           return (
-            <div className="rounded-xl border border-border bg-muted/30 px-6 py-4 mt-2 space-y-2">
+            <div className="rounded-[var(--radius-lg)] bg-muted/30 shadow-[var(--shadow-card)] px-6 py-4 mt-2 space-y-2">
               <p className="text-xs font-medium text-muted-foreground">
                 Investigations:
               </p>
@@ -886,7 +886,7 @@ function PatientInfoCard({
   prescription: PrescriptionInfo | null
 }) {
   return (
-    <div className="rounded-xl border border-border bg-white p-4">
+    <div className="rounded-[var(--radius-lg)] bg-[var(--color-card)] shadow-[var(--shadow-card)] p-4">
       <div className="flex items-center gap-3">
         <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary/10 shrink-0">
           <User className="h-5 w-5 text-primary" aria-hidden="true" />

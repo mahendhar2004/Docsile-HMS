@@ -71,7 +71,7 @@ export function SettingsTab({ canViewSettings, canEditSettings }: SettingsTabPro
 
   return (
     <div className="max-w-lg space-y-6">
-      <div className="rounded-xl border border-border bg-card p-5 space-y-4">
+      <div className="rounded-[var(--radius-lg)] bg-[var(--color-card)] shadow-[var(--shadow-card)] p-5 space-y-4">
         <div className="flex items-center gap-2 mb-1">
           <Settings2 className="h-4 w-4 text-primary" aria-hidden="true" />
           <h3 className="text-sm font-semibold">Print Settings</h3>
