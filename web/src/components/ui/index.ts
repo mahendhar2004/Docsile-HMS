@@ -133,3 +133,18 @@ export {
   TableCell,
   TableCaption,
 } from "./table"
+
+export { Card, cardVariants, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from "./card"
+export type { CardProps } from "./card"
+
+export { Avatar, AvatarImage, AvatarFallback, avatarVariants } from "./avatar"
+export type { AvatarProps, AvatarSize } from "./avatar"
+
+export { Separator } from "./separator"
+export type { SeparatorProps } from "./separator"
+
+export { ScrollArea, ScrollBar } from "./scroll-area"
+export type { ScrollAreaProps, ScrollBarProps } from "./scroll-area"
+
+export { Skeleton } from "./skeleton"
+export type { SkeletonProps } from "./skeleton"

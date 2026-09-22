@@ -3,6 +3,10 @@
 export { EmptyState } from "./EmptyState"
 export { ErrorState } from "./ErrorState"
 
+// Cards & stats
+export { StatCard } from "./cards"
+export type { StatCardProps, StatCardTrend, TrendDirection } from "./cards"
+
 // Forms
 export { FormField, FormFieldRow, FormSection } from "./forms"
 export type { FormFieldProps, FormFieldRowProps, FormSectionProps } from "./forms"
