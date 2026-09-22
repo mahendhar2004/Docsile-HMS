@@ -93,21 +93,21 @@ export default function LoginPage() {
   return (
     <div className="min-h-screen flex bg-[var(--color-background)]">
       {/* Left panel — aurora background, illustration, branding. Hidden below lg. */}
-      <div className="hidden lg:flex lg:w-1/2 relative flex-col items-center justify-center gap-10 p-12 overflow-hidden">
+      <div className="hidden lg:flex lg:w-1/2 relative flex-col items-center justify-center gap-8 px-12 py-10 overflow-hidden">
         {/* Aurora backdrop — two soft blurred color blobs, not a flat gradient */}
         <div className="absolute inset-0 -z-10" aria-hidden="true">
           <div
-            className="absolute -top-24 -left-24 h-[28rem] w-[28rem] rounded-full opacity-60"
+            className="absolute -top-32 -left-32 h-[34rem] w-[34rem] rounded-full opacity-60"
             style={{
               background: "var(--color-primary)",
-              filter: "blur(120px)",
+              filter: "blur(130px)",
             }}
           />
           <div
-            className="absolute -bottom-32 -right-16 h-[26rem] w-[26rem] rounded-full opacity-40"
+            className="absolute -bottom-40 -right-24 h-[32rem] w-[32rem] rounded-full opacity-40"
             style={{
               background: "var(--color-success)",
-              filter: "blur(130px)",
+              filter: "blur(140px)",
             }}
           />
           <div className="absolute inset-0 bg-[var(--color-background)]/70" />
@@ -117,10 +117,10 @@ export default function LoginPage() {
           src={medicineIllustration}
           alt=""
           aria-hidden="true"
-          className="w-full max-w-sm motion-list-item-in"
+          className="w-full max-w-xl motion-list-item-in"
         />
 
-        <h2 className="text-[length:var(--text-title)] font-bold text-[var(--color-foreground)] tracking-tight text-center">
+        <h2 className="text-[length:var(--text-display)] font-bold text-[var(--color-foreground)] tracking-tight text-center">
           Care, connected.
         </h2>
 
