@@ -45,23 +45,28 @@ const DropdownMenuContent = React.forwardRef<
   React.ElementRef<typeof DropdownMenuPrimitive.Content>,
   React.ComponentPropsWithoutRef<typeof DropdownMenuPrimitive.Content>
 >(({ className, sideOffset = 6, ...props }, ref) => (
-  <DropdownMenuPrimitive.Portal>
+  // See ui/popover.tsx for why <style> must be a sibling of Portal, not a
+  // child alongside Content — DropdownMenuPortal has the same single-child
+  // asChild Slot internally (it's built on @radix-ui/react-menu).
+  <>
     <style href="docsile-dropdown-animations" precedence="component">
       {DROPDOWN_ANIMATION_CSS}
     </style>
-    <DropdownMenuPrimitive.Content
-      ref={ref}
-      data-dropdown-content
-      sideOffset={sideOffset}
-      className={cn(
-        'z-50 min-w-[9rem] overflow-hidden rounded-[var(--radius-md)]',
-        'bg-[var(--color-popover)] text-[var(--color-popover-foreground)]',
-        'shadow-[var(--shadow-popover)] p-1 outline-none',
-        className,
-      )}
-      {...props}
-    />
-  </DropdownMenuPrimitive.Portal>
+    <DropdownMenuPrimitive.Portal>
+      <DropdownMenuPrimitive.Content
+        ref={ref}
+        data-dropdown-content
+        sideOffset={sideOffset}
+        className={cn(
+          'z-50 min-w-[9rem] overflow-hidden rounded-[var(--radius-md)]',
+          'bg-[var(--color-popover)] text-[var(--color-popover-foreground)]',
+          'shadow-[var(--shadow-popover)] p-1 outline-none',
+          className,
+        )}
+        {...props}
+      />
+    </DropdownMenuPrimitive.Portal>
+  </>
 ));
 DropdownMenuContent.displayName = 'DropdownMenuContent';
 

@@ -28,32 +28,37 @@ const TooltipContent = React.forwardRef<
   React.ElementRef<typeof TooltipPrimitive.Content>,
   React.ComponentPropsWithoutRef<typeof TooltipPrimitive.Content>
 >(({ className, sideOffset = 4, ...props }, ref) => (
-  <TooltipPrimitive.Portal>
+  // See popover.tsx for why <style> must be a sibling of Portal, not a
+  // child alongside Content — TooltipPortal has the same single-child
+  // asChild Slot internally.
+  <>
     <style href="docsile-tooltip-animations" precedence="component">
       {TOOLTIP_ANIMATION_CSS}
     </style>
-    <TooltipPrimitive.Content
-      ref={ref}
-      data-tooltip-content
-      sideOffset={sideOffset}
-      className={cn(
-        'z-50 rounded-[var(--radius-sm)]',
-        'bg-[var(--color-foreground)] text-[var(--color-surface)]',
-        'px-3 py-1.5 text-[length:var(--text-caption)] font-medium',
-        'shadow-[var(--shadow-popover)]',
-        'select-none',
-        className,
-      )}
-      {...props}
-    >
-      {props.children}
-      <TooltipPrimitive.Arrow
-        className="fill-[var(--color-foreground)]"
-        width={10}
-        height={5}
-      />
-    </TooltipPrimitive.Content>
-  </TooltipPrimitive.Portal>
+    <TooltipPrimitive.Portal>
+      <TooltipPrimitive.Content
+        ref={ref}
+        data-tooltip-content
+        sideOffset={sideOffset}
+        className={cn(
+          'z-50 rounded-[var(--radius-sm)]',
+          'bg-[var(--color-foreground)] text-[var(--color-surface)]',
+          'px-3 py-1.5 text-[length:var(--text-caption)] font-medium',
+          'shadow-[var(--shadow-popover)]',
+          'select-none',
+          className,
+        )}
+        {...props}
+      >
+        {props.children}
+        <TooltipPrimitive.Arrow
+          className="fill-[var(--color-foreground)]"
+          width={10}
+          height={5}
+        />
+      </TooltipPrimitive.Content>
+    </TooltipPrimitive.Portal>
+  </>
 ));
 TooltipContent.displayName = 'TooltipContent';
 
