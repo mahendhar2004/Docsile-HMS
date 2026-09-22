@@ -315,16 +315,21 @@ components:
           type: string
         prescriptionId:
           type: string
-        name:
+        description:
           type: string
+        category:
+          type: string
+          nullable: true
         quantity:
           type: integer
         unitPrice:
           type: number
           format: double
-        total:
+        amount:
           type: number
           format: double
+        sortOrder:
+          type: integer
 
     Payment:
       type: object
@@ -399,13 +404,13 @@ components:
         tpaName:
           type: string
           nullable: true
-        contactPerson:
-          type: string
-          nullable: true
-        phone:
+        contactNumber:
           type: string
           nullable: true
         email:
+          type: string
+          nullable: true
+        address:
           type: string
           nullable: true
         isActive:
@@ -419,6 +424,14 @@ components:
 
     InsuranceClaim:
       type: object
+      description: >-
+        Abbreviated view of a ~35-column table — only the fields the API
+        surface actually reads/writes are listed here (matching
+        supabase/functions/insurance/{types,service}.ts). The response from
+        GET endpoints includes additional DB columns not listed below
+        (e.g. preauthSubmittedDate, statusHistory, packageInclusions);
+        treat this schema as the writable/primary-read contract, not an
+        exhaustive column list.
       properties:
         id:
           type: string
@@ -430,19 +443,49 @@ components:
         insuranceCompanyId:
           type: string
           nullable: true
+        insuranceCompanyName:
+          type: string
+        tpaName:
+          type: string
+          nullable: true
+        policyNumber:
+          type: string
+          nullable: true
+        policyHolderName:
+          type: string
+          nullable: true
+        insuranceCardNumber:
+          type: string
+          nullable: true
+        relationToInsured:
+          type: string
+          nullable: true
         status:
           type: string
-          description: e.g. submitted, approved, rejected, settled
-        claimedAmount:
+          description: e.g. PREAUTH_SUBMITTED, PREAUTH_APPROVED, SETTLED, REJECTED
+        preauthAmount:
           type: number
           format: double
-        approvedAmount:
+        totalApprovedAmount:
           type: number
           format: double
           nullable: true
-        settledAmount:
+          description: Set via PATCH .../details body field `approvedAmount`.
+        finalSettledAmount:
           type: number
           format: double
+          nullable: true
+          description: Set via PATCH .../details body field `settledAmount`.
+        patientPaidAmount:
+          type: number
+          format: double
+          nullable: true
+        patientBalance:
+          type: number
+          format: double
+          nullable: true
+        notes:
+          type: string
           nullable: true
         hospitalId:
           type: string
@@ -566,7 +609,7 @@ components:
           type: string
         categoryId:
           type: string
-        description:
+        title:
           type: string
         amount:
           type: number
@@ -574,6 +617,12 @@ components:
         date:
           type: string
           format: date
+        reason:
+          type: string
+          nullable: true
+        paymentMode:
+          type: string
+          nullable: true
         hospitalId:
           type: string
           readOnly: true
@@ -2733,7 +2782,13 @@ paths:
     put:
       tags: [labs]
       summary: Replace all investigations for a lab
-      description: Replace-all operation — removes existing lab-investigation links and creates new ones.
+      description: >-
+        Replace-all operation — removes existing lab-investigation links and
+        creates new ones, each carrying its own price (amount) and default-
+        selection flag. (Corrected post-Phase-5: the original spec only
+        carried a flat list of investigation IDs, which would have silently
+        discarded per-investigation pricing/defaults on every save — the old
+        Next.js code always accepted {investigationId, amount, isDefault}[].)
       x-permission: labs:config
       parameters:
         - name: labId
@@ -2747,12 +2802,20 @@ paths:
           application/json:
             schema:
               type: object
-              required: [investigationIds]
+              required: [investigations]
               properties:
-                investigationIds:
+                investigations:
                   type: array
                   items:
-                    type: string
+                    type: object
+                    required: [investigationId, amount, isDefault]
+                    properties:
+                      investigationId:
+                        type: string
+                      amount:
+                        type: number
+                      isDefault:
+                        type: boolean
       responses:
         '200':
           description: Lab investigations replaced.
