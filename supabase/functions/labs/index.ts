@@ -55,7 +55,7 @@ app.put('/labs/:labId/investigations', requirePermission('labs:config'), async (
   const s = c.get('session') as Session;
   const b = UpdateLabInvestigationsSchema.safeParse(await c.req.json());
   if (!b.success) return errorResponse(c, `Invalid investigations: ${b.error.errors[0].message}`, 400);
-  await service.updateLabInvestigations(s, c.req.param('labId'), b.data.investigationIds);
+  await service.updateLabInvestigations(s, c.req.param('labId'), b.data.investigations);
   return ok(c, null, 'Lab investigations replaced');
 });
 
