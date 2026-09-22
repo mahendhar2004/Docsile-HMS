@@ -41,12 +41,12 @@ corresponding old `src/app/(...)/<module>` code has 🗑️.
 | 10 | doctor | 11 | ⬜ | ⬜ | ⬜ | ⬜ |
 | 11 | staff | 12 | ⬜ | ⬜ | ⬜ | ⬜ |
 | 12 | settings | 33 | ⬜ | ⬜ | ⬜ | ⬜ |
-| 13 | analytics | 19 | ⬜ | ⬜ | ⬜ | ⬜ |
+| 13 | analytics | 19 | ✅ | ⬜ | ⬜ | ⬜ |
 | 14 | reports | 17 | ⬜ | ⬜ | ⬜ | ⬜ |
 | 15 | workup | 4 | ⬜ | ⬜ | ⬜ | ⬜ |
 | 16 | expenses | 10 | ⬜ | ⬜ | ⬜ | ⬜ |
 | 17 | dues-followups | 8 | ⬜ | ⬜ | ⬜ | ⬜ |
-| 18 | call-logs | 8 | ⬜ | ⬜ | ⬜ | ⬜ |
+| 18 | call-logs | 8 | ✅ | ⬜ | ⬜ | ⬜ |
 | 19 | license-tracker | 6 | ✅ | ⬜ | ⬜ | ⬜ |
 | 20 | dashboard | 2 | ⬜ | ⬜ | ⬜ | ⬜ |
 | | **Total** | **233** | | | | |
@@ -72,6 +72,7 @@ From `.sde/phases/5-api-design.md` §8 and the OpenAPI spec's tag descriptions:
 | Financial fields are `DOUBLE PRECISION` not `NUMERIC` | Pre-existing issue, out of scope for the migration itself, flagged for whenever the billing module is touched | 4-datamodel.md open question 5 |
 | `StaffAttendance` / `SocialPost` live-DB status uncertain | Needs owner confirmation in the Supabase dashboard | 4-datamodel.md open questions 1-2 |
 | Supabase project region (India-DPDP) | Needs owner confirmation in the Supabase dashboard | 2-architecture.md §1.1, 4-datamodel.md open question 3 |
+| Exotel webhook hospitalId resolution is single-tenant only | `POST /call-logs/webhook/exotel` falls back to a single-row `HospitalProfile` lookup when Exotel's request carries no `X-Hospital-Id` header — correct for the current one-hospital deployment, but will misattribute calls (or need to error) once a second hospital tenant is onboarded. Needs real per-hospital webhook routing (e.g. a hospital-specific webhook URL/token, or requiring the header) before that happens. | `call-logs` module implementation notes, 2026-09-22 |
 
 ---
 
@@ -297,25 +298,25 @@ work progresses, not appended to.
 ### analytics (19) — all share `?filter=today|week|month|year|custom&customStart&customEnd`
 | Status | Method | Path | Permission | Source |
 |---|---|---|---|---|
-| ⬜ | GET | /analytics/overview | `reports:view` | `getAnalyticsOverview` |
-| ⬜ | GET | /analytics/gender-distribution | `reports:view` | `getGenderDistribution` |
-| ⬜ | GET | /analytics/age-distribution | `reports:view` | `getAgeDistribution` |
-| ⬜ | GET | /analytics/revenue-by-category | `reports:view` | `getRevenueByCategory` |
-| ⬜ | GET | /analytics/time-series | `reports:view` | `getTimeSeries` |
-| ⬜ | GET | /analytics/top-services | `reports:view` | `getTopServices` |
-| ⬜ | GET | /analytics/expense-breakdown | `reports:view` | `getExpenseBreakdown` |
-| ⬜ | GET | /analytics/financial-summary | `reports:view` | `getFinancialSummary` |
-| ⬜ | GET | /analytics/payment-mode-breakdown | `reports:view` | `getPaymentModeBreakdown` |
-| ⬜ | GET | /analytics/doctor-performance | `reports:view` | `getDoctorPerformance` |
-| ⬜ | GET | /analytics/status-distribution | `reports:view` | `getStatusDistribution` |
-| ⬜ | GET | /analytics/common-diagnoses | `reports:view` | `getCommonDiagnoses` |
-| ⬜ | GET | /analytics/common-medicines | `reports:view` | `getCommonMedicines` |
-| ⬜ | GET | /analytics/top-prescribed-investigations | `reports:view` | `getTopPrescribedInvestigations` |
-| ⬜ | GET | /analytics/top-pharmacy-sales | `reports:view` | `getTopPharmacySales` |
-| ⬜ | GET | /analytics/top-lab-tests | `reports:view` | `getTopLabTests` |
-| ⬜ | GET | /analytics/referral-stats | `reports:view` | `getReferralStats` |
-| ⬜ | GET | /analytics/surgery-breakdown | `reports:view` | `getSurgeryBreakdown` |
-| ⬜ | GET | /analytics/region-stats | `reports:view` | `getRegionStats` |
+| ✅ | GET | /analytics/overview | `reports:view` | `getAnalyticsOverview` |
+| ✅ | GET | /analytics/gender-distribution | `reports:view` | `getGenderDistribution` |
+| ✅ | GET | /analytics/age-distribution | `reports:view` | `getAgeDistribution` |
+| ✅ | GET | /analytics/revenue-by-category | `reports:view` | `getRevenueByCategory` |
+| ✅ | GET | /analytics/time-series | `reports:view` | `getTimeSeries` |
+| ✅ | GET | /analytics/top-services | `reports:view` | `getTopServices` |
+| ✅ | GET | /analytics/expense-breakdown | `reports:view` | `getExpenseBreakdown` |
+| ✅ | GET | /analytics/financial-summary | `reports:view` | `getFinancialSummary` |
+| ✅ | GET | /analytics/payment-mode-breakdown | `reports:view` | `getPaymentModeBreakdown` |
+| ✅ | GET | /analytics/doctor-performance | `reports:view` | `getDoctorPerformance` |
+| ✅ | GET | /analytics/status-distribution | `reports:view` | `getStatusDistribution` |
+| ✅ | GET | /analytics/common-diagnoses | `reports:view` | `getCommonDiagnoses` |
+| ✅ | GET | /analytics/common-medicines | `reports:view` | `getCommonMedicines` |
+| ✅ | GET | /analytics/top-prescribed-investigations | `reports:view` | `getTopPrescribedInvestigations` |
+| ✅ | GET | /analytics/top-pharmacy-sales | `reports:view` | `getTopPharmacySales` |
+| ✅ | GET | /analytics/top-lab-tests | `reports:view` | `getTopLabTests` |
+| ✅ | GET | /analytics/referral-stats | `reports:view` | `getReferralStats` |
+| ✅ | GET | /analytics/surgery-breakdown | `reports:view` | `getSurgeryBreakdown` |
+| ✅ | GET | /analytics/region-stats | `reports:view` | `getRegionStats` |
 
 ### reports (17)
 | Status | Method | Path | Permission | Source |
@@ -377,14 +378,14 @@ work progresses, not appended to.
 ### call-logs (8) — new module, permission not yet in permissions.ts
 | Status | Method | Path | Permission | Source |
 |---|---|---|---|---|
-| ⬜ | GET | /call-logs/analytics | `call_logs:view` (new) | `getCallAnalytics` |
-| ⬜ | GET | /call-logs | `call_logs:view` (new) | `getCallLogs` |
-| ⬜ | GET | /call-logs/stats | `call_logs:view` (new) | `getCallStats` |
-| ⬜ | PATCH | /call-logs/{id}/notes | `call_logs:edit` (new) | `updateCallNotes` |
-| ⬜ | PATCH | /call-logs/{id}/patient | `call_logs:edit` (new) | `linkCallToPatient` |
-| ⬜ | GET | /call-logs/patients/search | `call_logs:view` (new) | `searchPatients` |
-| ⬜ | POST | /call-logs/sync | `call_logs:sync` (new) | `syncExotelCalls` |
-| ⬜ | POST | /call-logs/webhook/exotel | `token-only` (no JWT, see openapi.yaml description) | `api/exotel/webhook/route.ts` — **fix H-2 fail-open bug during porting, do not carry it forward** |
+| ✅ | GET | /call-logs/analytics | `call_logs:view` (new) | `getCallAnalytics` |
+| ✅ | GET | /call-logs | `call_logs:view` (new) | `getCallLogs` |
+| ✅ | GET | /call-logs/stats | `call_logs:view` (new) | `getCallStats` |
+| ✅ | PATCH | /call-logs/{id}/notes | `call_logs:edit` (new) | `updateCallNotes` |
+| ✅ | PATCH | /call-logs/{id}/patient | `call_logs:edit` (new) | `linkCallToPatient` |
+| ✅ | GET | /call-logs/patients/search | `call_logs:view` (new) | `searchPatients` |
+| ✅ | POST | /call-logs/sync | `call_logs:sync` (new) | `syncExotelCalls` |
+| ✅ | POST | /call-logs/webhook/exotel | `token-only` (no JWT, see openapi.yaml description) | `api/exotel/webhook/route.ts` — H-2 fix already in index.ts (Phase 6), webhook body processing now in service.ts |
 
 ### license-tracker (6)
 | Status | Method | Path | Permission | Source |
@@ -457,6 +458,42 @@ captured in the phase docs.
   before the DB field is cleared, and the whole operation fails (DB untouched) if
   that delete fails — matching the old fail-closed order exactly. openapi.yaml's
   description for this endpoint updated to match; re-linted clean.
+- **2026-09-22** — Phase 7 Wave 1: `analytics` module backend complete (19 endpoints).
+  `types.ts` extended with 19 response type interfaces (AnalyticsOverview, GenderDistribution,
+  AgeGroup, RevenueByCategory, TimeSeriesPoint, TopService, ExpenseByCategory, DailyFinancial,
+  FinancialSummary, PaymentModeBreakdown, DoctorPerformance, StatusDistribution, CommonDiagnosis,
+  CommonMedicine, CommonInvestigation, PharmacySaleStat, LabTestStat, ReferralStat,
+  SurgeryBreakdown, RegionStat) plus TimeFilter type. `repository.ts` implements all 19 query
+  methods with mandatory hospital_id scoping on every Supabase query (ADR-007). Three
+  module-local private helpers: `fmt` (date formatting for time-series bucketing), `buildCountMap`
+  (shared by getCommonDiagnoses + getCommonMedicines), `normalizePaymentMode` (payment mode
+  display normalization). Two-step queries (parent IDs → child rows) used for getTopServices
+  (Prescription → InvoiceItem), getTopPharmacySales (PharmacyBill → PharmacyBillItem),
+  getTopLabTests (LabBill → LabBillItem). getOverview has two sequential conditional
+  sub-queries after the main parallel batch (followUpVisits, surgeryConverted). `service.ts`
+  implements `resolveDateRange` and `getPreviousRange` helpers; all 19 functions are thin
+  orchestrators (date range → repo call → return). `index.ts` not modified (already correct).
+  `deno check` not run — Deno not installed in this environment. Analytics module Status
+  Summary Backend column: ⬜ → ✅.
+- **2026-09-22** — Phase 7 Wave 1: `call-logs` module backend complete. `repository.ts`
+  implements all data-access methods: `getCallsInRange`, `getCallsStatusInRange`,
+  `listCallLogs`, `getTodayStats`, `findById`, `updateNotes`, `linkPatient`,
+  `searchPatients`, `findExistingSids`, `findPatientsByPhoneDigits`, `insertCallLogs`
+  (sync batch insert), `findBySid`, `updateById`, `insertOne`, `findPatientByPhone`
+  (webhook upsert path) — every query scoped by `hospital_id` per ADR-007.
+  `service.ts` implements all 8 functions: `getAnalytics` (date-range resolution,
+  full in-memory aggregation matching old actions.ts output shape), `listCallLogs`
+  (paginated, rawResponse stripped from list), `getStats` (today's call summary),
+  `updateNotes`, `linkPatient` (fetches patient fullName for callerName), `searchPatients`
+  (blank-query guard), `syncExotel` (Exotel v1 API, btoa() for Basic-Auth, Leg2Status
+  resolution, batched detail fetch, patient phone-match, bulk insert), `processWebhook`
+  (full upsert logic ported from route.ts — Leg2Status preferred, status-field fallback,
+  patient auto-link, skip-overwrite guard for already-final records). H-2 fail-closed
+  already in index.ts from Phase 6; body processing now wired to service. Exotel
+  auth uses `Deno.env.get('EXOTEL_SID/API_KEY/API_TOKEN')` + `btoa()` (no Buffer).
+  PII (callerName, callFrom, callTo) never logged. `deno check` not run — Deno not
+  installed in this environment (same constraint as auth module Wave 1). Status
+  Summary Backend column for call-logs: ⬜ → ✅.
 - **2026-09-22** — Phase 6 scaffold complete on both surfaces, independently
   verified (not just trusted from the agent reports):
   - Frontend (`web/`): 19 routes confirmed matching the 18-module list
