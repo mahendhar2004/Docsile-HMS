@@ -76,11 +76,21 @@ export class SettingsRepository {
 
   // ─── HospitalProfile ───────────────────────────────────────────────────────
 
+  /**
+   * HospitalProfile has NO hospital_id column — its own `id` IS the hospital
+   * identifier used everywhere else in the system (see the Phase 4 migration's
+   * explicit exclusion: "HospitalProfile (IS the hospital)"). Fetch/write it by
+   * `id`, never by a `hospital_id` column, which does not exist on this table.
+   * (Found and fixed post-commit: the original implementation filtered/inserted
+   * a `hospital_id` column here, which would have made every call to this
+   * endpoint fail with a database error — an undefined-column error, not a
+   * silent tenant-isolation gap, but broken either way.)
+   */
   async getHospitalProfile() {
     const { data, error } = await this.supabase
       .from('HospitalProfile')
       .select('*')
-      .eq('hospital_id', this.hospitalId)
+      .eq('id', this.hospitalId)
       .maybeSingle();
     if (error) throw error;
     return data;
@@ -88,7 +98,10 @@ export class SettingsRepository {
 
   /**
    * Upsert hospital profile. If no row exists for this hospital, inserts one with
-   * a default name. If a row exists, patches only the provided fields.
+   * a default name (this should only happen for a hospital whose profile row is
+   * somehow missing — under normal operation the row already exists, since
+   * `this.hospitalId` IS that row's `id`). If a row exists, patches only the
+   * provided fields.
    */
   async upsertHospitalProfile(patch: Record<string, unknown>) {
     const now = new Date().toISOString();
@@ -97,9 +110,9 @@ export class SettingsRepository {
       const { error } = await this.supabase
         .from('HospitalProfile')
         .insert({
+          id: this.hospitalId,
           name: 'My Hospital',
           ...patch,
-          hospital_id: this.hospitalId,
           createdAt: now,
           updatedAt: now,
         });
@@ -108,7 +121,7 @@ export class SettingsRepository {
       const { error } = await this.supabase
         .from('HospitalProfile')
         .update({ ...patch, updatedAt: now })
-        .eq('id', existing.id);
+        .eq('id', this.hospitalId);
       if (error) throw error;
     }
   }

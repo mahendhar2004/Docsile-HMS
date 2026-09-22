@@ -395,14 +395,20 @@ export class DoctorRepository {
   }
 
   /**
-   * Returns the single HospitalProfile row. No hospital_id filter — this table
-   * is not per-tenant (it IS the tenant root; see 4-datamodel.md §2.1 row 3).
+   * Returns this hospital's HospitalProfile row. The table has no hospital_id
+   * column (it IS the tenant root; see 4-datamodel.md §2.1 row 3) — its own
+   * `id` equals the session's hospitalId. Scoped by `.eq('id', ...)`, not
+   * `.limit(1)` alone: `.limit(1)` would arbitrarily return whichever
+   * hospital's row Postgres returns first once a second tenant exists —
+   * harmless today with exactly one row, but a real bug the moment a second
+   * hospital is onboarded. Found and fixed post-commit (same class of issue
+   * as patient-care and settings' HospitalProfile queries).
    */
   async getHospitalProfile(): Promise<unknown | null> {
     const { data } = await this.supabase
       .from('HospitalProfile')
       .select('*')
-      .limit(1)
+      .eq('id', this.hospitalId)
       .maybeSingle();
 
     return data ?? null;
