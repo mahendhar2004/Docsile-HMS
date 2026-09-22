@@ -184,8 +184,8 @@ no logic lives in an index file.
 
 | Component | Variants | Status |
 |---|---|---|
-| Card | basic, list-item, clickable | ⬜ |
-| StatCard/KPITile | number + label + trend arrow | ⬜ |
+| Card | flat (bordered), elevated (shadow), interactive (clickable) | ✅ |
+| StatCard/KPITile | number + label + optional icon + optional trend arrow | ✅ |
 
 ## Feedback
 
@@ -303,6 +303,30 @@ no logic lives in an index file.
   breadcrumbs above title + right-side actions slot). All files in
   `patterns/navigation/`, barrel-exported from `index.ts`. Zero new TypeScript
   errors introduced.
+- **2026-09-22 (Batch 7)** — Cards & Stats built from scratch.
+  Deleted old shadcn-derived `ui/{card,avatar,separator,scroll-area,skeleton}.tsx`
+  and rewrote all five from scratch with design tokens. New files:
+  `ui/card.tsx` (Card/CardHeader/CardTitle/CardDescription/CardContent/CardFooter;
+  `variant` = elevated (shadow-sm, default) | flat (border only); `interactive`
+  prop adds `.motion-interactive` + hover tint + focus-ring for clickable tiles),
+  `ui/avatar.tsx` (Avatar/AvatarImage/AvatarFallback via @radix-ui/react-avatar;
+  sm/md/lg sizes; size passed via context to Fallback so font scales automatically;
+  fallback uses --color-muted bg + uppercase initials),
+  `ui/separator.tsx` (thin @radix-ui/react-separator wrapper; --color-border;
+  horizontal h-px / vertical w-px),
+  `ui/scroll-area.tsx` (thin @radix-ui/react-scroll-area wrapper; themed thumb
+  --color-muted-foreground 40% opacity; `orientation` prop = vertical/horizontal/both),
+  `ui/skeleton.tsx` (pulsing div; --color-muted bg; aria-hidden; general-purpose
+  — does NOT replace inline skeleton rows in DataTable/DataModal).
+  New Tier 2: `patterns/cards/stat-card.tsx` (StatCard: label + display-size value +
+  optional icon in accent-tinted square badge + optional TrendBadge + loading skeleton).
+  Trend direction decisions: "up" → success green (--color-success-soft-foreground),
+  "down" → error red (--color-error-soft-foreground), "neutral" → muted gray
+  (--color-neutral-soft-foreground). Trend icons: TrendingUp/TrendingDown/Minus from
+  lucide-react. Loading state renders three Skeleton blocks instead of the real content
+  (no spinner). `onClick` prop makes the card interactive via Card's `interactive` prop.
+  `patterns/cards/index.ts` barrel-exports StatCard + types.
+
 - **2026-09-22 (Batch 4)** — Built tables + search from scratch.
   Deleted `ui/table.tsx` (old shadcn copy) and `patterns/PaginatedDataTable.tsx`
   (old single-mode component). New files: `ui/table.tsx` (fresh semantic Table/
