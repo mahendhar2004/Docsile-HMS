@@ -1,17 +1,476 @@
 /**
- * Tables owned by the settings module:
- *   - HospitalProfile        — singleton hospital config (soft-upsert by hospitalId)
- *   - ServiceTemplate        — billable service catalog
- *   - PredefinedTemplate     — prescription templates
- *   - InpatientTemplate      — inpatient document templates
- *   - PredefinedPackage      — predefined service bundles
- *   - PredefinedSurgery      — predefined surgery definitions (soft-delete)
- *   - PredefinedDischarge    — predefined discharge summary templates (soft-delete)
- *   - MedicineMaster         — global medicine catalog (shared with doctor module)
+ * Settings repository — data-access layer.
  *
- * Every query scoped by hospitalId (ADR-007). Phase 7 fills in implementations.
+ * Tables owned by the settings module:
+ *   - ServiceTemplate       (hard delete)
+ *   - HospitalProfile       (single-row-per-hospital upsert, no delete)
+ *   - PredefinedTemplate    (prescription templates, hard delete)
+ *   - InpatientTemplate     (hard delete)
+ *   - PredefinedPackage     (hard delete)
+ *   - PredefinedSurgery     (soft delete — isActive=false)
+ *   - PredefinedDischarge   (soft delete — isActive=false)
+ *   - MedicineMaster        (hard delete; read-shared with doctor module)
+ *
+ * Every query is scoped by hospital_id (ADR-007). The supabase client uses the
+ * service_role key which bypasses RLS, so hospital_id filtering is mandatory here.
  */
+
 import type { SupabaseClient } from '@supabase/supabase-js';
+
 export class SettingsRepository {
   constructor(private readonly supabase: SupabaseClient, private readonly hospitalId: string) {}
+
+  // ─── ServiceTemplate ───────────────────────────────────────────────────────
+
+  async listServiceTemplates() {
+    const { data, error } = await this.supabase
+      .from('ServiceTemplate')
+      .select('*')
+      .eq('hospital_id', this.hospitalId)
+      .eq('isActive', true)
+      .order('category', { ascending: true })
+      .order('sortOrder', { ascending: true })
+      .order('name', { ascending: true });
+    if (error) throw error;
+    return data ?? [];
+  }
+
+  async findServiceTemplateById(id: string) {
+    const { data, error } = await this.supabase
+      .from('ServiceTemplate')
+      .select('*')
+      .eq('id', id)
+      .eq('hospital_id', this.hospitalId)
+      .maybeSingle();
+    if (error) throw error;
+    return data;
+  }
+
+  async insertServiceTemplate(row: Record<string, unknown>) {
+    const { data, error } = await this.supabase
+      .from('ServiceTemplate')
+      .insert({ ...row, hospital_id: this.hospitalId })
+      .select()
+      .single();
+    if (error) throw error;
+    return data;
+  }
+
+  async updateServiceTemplate(id: string, patch: Record<string, unknown>) {
+    const { error } = await this.supabase
+      .from('ServiceTemplate')
+      .update({ ...patch, updatedAt: new Date().toISOString() })
+      .eq('id', id)
+      .eq('hospital_id', this.hospitalId);
+    if (error) throw error;
+  }
+
+  async deleteServiceTemplate(id: string) {
+    const { error } = await this.supabase
+      .from('ServiceTemplate')
+      .delete()
+      .eq('id', id)
+      .eq('hospital_id', this.hospitalId);
+    if (error) throw error;
+  }
+
+  // ─── HospitalProfile ───────────────────────────────────────────────────────
+
+  async getHospitalProfile() {
+    const { data, error } = await this.supabase
+      .from('HospitalProfile')
+      .select('*')
+      .eq('hospital_id', this.hospitalId)
+      .maybeSingle();
+    if (error) throw error;
+    return data;
+  }
+
+  /**
+   * Upsert hospital profile. If no row exists for this hospital, inserts one with
+   * a default name. If a row exists, patches only the provided fields.
+   */
+  async upsertHospitalProfile(patch: Record<string, unknown>) {
+    const now = new Date().toISOString();
+    const existing = await this.getHospitalProfile();
+    if (!existing) {
+      const { error } = await this.supabase
+        .from('HospitalProfile')
+        .insert({
+          name: 'My Hospital',
+          ...patch,
+          hospital_id: this.hospitalId,
+          createdAt: now,
+          updatedAt: now,
+        });
+      if (error) throw error;
+    } else {
+      const { error } = await this.supabase
+        .from('HospitalProfile')
+        .update({ ...patch, updatedAt: now })
+        .eq('id', existing.id);
+      if (error) throw error;
+    }
+  }
+
+  // ─── PredefinedTemplate (prescription templates) ──────────────────────────
+
+  async listPrescriptionTemplates() {
+    const { data, error } = await this.supabase
+      .from('PredefinedTemplate')
+      .select('*')
+      .eq('hospital_id', this.hospitalId)
+      .eq('isActive', true)
+      .order('code', { ascending: true });
+    if (error) throw error;
+    return data ?? [];
+  }
+
+  async findPrescriptionTemplateById(id: string) {
+    const { data, error } = await this.supabase
+      .from('PredefinedTemplate')
+      .select('*')
+      .eq('id', id)
+      .eq('hospital_id', this.hospitalId)
+      .maybeSingle();
+    if (error) throw error;
+    return data;
+  }
+
+  async findPrescriptionTemplateByCode(code: string) {
+    const { data, error } = await this.supabase
+      .from('PredefinedTemplate')
+      .select('id')
+      .eq('code', code)
+      .eq('hospital_id', this.hospitalId)
+      .maybeSingle();
+    if (error) throw error;
+    return data;
+  }
+
+  async insertPrescriptionTemplate(row: Record<string, unknown>) {
+    const { data, error } = await this.supabase
+      .from('PredefinedTemplate')
+      .insert({ ...row, hospital_id: this.hospitalId })
+      .select()
+      .single();
+    if (error) throw error;
+    return data;
+  }
+
+  async updatePrescriptionTemplate(id: string, patch: Record<string, unknown>) {
+    const { error } = await this.supabase
+      .from('PredefinedTemplate')
+      .update({ ...patch, updatedAt: new Date().toISOString() })
+      .eq('id', id)
+      .eq('hospital_id', this.hospitalId);
+    if (error) throw error;
+  }
+
+  async deletePrescriptionTemplate(id: string) {
+    const { error } = await this.supabase
+      .from('PredefinedTemplate')
+      .delete()
+      .eq('id', id)
+      .eq('hospital_id', this.hospitalId);
+    if (error) throw error;
+  }
+
+  // ─── InpatientTemplate ────────────────────────────────────────────────────
+
+  async listInpatientTemplates() {
+    const { data, error } = await this.supabase
+      .from('InpatientTemplate')
+      .select('*')
+      .eq('hospital_id', this.hospitalId)
+      .eq('isActive', true)
+      .order('code', { ascending: true });
+    if (error) throw error;
+    return data ?? [];
+  }
+
+  async findInpatientTemplateById(id: string) {
+    const { data, error } = await this.supabase
+      .from('InpatientTemplate')
+      .select('*')
+      .eq('id', id)
+      .eq('hospital_id', this.hospitalId)
+      .maybeSingle();
+    if (error) throw error;
+    return data;
+  }
+
+  async findInpatientTemplateByCode(code: string) {
+    const { data, error } = await this.supabase
+      .from('InpatientTemplate')
+      .select('id')
+      .eq('code', code)
+      .eq('hospital_id', this.hospitalId)
+      .maybeSingle();
+    if (error) throw error;
+    return data;
+  }
+
+  async insertInpatientTemplate(row: Record<string, unknown>) {
+    const { data, error } = await this.supabase
+      .from('InpatientTemplate')
+      .insert({ ...row, hospital_id: this.hospitalId })
+      .select()
+      .single();
+    if (error) throw error;
+    return data;
+  }
+
+  async updateInpatientTemplate(id: string, patch: Record<string, unknown>) {
+    const { error } = await this.supabase
+      .from('InpatientTemplate')
+      .update({ ...patch, updatedAt: new Date().toISOString() })
+      .eq('id', id)
+      .eq('hospital_id', this.hospitalId);
+    if (error) throw error;
+  }
+
+  async deleteInpatientTemplate(id: string) {
+    const { error } = await this.supabase
+      .from('InpatientTemplate')
+      .delete()
+      .eq('id', id)
+      .eq('hospital_id', this.hospitalId);
+    if (error) throw error;
+  }
+
+  // ─── PredefinedPackage ────────────────────────────────────────────────────
+
+  async listPackages() {
+    const { data, error } = await this.supabase
+      .from('PredefinedPackage')
+      .select('*')
+      .eq('hospital_id', this.hospitalId)
+      .eq('isActive', true)
+      .order('name', { ascending: true });
+    if (error) throw error;
+    return data ?? [];
+  }
+
+  async findPackageById(id: string) {
+    const { data, error } = await this.supabase
+      .from('PredefinedPackage')
+      .select('*')
+      .eq('id', id)
+      .eq('hospital_id', this.hospitalId)
+      .maybeSingle();
+    if (error) throw error;
+    return data;
+  }
+
+  async findPackageByName(name: string) {
+    const { data, error } = await this.supabase
+      .from('PredefinedPackage')
+      .select('id')
+      .eq('name', name)
+      .eq('hospital_id', this.hospitalId)
+      .maybeSingle();
+    if (error) throw error;
+    return data;
+  }
+
+  async insertPackage(row: Record<string, unknown>) {
+    const { data, error } = await this.supabase
+      .from('PredefinedPackage')
+      .insert({ ...row, hospital_id: this.hospitalId })
+      .select()
+      .single();
+    if (error) throw error;
+    return data;
+  }
+
+  async updatePackage(id: string, patch: Record<string, unknown>) {
+    const { error } = await this.supabase
+      .from('PredefinedPackage')
+      .update({ ...patch, updatedAt: new Date().toISOString() })
+      .eq('id', id)
+      .eq('hospital_id', this.hospitalId);
+    if (error) throw error;
+  }
+
+  async deletePackage(id: string) {
+    const { error } = await this.supabase
+      .from('PredefinedPackage')
+      .delete()
+      .eq('id', id)
+      .eq('hospital_id', this.hospitalId);
+    if (error) throw error;
+  }
+
+  // ─── PredefinedSurgery (soft delete) ──────────────────────────────────────
+
+  async listSurgeries() {
+    const { data, error } = await this.supabase
+      .from('PredefinedSurgery')
+      .select('*')
+      .eq('hospital_id', this.hospitalId)
+      .eq('isActive', true)
+      .order('sortOrder', { ascending: true })
+      .order('name', { ascending: true });
+    if (error) throw error;
+    return data ?? [];
+  }
+
+  async findSurgeryById(id: string) {
+    const { data, error } = await this.supabase
+      .from('PredefinedSurgery')
+      .select('*')
+      .eq('id', id)
+      .eq('hospital_id', this.hospitalId)
+      .maybeSingle();
+    if (error) throw error;
+    return data;
+  }
+
+  async insertSurgery(row: Record<string, unknown>) {
+    const { data, error } = await this.supabase
+      .from('PredefinedSurgery')
+      .insert({ ...row, hospital_id: this.hospitalId })
+      .select()
+      .single();
+    if (error) throw error;
+    return data;
+  }
+
+  async updateSurgery(id: string, patch: Record<string, unknown>) {
+    const { error } = await this.supabase
+      .from('PredefinedSurgery')
+      .update({ ...patch, updatedAt: new Date().toISOString() })
+      .eq('id', id)
+      .eq('hospital_id', this.hospitalId);
+    if (error) throw error;
+  }
+
+  /** Soft-delete: sets isActive=false. Mirrors old deletePredefinedSurgery behavior. */
+  async softDeleteSurgery(id: string) {
+    const { error } = await this.supabase
+      .from('PredefinedSurgery')
+      .update({ isActive: false, updatedAt: new Date().toISOString() })
+      .eq('id', id)
+      .eq('hospital_id', this.hospitalId);
+    if (error) throw error;
+  }
+
+  // ─── PredefinedDischarge (soft delete) ────────────────────────────────────
+
+  async listDischarges() {
+    const { data, error } = await this.supabase
+      .from('PredefinedDischarge')
+      .select('*')
+      .eq('hospital_id', this.hospitalId)
+      .eq('isActive', true)
+      .order('sortOrder', { ascending: true })
+      .order('name', { ascending: true });
+    if (error) throw error;
+    return data ?? [];
+  }
+
+  async findDischargeById(id: string) {
+    const { data, error } = await this.supabase
+      .from('PredefinedDischarge')
+      .select('*')
+      .eq('id', id)
+      .eq('hospital_id', this.hospitalId)
+      .maybeSingle();
+    if (error) throw error;
+    return data;
+  }
+
+  async insertDischarge(row: Record<string, unknown>) {
+    const { data, error } = await this.supabase
+      .from('PredefinedDischarge')
+      .insert({ ...row, hospital_id: this.hospitalId })
+      .select()
+      .single();
+    if (error) throw error;
+    return data;
+  }
+
+  async updateDischarge(id: string, patch: Record<string, unknown>) {
+    const { error } = await this.supabase
+      .from('PredefinedDischarge')
+      .update({ ...patch, updatedAt: new Date().toISOString() })
+      .eq('id', id)
+      .eq('hospital_id', this.hospitalId);
+    if (error) throw error;
+  }
+
+  /** Soft-delete: sets isActive=false. Mirrors old deletePredefinedDischarge behavior. */
+  async softDeleteDischarge(id: string) {
+    const { error } = await this.supabase
+      .from('PredefinedDischarge')
+      .update({ isActive: false, updatedAt: new Date().toISOString() })
+      .eq('id', id)
+      .eq('hospital_id', this.hospitalId);
+    if (error) throw error;
+  }
+
+  // ─── MedicineMaster ───────────────────────────────────────────────────────
+
+  async listMedicineMaster() {
+    const { data, error } = await this.supabase
+      .from('MedicineMaster')
+      .select('*')
+      .eq('hospital_id', this.hospitalId)
+      .eq('isActive', true)
+      .order('sortOrder', { ascending: true })
+      .order('name', { ascending: true });
+    if (error) throw error;
+    return data ?? [];
+  }
+
+  async findMedicineMasterById(id: string) {
+    const { data, error } = await this.supabase
+      .from('MedicineMaster')
+      .select('*')
+      .eq('id', id)
+      .eq('hospital_id', this.hospitalId)
+      .maybeSingle();
+    if (error) throw error;
+    return data;
+  }
+
+  async findMedicineMasterByName(name: string) {
+    const { data, error } = await this.supabase
+      .from('MedicineMaster')
+      .select('id')
+      .eq('name', name)
+      .eq('hospital_id', this.hospitalId)
+      .maybeSingle();
+    if (error) throw error;
+    return data;
+  }
+
+  async insertMedicineMaster(row: Record<string, unknown>) {
+    const { data, error } = await this.supabase
+      .from('MedicineMaster')
+      .insert({ ...row, hospital_id: this.hospitalId })
+      .select()
+      .single();
+    if (error) throw error;
+    return data;
+  }
+
+  async updateMedicineMaster(id: string, patch: Record<string, unknown>) {
+    const { error } = await this.supabase
+      .from('MedicineMaster')
+      .update({ ...patch, updatedAt: new Date().toISOString() })
+      .eq('id', id)
+      .eq('hospital_id', this.hospitalId);
+    if (error) throw error;
+  }
+
+  async deleteMedicineMaster(id: string) {
+    const { error } = await this.supabase
+      .from('MedicineMaster')
+      .delete()
+      .eq('id', id)
+      .eq('hospital_id', this.hospitalId);
+    if (error) throw error;
+  }
 }
