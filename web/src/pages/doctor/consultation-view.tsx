@@ -6,12 +6,15 @@
  *   - Patient info header (name, ID, phone, gender, status)
  *   - Today's eye reading summary (from consultation.eyeReadings[0])
  *   - PrescriptionForm (with reference data)
- *   - AiAssistPanel (Sitha AI)
  *   - Print receipt button (billing:view)
  *
  * Handles loading/error states for the consultation query and reference data.
+ * Sets this patient as Sitha AI's global context (see @/store/ai-context) so
+ * the floating "Ask Sitha" widget knows to include them — Sitha lives in
+ * AppShell now, not inline here.
  */
 
+import { useEffect } from "react"
 import { Printer, Eye } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Skeleton } from "@/components/ui/skeleton"
@@ -19,7 +22,7 @@ import { ScrollArea } from "@/components/ui/scroll-area"
 import { StatusPill, ErrorState } from "@/components/patterns"
 import { useConsultation, useReferenceData } from "./hooks"
 import { PrescriptionForm } from "./prescription-form"
-import { AiAssistPanel } from "./ai-assist-panel"
+import { useAiContextStore } from "@/store/ai-context"
 import type { ConsultationEyeReading } from "./types"
 
 // ─── Props ────────────────────────────────────────────────────────────────────
@@ -87,6 +90,17 @@ export function ConsultationView({
   canViewBilling,
   apiBaseUrl,
 }: ConsultationViewProps) {
+  const setAiContext = useAiContextStore((s) => s.setAiContext)
+  const clearAiContext = useAiContextStore((s) => s.clearAiContext)
+
+  // Set Sitha's context to this patient while the consultation is open;
+  // clear it on unmount (deselecting the patient, or navigating away) so a
+  // stale patientId doesn't leak into whatever the doctor asks Sitha next.
+  useEffect(() => {
+    setAiContext({ patientId, module: null })
+    return () => clearAiContext()
+  }, [patientId, setAiContext, clearAiContext])
+
   const consultationQuery = useConsultation(patientId)
   const referenceDataQuery = useReferenceData()
 
@@ -199,12 +213,6 @@ export function ConsultationView({
           onSaved={() => {
             void consultationQuery.refetch()
           }}
-        />
-
-        {/* ── AI assist ───────────────────────────────────────────────────────── */}
-        <AiAssistPanel
-          patientId={consultation.id}
-          canConsult={canConsult}
         />
       </div>
     </ScrollArea>

@@ -254,34 +254,5 @@ export interface AddDropdownOptionBody {
   value: string
 }
 
-// ─── AI assist ────────────────────────────────────────────────────────────────
-
-/**
- * One turn in the AI conversation history.
- */
-export interface SithaHistoryTurn {
-  role: "user" | "model"
-  text: string
-}
-
-/**
- * Request body for POST /doctor/ai/ask.
- * Matches supabase/functions/doctor/types.ts AskSithaSchema exactly.
- */
-export interface AskSithaBody {
-  /** Patient UUID or sequential ID — locks context to this patient. */
-  patientId?: string | null
-  /** The question (max 4000 chars). */
-  question: string
-  /** Prior turns; server caps to last 6. */
-  history?: SithaHistoryTurn[]
-  /** "analytics" switches to hospital-analytics mode; anything else = clinical mode. */
-  module?: string
-}
-
-/**
- * Data field in the POST /doctor/ai/ask response envelope.
- */
-export interface AskSithaResponse {
-  answer: string
-}
+// Sitha AI types/hook moved to @/hooks/useAskSitha — Sitha is a global
+// widget now (see components/layout/sitha-widget.tsx), not Doctor-specific.

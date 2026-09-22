@@ -14,7 +14,7 @@
  * Permission: reports:view
  */
 
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import { format } from "date-fns"
 import type { DateRange } from "react-day-picker"
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs"
@@ -26,6 +26,7 @@ import {
 } from "@/components/patterns"
 import type { SelectOption } from "@/components/patterns"
 import { usePermissions } from "@/hooks/usePermissions"
+import { useAiContextStore } from "@/store/ai-context"
 import { OverviewTab }     from "./analytics/overview-tab"
 import { PatientsTab }     from "./analytics/patients-tab"
 import { RevenueTab }      from "./analytics/revenue-tab"
@@ -63,6 +64,15 @@ export default function AnalyticsPage() {
 
   const [filter, setFilter]           = useState<TimeFilter>("today")
   const [customRange, setCustomRange] = useState<DateRange | undefined>(undefined)
+
+  // Sitha's global widget switches into hospital-analytics mode while this
+  // page is open; cleared on unmount so it doesn't leak into other pages.
+  const setAiContext = useAiContextStore((s) => s.setAiContext)
+  const clearAiContext = useAiContextStore((s) => s.clearAiContext)
+  useEffect(() => {
+    setAiContext({ patientId: null, module: "analytics" })
+    return () => clearAiContext()
+  }, [setAiContext, clearAiContext])
 
   // Permission gate
   if (!hasAccess) {

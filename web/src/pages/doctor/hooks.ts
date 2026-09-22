@@ -12,7 +12,9 @@
  *   - useSavePrescription    — POST /doctor/patients/{id}/prescriptions (upsert)
  *   - useCreateMedicine      — POST /doctor/medicines
  *   - useAddDropdownOption   — POST /doctor/dropdown-options
- *   - useAskSitha            — POST /doctor/ai/ask
+ *
+ * Sitha AI (useAskSitha) moved to @/hooks/useAskSitha — it's a global
+ * widget now, not Doctor-specific.
  */
 
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query"
@@ -26,8 +28,6 @@ import type {
   MedicineMasterRecord,
   CreateMedicineBody,
   AddDropdownOptionBody,
-  AskSithaBody,
-  AskSithaResponse,
 } from "./types"
 
 // ─── Query key factory ────────────────────────────────────────────────────────
@@ -155,22 +155,5 @@ export function useAddDropdownOption(onSuccess?: () => void) {
       void qc.invalidateQueries({ queryKey: doctorKeys.referenceData() })
       onSuccess?.()
     },
-  })
-}
-
-/**
- * Ask Sitha AI (Gemini-backed clinical/analytics assistant).
- * Endpoint: POST /doctor/ai/ask
- * Permission: doctor:consult
- *
- * This is a plain useMutation — conversation history is managed by the
- * calling component.
- */
-export function useAskSitha() {
-  return useMutation({
-    mutationFn: (body: AskSithaBody) =>
-      apiClient
-        .post<AskSithaResponse>("/doctor/ai/ask", body)
-        .then((e) => e.data),
   })
 }
