@@ -260,6 +260,10 @@ body {
   from { transform: translateY(8px) scale(0.98); opacity: 0; }
   to   { transform: translateY(0) scale(1); opacity: 1; }
 }
+@keyframes marquee-x {
+  from { transform: translateX(0); }
+  to   { transform: translateX(-50%); }
+}
 @keyframes accordion-down {
   from { height: 0; }
   to   { height: var(--radix-accordion-content-height); }
@@ -339,6 +343,19 @@ body {
 .motion-accordion-up {
   overflow: hidden;
   animation: accordion-up var(--duration-macro) var(--ease-fluid);
+}
+
+/* Continuous horizontal marquee — the content must be duplicated once by
+   the caller (two copies back to back) for the -50% translate to loop
+   seamlessly. Unlike the entrance/exit keyframes above, this animation
+   runs indefinitely, so it pauses under prefers-reduced-motion. */
+.motion-marquee-x {
+  animation: marquee-x 28s linear infinite;
+}
+@media (prefers-reduced-motion: reduce) {
+  .motion-marquee-x {
+    animation-play-state: paused;
+  }
 }
 
 /* Micro feedback — apply to any interactive element for consistent,

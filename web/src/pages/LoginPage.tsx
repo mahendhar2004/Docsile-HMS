@@ -5,9 +5,21 @@ import {
   Loader2,
   Stethoscope,
   Users,
+  ListOrdered,
+  ClipboardPlus,
   Receipt,
   Pill,
+  Glasses,
   FlaskConical,
+  ShieldCheck,
+  UserCog,
+  Settings as SettingsIcon,
+  Wallet,
+  Bell,
+  PhoneCall,
+  BadgeCheck,
+  BarChart2,
+  FileText,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { TextInput } from "@/components/patterns/forms/text-input"
@@ -18,11 +30,26 @@ import { useSessionStore } from "@/store/session"
 import type { SessionUser } from "@/store/session"
 import medicineIllustration from "@/assets/undraw-medicine.svg"
 
-const FEATURE_PILLS = [
+// Mirrors the real sidebar's module list (web/src/components/patterns/navigation/sidebar.tsx)
+// — one line per module, not a marketing summary, so this stays accurate as modules change.
+const FEATURES = [
   { icon: Users, label: "Patients" },
+  { icon: ListOrdered, label: "Queue" },
+  { icon: ClipboardPlus, label: "Workup" },
+  { icon: Stethoscope, label: "Doctor" },
   { icon: Receipt, label: "Billing" },
   { icon: Pill, label: "Pharmacy" },
+  { icon: Glasses, label: "Optical" },
   { icon: FlaskConical, label: "Labs" },
+  { icon: ShieldCheck, label: "Insurance" },
+  { icon: UserCog, label: "Staff" },
+  { icon: Wallet, label: "Expenses" },
+  { icon: Bell, label: "Dues & Follow-ups" },
+  { icon: PhoneCall, label: "Call Logs" },
+  { icon: BadgeCheck, label: "Licenses" },
+  { icon: BarChart2, label: "Analytics" },
+  { icon: FileText, label: "Reports" },
+  { icon: SettingsIcon, label: "Settings" },
 ] as const
 
 /**
@@ -90,39 +117,49 @@ export default function LoginPage() {
           src={medicineIllustration}
           alt=""
           aria-hidden="true"
-          className="w-full max-w-md motion-list-item-in"
+          className="w-full max-w-sm motion-list-item-in"
         />
 
-        <div className="text-center max-w-sm">
-          <h2 className="text-[length:var(--text-title)] font-bold text-[var(--color-foreground)] tracking-tight">
-            Care, connected.
-          </h2>
-          <p className="mt-2 text-[length:var(--text-body)] text-[var(--color-muted-foreground)] leading-[var(--leading-normal)]">
-            Patients, prescriptions, billing, and every department in one
-            place — built for the pace of a real hospital.
-          </p>
-        </div>
+        <h2 className="text-[length:var(--text-title)] font-bold text-[var(--color-foreground)] tracking-tight text-center">
+          Care, connected.
+        </h2>
 
-        {/* Feature highlights */}
-        <div className="flex flex-wrap items-center justify-center gap-2">
-          {FEATURE_PILLS.map(({ icon: Icon, label }) => (
-            <div
-              key={label}
-              className={[
-                "flex items-center gap-1.5 pl-2 pr-3 py-1.5",
-                "rounded-[var(--radius-full)] bg-[var(--color-card)]",
-                "shadow-[var(--shadow-border)]",
-                "text-[length:var(--text-caption)] font-medium text-[var(--color-foreground)]",
-              ].join(" ")}
-            >
-              <Icon
-                size={14}
-                className="text-[var(--color-primary)]"
-                aria-hidden="true"
-              />
-              {label}
-            </div>
-          ))}
+        {/* Every module, as a continuously scrolling row of cards — the
+            single source of truth for "what this covers" (no separate
+            summary sentence saying the same thing, and not all 17 dumped
+            on screen at once as a static wall of pills). Edge-faded via
+            mask-image; content is duplicated once so the -50% translate
+            loops seamlessly. */}
+        <div
+          className="w-full overflow-hidden"
+          style={{
+            maskImage:
+              "linear-gradient(to right, transparent, black 12%, black 88%, transparent)",
+            WebkitMaskImage:
+              "linear-gradient(to right, transparent, black 12%, black 88%, transparent)",
+          }}
+        >
+          <div className="flex w-max gap-3 motion-marquee-x">
+            {[...FEATURES, ...FEATURES].map(({ icon: Icon, label }, i) => (
+              <div
+                key={`${label}-${i}`}
+                className={[
+                  "flex items-center gap-2 pl-3 pr-4 py-2 shrink-0",
+                  "rounded-[var(--radius-md)] bg-[var(--color-card)]",
+                  "shadow-[var(--shadow-border)]",
+                ].join(" ")}
+              >
+                <Icon
+                  size={15}
+                  className="shrink-0 text-[var(--color-primary)]"
+                  aria-hidden="true"
+                />
+                <span className="text-[length:var(--text-caption)] font-medium text-[var(--color-foreground)] whitespace-nowrap">
+                  {label}
+                </span>
+              </div>
+            ))}
+          </div>
         </div>
       </div>
 
