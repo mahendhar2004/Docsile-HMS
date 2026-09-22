@@ -23,7 +23,7 @@ modules produce).
 | 6 | Billing | `/billing` | `billing/*` (daily summary, prescriptions, payments) | ✅ |
 | 7 | Pharmacy | `/pharmacy` | `pharmacy/*` (medicines, stock, suppliers, purchase orders, bills) | ✅ |
 | 8 | Optical | `/optical` | `optical/*` (products, stock, bills, AR reading, settings) | ✅ |
-| 9 | Labs | `/labs` | `labs/*` (labs, investigations, patient investigations, bills) | ⬜ |
+| 9 | Labs | `/labs` | `labs/*` (labs, investigations, patient investigations, bills) | ✅ |
 | 10 | Insurance | `/insurance` | `insurance/*` (companies, claims, payments) | ⬜ |
 | 11 | Staff | `/staff` | `staff/*` (members, roles, permissions) | ⬜ |
 | 12 | Settings | `/settings` | `settings/*` (33 endpoints — hospital profile, templates, master data) | ⬜ |
@@ -362,3 +362,65 @@ web/src/pages/optical/settings-tab.tsx               — printHeaderKey setting 
 - `ColumnDef` uses `cell:` (not `render:`) for cell renderers
 
 **Build:** `npx tsc -b 2>&1 | grep optical` — zero optical-specific TypeScript errors.
+
+---
+
+### Page 9 — Labs (`/labs`) — 2026-09-22
+
+Replaced placeholder stub with a fully implemented LabsPage (lab CRUD, investigation master, investigation-to-lab assignment, patient investigation billing, pending queue, bill history).
+
+**File structure:**
+```
+web/src/pages/LabsPage.tsx                              — thin root: permission gate (labs:view) + Tabs
+web/src/pages/labs/types.ts                             — all types + constants verified against old app
+web/src/pages/labs/hooks.ts                             — query + mutation hooks (14 endpoints)
+web/src/pages/labs/labs-tab.tsx                         — lab CRUD (list, add, edit, delete, configure)
+web/src/pages/labs/lab-form.tsx                         — create/edit lab dialog
+web/src/pages/labs/investigation-assignment-form.tsx    — full-page investigation assignment with amounts/defaults
+web/src/pages/labs/investigations-tab.tsx               — investigation master list + create dialog
+web/src/pages/labs/pending-tab.tsx                      — date-filtered pending investigations queue
+web/src/pages/labs/bills-tab.tsx                        — bill generation (patient search + bill cards) + paginated history
+```
+
+**Endpoints consumed:**
+- `GET /labs/labs` → `Lab[]` (x-permission: labs:view)
+- `POST /labs/labs` → `Lab` (x-permission: labs:config)
+- `GET /labs/labs/{id}` → `LabWithInvestigations` (x-permission: labs:view)
+- `PATCH /labs/labs/{id}` → `Lab` (x-permission: labs:config)
+- `DELETE /labs/labs/{id}` → void (x-permission: labs:config)
+- `GET /labs/labs/{labId}/investigations` → `InvestigationMaster[]` (x-permission: labs:view)
+- `PUT /labs/labs/{labId}/investigations` → void (x-permission: labs:config)
+- `GET /labs/investigations` → `InvestigationMaster[]` (x-permission: labs:view)
+- `POST /labs/investigations` → `InvestigationMaster` (x-permission: labs:config)
+- `GET /labs/patients/{patientId}/investigations` → `PatientInvestigationsResponse` (x-permission: labs:view)
+- `GET /labs/pending-investigations?date=YYYY-MM-DD` → `PendingPatient[]` (x-permission: labs:view)
+- `GET /labs/bills?page=N&pageSize=N&date=YYYY-MM-DD` → `LabBillRow[]` (x-permission: labs:view)
+- `GET /labs/bills/{id}` → `LabBillDetailData` (x-permission: labs:view)
+- `POST /labs/bills` → void (x-permission: labs:create)
+
+**Permission keys used (cross-checked against OpenAPI x-permission):**
+- `labs:view` — page gate, all reads
+- `labs:config` — create/edit/delete labs, POST investigations, PUT lab-investigation assignments
+- `labs:create` — POST /labs/bills (the "Process Payment" button)
+- `labs:edit` — no endpoint uses this in the spec; not wired to any action
+
+**Critical field names verified against supabase/functions/labs/types.ts and old app:**
+- `LabBill.total` (NOT `totalAmount` — OpenAPI spec is wrong; DB column is `total`)
+- `LabBillItem.amount` (NOT `price` — per explicit supabase types.ts note)
+- Investigation assignment body: `{ investigations: [{ investigationId, amount, isDefault }] }` — verified against openapi.yaml corrected description and supabase UpdateLabInvestigationsSchema
+
+**Enums / option lists (all verified against old app source):**
+- `PAYMENT_MODES = ["Cash", "UPI", "Card", "Cheque", "Online", "NEFT"]` — from `src/app/(hospital)/labs/components/LabBillCard.tsx`
+- `INVESTIGATION_CATEGORIES = ["Lab Test", "Eye Test", "Imaging", "General"]` — from `src/app/(hospital)/labs/components/LabInvestigationConfig.tsx`
+- Bill status values `PAID, PARTIAL, PENDING, CANCELLED` — from `LabBillingTab.tsx` STATUS_COLORS keys
+- Bill status → badge variant: `PAID→success, PARTIAL→warning, PENDING→muted, CANCELLED→secondary`
+
+**Key architectural decisions:**
+- **Four tabs (Bills, Pending, Lab Config, Investigations):** Bills first since that's the primary daily workflow; Config/Investigations last since they're setup tasks.
+- **InvestigationAssignmentForm as inline view replacement:** When "Configure" is clicked on a lab, it replaces the labs-tab content (same pattern as old app's LabConfigTab → LabInvestigationConfig). No sheet needed since the form is complex and full-page.
+- **Patient search → query trigger:** `usePatientInvestigations` fires when `searchedPatientId` state changes (not on every keystroke). React.useEffect syncs bill form state when new patient data arrives.
+- **Bill forms managed as Map:** `Map<labId, BillFormData>` mirrors old app's pattern. Allows independent editing per lab group.
+- **POST /labs/bills body construction:** `total = subtotal - discount`, `payment` only sent when `amountPaid > 0`. Matches new API's multi-bill batch format.
+- **`GET /labs/bills` pagination:** Uses `usePaginatedQuery` + `PaginatedDataTable mode="offset"`. Only `date` filter supported by the API (not date range or lab/status/patient filters from old app).
+
+**Build:** `tsc -b && vite build` — zero TypeScript errors (full exit code 0), successful Vite production build. LabsPage chunk: 74.91 kB / 19.75 kB gzip (expected: TanStack Query + multiple tabs + billing form logic). Chunk size warnings are pre-existing project-level warnings.
