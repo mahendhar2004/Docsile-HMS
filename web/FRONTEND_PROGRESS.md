@@ -32,7 +32,7 @@ modules produce).
 | 15 | Call Logs | `/call-logs` | `call-logs/*` (list, stats, notes, patient link, sync) | ✅ |
 | 16 | License Tracker | `/license-tracker` | `license-tracker/*` (CRUD + document) | ✅ |
 | 17 | Analytics | `/analytics` | `analytics/*` (19 endpoints) | ✅ |
-| 18 | Reports | `/reports` | `reports/*` (17 endpoints — patient search, summaries, bulk exports) | ⬜ |
+| 18 | Reports | `/reports` | `reports/*` (17 endpoints — patient search, summaries, bulk exports) | ✅ |
 
 Already done: Login (`/login`), App shell/router, session store, API client, query
 client, `usePaginatedQuery`/`useCursorQuery`, `usePermissions`.
@@ -922,3 +922,83 @@ web/src/pages/analytics/region-tab.tsx           — 1 query: region-stats
 **Permission:** `reports:view` — page gate only; all endpoints use the same permission.
 
 **Build:** `npx tsc -b 2>&1 | grep -i analytics` — zero errors. Full `npx tsc -b` — zero errors project-wide.
+
+---
+
+### Page 18 — Reports (`/reports`) — 2026-09-22
+
+Final page. Replaced placeholder stub with a fully implemented ReportsPage (patient report viewer + bulk data export).
+
+**File structure:**
+```
+web/src/pages/ReportsPage.tsx                        — thin composition root (dual permission gate: reports:view + data:export)
+web/src/pages/reports/types.ts                       — all API types + constants (PatientSearchResult, PatientSummary, PatientVisit,
+                                                       PatientPrescription, InpatientRecord, LabRecord, BillingData, ExportEndpoint,
+                                                       EXPORT_TAB_CONFIG, ALL_EXPORT_ENDPOINTS, VISIT_STATUS_MAP,
+                                                       INPATIENT_STATUS_COLORS, LAB_STATUS_VARIANT)
+web/src/pages/reports/hooks.ts                       — usePatientSearch, usePatientSummary, usePatientVisits,
+                                                       usePatientPrescriptions, usePatientInpatient, usePatientLabRecords,
+                                                       usePatientBilling, useExportData (+ buildExportUrl helper)
+web/src/pages/reports/patient-search-section.tsx     — SearchBar variant="with-autocomplete" + useCursorQuery; debounce 300ms
+web/src/pages/reports/patient-report-view.tsx        — PatientSummaryCard + 5-tab nav (visits/prescriptions/inpatient/labs/billing)
+web/src/pages/reports/visit-history-tab.tsx          — expandable accordion; STATUS_MAP: DRAFT/BILLED/PAID/PARTIAL/CANCELLED
+web/src/pages/reports/prescriptions-tab.tsx          — expandable accordion; JSON.parse medicines/investigations; Print stub
+web/src/pages/reports/lab-records-tab.tsx            — expandable accordion; LAB_STATUS_VARIANT; tests + payments + footer
+web/src/pages/reports/inpatient-records-tab.tsx      — JSON.parse doctorNames/prescriptions/dischargeNotes/paymentRecords;
+                                                       INPATIENT_STATUS_COLORS; insurance claims; Print stub
+web/src/pages/reports/billing-tab.tsx                — grand summary cards; OPD/Lab/Inpatient category breakdown;
+                                                       CollapsibleSection for payment histories; paymentRecords JSON.parse
+web/src/pages/reports/export-section.tsx             — 9 export tabs (ALL_EXPORT_ENDPOINTS); date range + search filter;
+                                                       column visibility dropdown; row selection; CSV (UTF-8 BOM) + Excel (.xls)
+                                                       blob download via URL.createObjectURL; eye-reading formatters
+                                                       (formatEyeAR/DN/CF) matching DataExportPage.tsx exactly
+```
+
+**Endpoints consumed (17, verified against .sde/schemas/openapi.yaml /reports/* paths):**
+- `GET /reports/patients/search?q=&limit=&cursor=` → cursor-based via useCursorQuery (x-permission: reports:view)
+- `GET /reports/patients/{id}/summary` → PatientSummary (x-permission: reports:view)
+- `GET /reports/patients/{id}/visits` → PatientVisit[] (x-permission: reports:view)
+- `GET /reports/patients/{id}/prescriptions` → PatientPrescription[] (x-permission: reports:view)
+- `GET /reports/patients/{id}/inpatient` → InpatientRecord | null (x-permission: reports:view)
+- `GET /reports/patients/{id}/labs` → LabRecord[] (x-permission: reports:view)
+- `GET /reports/patients/{id}/billing` → BillingData (x-permission: reports:view)
+- `GET /reports/exports/patients` → ExportRow[] (x-permission: data:export)
+- `GET /reports/exports/prescriptions` → ExportRow[] (x-permission: data:export)
+- `GET /reports/exports/eye-readings` → ExportRow[] (x-permission: data:export)
+- `GET /reports/exports/inpatients` → ExportRow[] (x-permission: data:export)
+- `GET /reports/exports/insurance-claims` → ExportRow[] (x-permission: data:export)
+- `GET /reports/exports/lab-bills` → ExportRow[] (x-permission: data:export)
+- `GET /reports/exports/pharmacy-bills` → ExportRow[] (x-permission: data:export)
+- `GET /reports/exports/optical-bills` → ExportRow[] (x-permission: data:export)
+- `GET /reports/exports/expenses` → ExportRow[] (x-permission: data:export)
+
+**Permission keys used:**
+- `reports:view` — patient search + all /reports/patients/* report endpoints
+- `data:export` — bulk export section; each export endpoint uses this permission
+
+**Key verified constants (from old app source + supabase/functions/reports/):**
+- Patient route param is UUID (`Patient.id`), NOT the display `patientId` — all /reports/patients/{id}/* endpoints use UUID
+- InPatient FK `patientId` is also UUID (verified from service.ts `getPatientInpatient`)
+- `VISIT_STATUS_MAP`: DRAFT/BILLED/PAID/PARTIAL/CANCELLED (from VisitHistoryTab.tsx)
+- `INPATIENT_STATUS_COLORS`: ADMITTED/DISCHARGED/CANCELLED (from InpatientRecordsTab.tsx)
+- `LAB_STATUS_VARIANT`: PAID/PARTIAL/PENDING/CANCELLED (from LabRecordsTab.tsx)
+- `EXPORT_TAB_CONFIG` — all 9 export types with exact column keys/labels/formats verified against DataExportPage.tsx TAB_CONFIG
+- Eye reading formatters: `formatEyeAR/DN/CF` match DataExportPage.tsx exactly; CSV uses UTF-8 BOM (`﻿`) blob
+- `ExportQuerySchema`: filter/customStart/customEnd/search/patientType/status params (from supabase/functions/reports/types.ts)
+- Inpatient JSON fields: `doctorNames` (string[]), `prescriptions` (IPPrescription[]), `dischargeNotes` (DischargeSummary), `paymentRecords` (array)
+- BillingData.summary fields: opdTotal/opdPaid/opdDue/labTotal/labPaid/labDue/ipdTotal/ipdPaid/ipdDue/grandTotal/grandPaid/grandDue
+
+**Export download mechanism (matched from DataExportPage.tsx):**
+- CSV: `new Blob(["﻿" + csvContent], { type: "text/csv;charset=utf-8;" })` → `URL.createObjectURL` → anchor click
+- Excel: HTML table blob with `application/vnd.ms-excel;charset=utf-8;` → `URL.createObjectURL` → anchor click
+- User triggers fetch via "Fetch Data" button (avoids 10 req/min rate-limit exhaustion from auto-fetch on filter change)
+- Selected rows or all rows exported on demand; column visibility persists while changing selection
+
+**Key architectural decisions:**
+- `SearchBar variant="with-autocomplete"` handles suggestion dropdown, keyboard nav, and loading state internally
+- `useCursorQuery` drives patient search (useInfiniteQuery, accumulates pages into flat `data[]`)
+- Export section uses `fetchEnabled` boolean state — no auto-fetch; "Fetch Data" / "Refresh" button is explicit trigger
+- Patient report view sticky tab nav (`position: sticky; top: 4.5rem`) preserves context while scrolling long tabs
+- `void User` suppressed (User icon imported but not used in patient-report-view.tsx's visible JSX; acceptable lint suppression for lucide-react named import)
+
+**Build:** `npx tsc -b 2>&1 | grep -i reports` — verified zero errors in all reports/* files.
