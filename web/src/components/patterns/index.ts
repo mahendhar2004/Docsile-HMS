@@ -19,6 +19,9 @@ export type {
   FileUploadProps,
 } from "./structured-content"
 
+// Charts
+export * from "./charts"
+
 // Cards & stats
 export { StatCard } from "./cards"
 export type { StatCardProps, StatCardTrend, TrendDirection } from "./cards"
