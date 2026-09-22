@@ -1,0 +1,6001 @@
+openapi: '3.0.3'
+info:
+  title: Docsile HMS API
+  version: '1.0.0'
+  description: |
+    Hospital Management System REST API — 234 endpoints across 18 Supabase Edge Function modules.
+
+    **Auth:** All authenticated endpoints require a valid HttpOnly `access_token` cookie (15-min expiry),
+    issued by `POST /auth/login` and refreshed by `POST /auth/refresh`. The cookie is set by the server
+    and is not visible to JavaScript.
+
+    **Rate limits (default 100 req/min per user):**
+    - `POST /auth/login`: 5 req/min per client IP
+    - `POST /auth/refresh`: 30 req/min per user jti
+    - `GET /analytics/*`: 30 req/min per user
+    - `GET /reports/exports/*`: 10 req/min per user
+    - `POST /call-logs/sync`: 6 req/min per user
+    - `POST /call-logs/webhook/exotel`: unrestricted (token-validated)
+    - `GET /health*`: 60 req/min per IP
+    - All other authenticated endpoints: 100 req/min per user
+
+    Rate limit headers on authenticated responses: `X-RateLimit-Limit`, `X-RateLimit-Remaining`, `X-RateLimit-Reset`.
+
+    **Response envelope:** Every response — success or error — is wrapped:
+    ```json
+    { "statusCode": 200, "message": "Success", "data": { ... }, "meta": { ... } }
+    ```
+    `meta` (pagination) is omitted for non-paginated responses. Error responses set `data: null`.
+
+    **Permissions:** Each operation carries an `x-permission` extension with the required RBAC scope
+    (enforced by Hono middleware in every Edge Function per ADR-002). Every `x-permission` value
+    below matches an EXISTING key in `src/lib/permissions.ts`'s `ALL_PERMISSIONS`, with three
+    exceptions — `billing:*`, `call_logs:*`, and `queue:view` — which are NEW permission groups that
+    do not exist in the current codebase yet (billing and queue are new module boundaries created by
+    this migration; call-logs functionality currently has no dedicated permission at all — access is
+    gated only by generic auth today). These three groups MUST be added to `ALL_PERMISSIONS` and to
+    the relevant `DEFAULT_ROLE_PERMISSIONS` role arrays during Phase 6/7 implementation, before their
+    Edge Functions can enforce anything — until then, do not treat their presence in this spec as
+    confirmation that the permission already exists in code.
+
+servers:
+  - url: https://{projectRef}.supabase.co/functions/v1
+    description: >-
+      Supabase's REST gateway for Edge Functions. Path segments after this
+      base (e.g. /patient-care/patients) select the target Edge Function
+      by name (one per module, per ADR-006) and the route within it. The
+      "v1" here is Supabase's own platform path prefix, not this project's
+      API version — this project has no separate API versioning scheme yet;
+      introduce one via distinct function names (e.g. a "v2-patient-care"
+      function) if a breaking change is ever needed for a single module.
+    variables:
+      projectRef:
+        default: YOUR_PROJECT_REF
+        description: Supabase project reference ID
+
+security:
+  - cookieAuth: []
+
+tags:
+  - name: doctor
+    description: >-
+      Clinical workflow operations (queue, consultation, workup, AI assist).
+      Doctor entity records themselves are NOT managed here — there is no
+      standalone Doctor table; a doctor is a User (staff/actions.ts) with
+      role=DOCTOR. Doctor provisioning/CRUD is handled entirely by the
+      staff module's endpoints (POST /staff/members, etc.), not this tag.
+  - name: labs
+    description: >-
+      Lab test ordering and lab-center/master-data management. Recording
+      lab RESULTS (as opposed to ordering a test) is explicitly deferred —
+      not yet designed as an endpoint in this phase; add it when that
+      workflow is implemented, rather than assuming it is covered here.
+  - name: reports
+    description: >-
+      Report/export data queries (all read endpoints in this phase). PDF
+      generation/storage for reports is explicitly deferred — not yet
+      designed as an endpoint; add it when that workflow (client-side vs.
+      server-generated PDFs) is decided, rather than assuming it is covered
+      here.
+
+components:
+  securitySchemes:
+    cookieAuth:
+      type: apiKey
+      in: cookie
+      name: access_token
+      description: |
+        HttpOnly JWT access token (15-min expiry). Issued by POST /auth/login.
+        Rotated via POST /auth/refresh (refresh token rotation — old refresh jti is invalidated
+        on every use and stored hashed in token_revocation table).
+
+  parameters:
+    page:
+      name: page
+      in: query
+      schema:
+        type: integer
+        minimum: 1
+        default: 1
+      description: Page number (1-based) for offset pagination.
+    pageSize:
+      name: pageSize
+      in: query
+      schema:
+        type: integer
+        minimum: 1
+        maximum: 100
+        default: 50
+      description: Number of records per page for offset pagination.
+    cursor:
+      name: cursor
+      in: query
+      schema:
+        type: string
+      description: Opaque cursor token for cursor-based pagination. Omit for the first page.
+    cursorLimit:
+      name: limit
+      in: query
+      schema:
+        type: integer
+        minimum: 1
+        maximum: 100
+        default: 10
+      description: Number of records per page for cursor-based pagination.
+    analyticsFilter:
+      name: filter
+      in: query
+      schema:
+        type: string
+        enum: [today, week, month, year, custom]
+        default: today
+      description: Date range filter for analytics and reports endpoints.
+    customStart:
+      name: customStart
+      in: query
+      schema:
+        type: string
+        format: date
+      description: Start date (YYYY-MM-DD). Required when filter=custom.
+    customEnd:
+      name: customEnd
+      in: query
+      schema:
+        type: string
+        format: date
+      description: End date (YYYY-MM-DD). Required when filter=custom.
+    pathId:
+      name: id
+      in: path
+      required: true
+      schema:
+        type: string
+      description: Resource UUID.
+    patientId:
+      name: patientId
+      in: path
+      required: true
+      schema:
+        type: string
+      description: Patient UUID (internal `id`, not the sequential `patientId` display field).
+    inpatientId:
+      name: id
+      in: path
+      required: true
+      schema:
+        type: string
+      description: InPatient UUID.
+
+  schemas:
+    # ---- Envelope & Error ----
+    PaginatedMeta:
+      type: object
+      properties:
+        page:
+          type: integer
+        pageSize:
+          type: integer
+        total:
+          type: integer
+
+    ApiResponse:
+      type: object
+      required: [statusCode, message, data]
+      properties:
+        statusCode:
+          type: integer
+          example: 200
+        message:
+          type: string
+          example: Success
+        data:
+          type: object
+          nullable: true
+          description: Response payload — shape varies per endpoint.
+        meta:
+          $ref: '#/components/schemas/PaginatedMeta'
+
+    ErrorResponse:
+      type: object
+      required: [statusCode, message, data]
+      properties:
+        statusCode:
+          type: integer
+          example: 400
+        message:
+          type: string
+          example: 'Patient with id P-1234 not found'
+          description: >
+            Descriptive error message naming the resource type, identifier, and what was invalid.
+            Never returns a bare "Not found" or "Bad request".
+        data:
+          type: object
+          nullable: true
+          default: null
+
+    # ---- Entity Schemas (derived from 4-datamodel.md) ----
+    Patient:
+      type: object
+      properties:
+        id:
+          type: string
+          description: UUID primary key
+        patientId:
+          type: string
+          description: Sequential human-readable ID (e.g. P-0001), generated by next_patient_number()
+        firstName:
+          type: string
+        lastName:
+          type: string
+        phone:
+          type: string
+        email:
+          type: string
+          nullable: true
+        gender:
+          type: string
+          enum: [Male, Female, Other]
+        dateOfBirth:
+          type: string
+          format: date
+          nullable: true
+        address:
+          type: string
+          nullable: true
+        patientType:
+          type: string
+          description: e.g. OPD, IPD, Walk-in
+        appointmentDate:
+          type: string
+          format: date
+        status:
+          type: string
+          nullable: true
+        referredBy:
+          type: string
+          nullable: true
+        createdById:
+          type: string
+          nullable: true
+        hospitalId:
+          type: string
+          readOnly: true
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    Prescription:
+      type: object
+      properties:
+        id:
+          type: string
+        prescriptionNumber:
+          type: string
+          description: Sequential prescription ID (e.g. 2026-0001), generated by next_prescription_number()
+        patientId:
+          type: string
+          description: FK to Patient.patientId (sequential display ID, not UUID)
+        doctorId:
+          type: string
+          nullable: true
+        prescriptionDate:
+          type: string
+          format: date
+        medicines:
+          type: string
+          description: JSON-encoded array of prescribed medicines
+        investigations:
+          type: string
+          description: JSON-encoded array of investigations ordered
+        diagnosis:
+          type: string
+          nullable: true
+        heightCm:
+          type: number
+          format: double
+          nullable: true
+        weightKg:
+          type: number
+          format: double
+          nullable: true
+        hospitalId:
+          type: string
+          readOnly: true
+        createdAt:
+          type: string
+          format: date-time
+
+    InvoiceItem:
+      type: object
+      properties:
+        id:
+          type: string
+        prescriptionId:
+          type: string
+        name:
+          type: string
+        quantity:
+          type: integer
+        unitPrice:
+          type: number
+          format: double
+        total:
+          type: number
+          format: double
+
+    Payment:
+      type: object
+      properties:
+        id:
+          type: string
+        prescriptionId:
+          type: string
+        paymentMode:
+          type: string
+          description: e.g. Cash, Card, UPI
+        amount:
+          type: number
+          format: double
+        createdAt:
+          type: string
+          format: date-time
+
+    InPatient:
+      type: object
+      properties:
+        id:
+          type: string
+        ipNumber:
+          type: string
+          description: Sequential IP number (e.g. IP-0001), generated by next_ip_number()
+        patientId:
+          type: string
+          description: FK to Patient.id (UUID)
+        admissionDate:
+          type: string
+          format: date
+        dischargeDate:
+          type: string
+          format: date
+          nullable: true
+        status:
+          type: string
+          enum: [admitted, discharged]
+        ward:
+          type: string
+          nullable: true
+        bedNumber:
+          type: string
+          nullable: true
+        onDutyDoctors:
+          type: string
+          description: JSON-encoded array of doctor names
+        paymentRecords:
+          type: string
+          description: JSON-encoded array of payment records
+        prescriptions:
+          type: string
+          description: JSON-encoded array of prescription references
+        hospitalId:
+          type: string
+          readOnly: true
+        createdById:
+          type: string
+          nullable: true
+        createdAt:
+          type: string
+          format: date-time
+
+    InsuranceCompany:
+      type: object
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        tpaName:
+          type: string
+          nullable: true
+        contactPerson:
+          type: string
+          nullable: true
+        phone:
+          type: string
+          nullable: true
+        email:
+          type: string
+          nullable: true
+        isActive:
+          type: boolean
+        hospitalId:
+          type: string
+          readOnly: true
+        createdAt:
+          type: string
+          format: date-time
+
+    InsuranceClaim:
+      type: object
+      properties:
+        id:
+          type: string
+        claimNumber:
+          type: string
+          description: Sequential claim number, generated by next_insurance_claim_number()
+        inPatientId:
+          type: string
+        insuranceCompanyId:
+          type: string
+          nullable: true
+        status:
+          type: string
+          description: e.g. submitted, approved, rejected, settled
+        claimedAmount:
+          type: number
+          format: double
+        approvedAmount:
+          type: number
+          format: double
+          nullable: true
+        settledAmount:
+          type: number
+          format: double
+          nullable: true
+        hospitalId:
+          type: string
+          readOnly: true
+        createdById:
+          type: string
+          nullable: true
+        createdAt:
+          type: string
+          format: date-time
+
+    Lab:
+      type: object
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        printHeaderKey:
+          type: string
+          nullable: true
+        hospitalId:
+          type: string
+          readOnly: true
+        createdAt:
+          type: string
+          format: date-time
+        isDeleted:
+          type: boolean
+
+    InvestigationMaster:
+      type: object
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        category:
+          type: string
+          nullable: true
+        hospitalId:
+          type: string
+          readOnly: true
+
+    LabBill:
+      type: object
+      properties:
+        id:
+          type: string
+        billNumber:
+          type: string
+        patientId:
+          type: string
+          description: FK to Patient.patientId
+        labId:
+          type: string
+        prescriptionId:
+          type: string
+          nullable: true
+        totalAmount:
+          type: number
+          format: double
+        hospitalId:
+          type: string
+          readOnly: true
+        createdAt:
+          type: string
+          format: date-time
+
+    LabBillItem:
+      type: object
+      properties:
+        id:
+          type: string
+        labBillId:
+          type: string
+        investigationId:
+          type: string
+        name:
+          type: string
+        price:
+          type: number
+          format: double
+
+    LabPayment:
+      type: object
+      properties:
+        id:
+          type: string
+        labBillId:
+          type: string
+        paymentMode:
+          type: string
+        amount:
+          type: number
+          format: double
+        createdAt:
+          type: string
+          format: date-time
+
+    ExpenseCategory:
+      type: object
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        color:
+          type: string
+          nullable: true
+        sortOrder:
+          type: integer
+        hospitalId:
+          type: string
+          readOnly: true
+
+    Expense:
+      type: object
+      properties:
+        id:
+          type: string
+        categoryId:
+          type: string
+        description:
+          type: string
+        amount:
+          type: number
+          format: double
+        date:
+          type: string
+          format: date
+        hospitalId:
+          type: string
+          readOnly: true
+        createdAt:
+          type: string
+          format: date-time
+
+    PharmacyMedicine:
+      type: object
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        manufacturer:
+          type: string
+          nullable: true
+        category:
+          type: string
+          nullable: true
+        gstPercent:
+          type: number
+          format: double
+        hospitalId:
+          type: string
+          readOnly: true
+        isDeleted:
+          type: boolean
+
+    PharmacySupplier:
+      type: object
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        gstin:
+          type: string
+          nullable: true
+        drugLicenseNo:
+          type: string
+          nullable: true
+        phone:
+          type: string
+          nullable: true
+        hospitalId:
+          type: string
+          readOnly: true
+        isDeleted:
+          type: boolean
+
+    PharmacyStock:
+      type: object
+      properties:
+        id:
+          type: string
+        medicineId:
+          type: string
+        supplierId:
+          type: string
+          nullable: true
+        batchNumber:
+          type: string
+        expiryDate:
+          type: string
+          format: date
+        quantity:
+          type: integer
+        purchasePrice:
+          type: number
+          format: double
+        sellingPrice:
+          type: number
+          format: double
+        hospitalId:
+          type: string
+          readOnly: true
+
+    PurchaseOrder:
+      type: object
+      properties:
+        id:
+          type: string
+        orderNumber:
+          type: string
+        supplierId:
+          type: string
+        status:
+          type: string
+          enum: [pending, received, cancelled]
+        totalAmount:
+          type: number
+          format: double
+        hospitalId:
+          type: string
+          readOnly: true
+        createdAt:
+          type: string
+          format: date-time
+
+    PurchaseOrderItem:
+      type: object
+      properties:
+        id:
+          type: string
+        purchaseOrderId:
+          type: string
+        medicineId:
+          type: string
+        quantity:
+          type: integer
+        unitPrice:
+          type: number
+          format: double
+
+    PharmacyBill:
+      type: object
+      properties:
+        id:
+          type: string
+        billNumber:
+          type: string
+        patientId:
+          type: string
+          nullable: true
+          description: Null for walk-in (non-registered patient) sales
+        totalAmount:
+          type: number
+          format: double
+        gstAmount:
+          type: number
+          format: double
+        hospitalId:
+          type: string
+          readOnly: true
+        createdAt:
+          type: string
+          format: date-time
+
+    License:
+      type: object
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        expiryDate:
+          type: string
+          format: date
+        reminderDays:
+          type: integer
+        status:
+          type: string
+        documentUrl:
+          type: string
+          nullable: true
+          description: URL to document in license-documents Supabase Storage bucket
+        hospitalId:
+          type: string
+          readOnly: true
+
+    OpticalProduct:
+      type: object
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        brand:
+          type: string
+          nullable: true
+        category:
+          type: string
+          nullable: true
+        hospitalId:
+          type: string
+          readOnly: true
+        isDeleted:
+          type: boolean
+
+    OpticalStock:
+      type: object
+      properties:
+        id:
+          type: string
+        productId:
+          type: string
+        batchNumber:
+          type: string
+        power:
+          type: string
+          nullable: true
+        quantity:
+          type: integer
+        purchasePrice:
+          type: number
+          format: double
+        sellingPrice:
+          type: number
+          format: double
+        hospitalId:
+          type: string
+          readOnly: true
+
+    OpticalBill:
+      type: object
+      properties:
+        id:
+          type: string
+        billNumber:
+          type: string
+        patientId:
+          type: string
+          nullable: true
+        lensPrescription:
+          type: string
+          nullable: true
+        totalAmount:
+          type: number
+          format: double
+        status:
+          type: string
+        hospitalId:
+          type: string
+          readOnly: true
+        createdAt:
+          type: string
+          format: date-time
+
+    OpticalBillItem:
+      type: object
+      properties:
+        id:
+          type: string
+        billId:
+          type: string
+        stockId:
+          type: string
+          nullable: true
+        name:
+          type: string
+        eye:
+          type: string
+          enum: [L, R, BOTH]
+        quantity:
+          type: integer
+        unitPrice:
+          type: number
+          format: double
+
+    CallLog:
+      type: object
+      properties:
+        id:
+          type: string
+        exotelCallSid:
+          type: string
+        callFrom:
+          type: string
+        callTo:
+          type: string
+        startTime:
+          type: string
+          format: date-time
+        duration:
+          type: integer
+          description: Duration in seconds
+        status:
+          type: string
+        notes:
+          type: string
+          nullable: true
+        patientId:
+          type: string
+          nullable: true
+        rawResponse:
+          type: object
+          additionalProperties: true
+          description: Raw JSONB payload from Exotel webhook
+        hospitalId:
+          type: string
+          readOnly: true
+
+    User:
+      type: object
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        email:
+          type: string
+        role:
+          type: string
+          description: Role name string (denormalized from Role table)
+        employeeId:
+          type: string
+          nullable: true
+        isActive:
+          type: boolean
+        preferences:
+          type: string
+          nullable: true
+          description: JSON-encoded user preferences object
+        hospitalId:
+          type: string
+          readOnly: true
+        createdAt:
+          type: string
+          format: date-time
+
+    Role:
+      type: object
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        permissions:
+          type: string
+          description: JSON-encoded array of permission scope strings (e.g. ["patient:view","billing:create"])
+        isSystem:
+          type: boolean
+        createdAt:
+          type: string
+          format: date-time
+
+    ServiceTemplate:
+      type: object
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        category:
+          type: string
+          nullable: true
+        amount:
+          type: number
+          format: double
+        isActive:
+          type: boolean
+        hospitalId:
+          type: string
+          readOnly: true
+
+    HospitalProfile:
+      type: object
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        address:
+          type: string
+          nullable: true
+        phone:
+          type: string
+          nullable: true
+        email:
+          type: string
+          nullable: true
+        settings:
+          type: string
+          description: JSON-encoded hospital settings blob
+          nullable: true
+        registrationFeeEnabled:
+          type: boolean
+        registrationFeeAmount:
+          type: number
+          format: double
+          nullable: true
+        tone:
+          type: string
+          nullable: true
+        departments:
+          type: string
+          nullable: true
+
+    MedicineMaster:
+      type: object
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        defaultTiming:
+          type: string
+          nullable: true
+        category:
+          type: string
+          nullable: true
+        hospitalId:
+          type: string
+          readOnly: true
+
+    DropdownOption:
+      type: object
+      properties:
+        id:
+          type: string
+        fieldName:
+          type: string
+          description: Logical field name this option belongs to (fieldName + value must be unique)
+        value:
+          type: string
+        hospitalId:
+          type: string
+          readOnly: true
+
+    PredefinedTemplate:
+      type: object
+      properties:
+        id:
+          type: string
+        code:
+          type: string
+          description: Unique code identifier for the template
+        name:
+          type: string
+        medicines:
+          type: string
+          description: JSON-encoded array of medicine objects
+        investigations:
+          type: string
+          description: JSON-encoded array of investigation objects
+        hospitalId:
+          type: string
+          readOnly: true
+
+    InpatientTemplate:
+      type: object
+      properties:
+        id:
+          type: string
+        code:
+          type: string
+        name:
+          type: string
+        medicines:
+          type: string
+          description: JSON-encoded array of medicine objects
+        hospitalId:
+          type: string
+          readOnly: true
+
+    PredefinedPackage:
+      type: object
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        inclusions:
+          type: string
+          description: JSON-encoded array of included services/items
+        totalAmount:
+          type: number
+          format: double
+        hospitalId:
+          type: string
+          readOnly: true
+
+    PredefinedSurgery:
+      type: object
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        department:
+          type: string
+          nullable: true
+        doctorNames:
+          type: string
+          description: JSON-encoded array of doctor names
+        onDutyDoctors:
+          type: string
+          description: JSON-encoded array of on-duty doctor objects
+        hospitalId:
+          type: string
+          readOnly: true
+        isDeleted:
+          type: boolean
+
+    PredefinedDischarge:
+      type: object
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        dischargeDiagnosis:
+          type: string
+          nullable: true
+        conditionAtDischarge:
+          type: string
+          nullable: true
+        dischargeMedications:
+          type: string
+          nullable: true
+        hospitalId:
+          type: string
+          readOnly: true
+        isDeleted:
+          type: boolean
+
+    EyeReading:
+      type: object
+      properties:
+        id:
+          type: string
+        prescriptionId:
+          type: string
+          nullable: true
+        patientId:
+          type: string
+          description: FK to Patient.patientId
+        autoRefractometer:
+          type: string
+          nullable: true
+          description: JSON-encoded auto-refractometer readings
+        glassesReading:
+          type: string
+          nullable: true
+          description: JSON-encoded glasses prescription readings
+        createdById:
+          type: string
+          nullable: true
+        hospitalId:
+          type: string
+          readOnly: true
+        createdAt:
+          type: string
+          format: date-time
+
+paths:
+  # ================================================================
+  # auth (3 endpoints)
+  # ================================================================
+  /auth/login:
+    post:
+      tags: [auth]
+      summary: Staff login
+      description: |
+        Email + password authentication. Issues a 15-min HttpOnly access token cookie and
+        a 7-day HttpOnly refresh token cookie. Rate limit: 5 req/min per client IP.
+      x-permission: public
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [email, password]
+              properties:
+                email:
+                  type: string
+                  format: email
+                password:
+                  type: string
+                  format: password
+      responses:
+        '200':
+          description: Login successful — access_token and refresh_token cookies set.
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/ApiResponse'
+                  - type: object
+                    properties:
+                      data:
+                        type: object
+                        properties:
+                          userId:
+                            type: string
+                          name:
+                            type: string
+                          role:
+                            type: string
+                          hospitalId:
+                            type: string
+        '401':
+          description: Invalid credentials.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '429':
+          description: Rate limit exceeded (5 req/min per IP).
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /auth/refresh:
+    post:
+      tags: [auth]
+      summary: Refresh access token
+      description: |
+        Refresh token rotation. The existing refresh_token cookie is validated, its jti is
+        revoked in token_revocation, and a new access + refresh token pair is issued.
+        Rate limit: 30 req/min per user jti.
+      x-permission: cookie-only
+      responses:
+        '200':
+          description: New token pair issued — cookies updated.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+        '401':
+          description: Refresh token missing, expired, or revoked.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /auth/logout:
+    post:
+      tags: [auth]
+      summary: Logout
+      description: |
+        Inserts the access and refresh token jtis into token_revocation (true server-side
+        revocation). Clears both HttpOnly cookies.
+      x-permission: cookie-only
+      responses:
+        '200':
+          description: Logout successful — both token cookies cleared.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+
+  # ================================================================
+  # health (2 endpoints)
+  # ================================================================
+  /health:
+    get:
+      tags: [health]
+      summary: Liveness check
+      description: "Returns 200 if the Edge Function is running. Rate limit: 60 req/min per IP."
+      x-permission: public
+      security: []
+      responses:
+        '200':
+          description: Service is up.
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/ApiResponse'
+                  - type: object
+                    properties:
+                      data:
+                        type: object
+                        properties:
+                          status:
+                            type: string
+                            example: ok
+
+  /health/db:
+    get:
+      tags: [health]
+      summary: Database connectivity check
+      description: "Runs a lightweight Supabase query to verify DB connectivity. Rate limit: 60 req/min per IP."
+      x-permission: public
+      security: []
+      responses:
+        '200':
+          description: DB connection is healthy.
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/ApiResponse'
+                  - type: object
+                    properties:
+                      data:
+                        type: object
+                        properties:
+                          status:
+                            type: string
+                            example: ok
+                          latencyMs:
+                            type: integer
+        '503':
+          description: DB connection failed.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  # ================================================================
+  # patient-care — patients (14 endpoints)
+  # ================================================================
+  /patient-care/patients:
+    get:
+      tags: [patient-care]
+      summary: List patients by appointment date
+      description: |
+        Returns patients for a given date (defaults to today). Offset-paginated.
+        Query param `date` (YYYY-MM-DD) selects the appointment date.
+      x-permission: patients:view
+      parameters:
+        - name: date
+          in: query
+          schema:
+            type: string
+            format: date
+          description: Appointment date filter (YYYY-MM-DD). Defaults to today.
+        - $ref: '#/components/parameters/page'
+        - $ref: '#/components/parameters/pageSize'
+      responses:
+        '200':
+          description: Paginated patient list.
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/ApiResponse'
+                  - type: object
+                    properties:
+                      data:
+                        type: array
+                        items:
+                          $ref: '#/components/schemas/Patient'
+    post:
+      tags: [patient-care]
+      summary: Register a new patient
+      description: Creates a patient record with a sequential patientId from next_patient_number().
+      x-permission: patients:create
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Patient'
+      responses:
+        '201':
+          description: Patient created.
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/ApiResponse'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/Patient'
+        '409':
+          description: Duplicate phone or ID conflict.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /patient-care/patients/search:
+    get:
+      tags: [patient-care]
+      summary: Search patients (cursor-based)
+      description: Cursor-based search across all patients (unbounded). Matches on name, phone, or patientId.
+      x-permission: patients:view
+      parameters:
+        - name: q
+          in: query
+          required: true
+          schema:
+            type: string
+          description: Search query (name, phone, or patientId prefix).
+        - $ref: '#/components/parameters/cursor'
+        - $ref: '#/components/parameters/cursorLimit'
+      responses:
+        '200':
+          description: Cursor-paginated search results.
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/ApiResponse'
+                  - type: object
+                    properties:
+                      data:
+                        type: object
+                        properties:
+                          patients:
+                            type: array
+                            items:
+                              $ref: '#/components/schemas/Patient'
+                          nextCursor:
+                            type: string
+                            nullable: true
+
+  /patient-care/patients/next-id:
+    get:
+      tags: [patient-care]
+      summary: Preview next patient ID
+      description: Returns the next sequential patient ID that will be assigned (calls next_patient_number() without consuming it).
+      x-permission: patients:create
+      responses:
+        '200':
+          description: Next patient ID string.
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/ApiResponse'
+                  - type: object
+                    properties:
+                      data:
+                        type: object
+                        properties:
+                          nextPatientId:
+                            type: string
+                            example: P-0042
+
+  /patient-care/patients/registration-form:
+    get:
+      tags: [patient-care]
+      summary: Get registration form reference data
+      description: Returns dropdown options, service templates, and other reference data needed to render the patient registration form.
+      x-permission: patients:create
+      responses:
+        '200':
+          description: Form reference data.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+
+  /patient-care/patients/{id}:
+    get:
+      tags: [patient-care]
+      summary: Get patient by ID
+      x-permission: patients:view
+      parameters:
+        - $ref: '#/components/parameters/pathId'
+      responses:
+        '200':
+          description: Patient record.
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/ApiResponse'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/Patient'
+        '404':
+          description: Patient with id {id} not found.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+    patch:
+      tags: [patient-care]
+      summary: Update patient info
+      x-permission: patients:edit
+      parameters:
+        - $ref: '#/components/parameters/pathId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Patient'
+      responses:
+        '200':
+          description: Updated patient.
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/ApiResponse'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/Patient'
+        '404':
+          description: Patient with id {id} not found.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+    delete:
+      tags: [patient-care]
+      summary: Delete patient
+      x-permission: patients:delete
+      parameters:
+        - $ref: '#/components/parameters/pathId'
+      responses:
+        '200':
+          description: Patient deleted.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+        '404':
+          description: Patient with id {id} not found.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /patient-care/patients/{id}/status:
+    patch:
+      tags: [patient-care]
+      summary: Update patient status
+      x-permission: patients:edit
+      parameters:
+        - $ref: '#/components/parameters/pathId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [status]
+              properties:
+                status:
+                  type: string
+      responses:
+        '200':
+          description: Status updated.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+
+  /patient-care/patients/{id}/date:
+    patch:
+      tags: [patient-care]
+      summary: Move patient to a different appointment date
+      x-permission: patients:edit
+      parameters:
+        - $ref: '#/components/parameters/pathId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [appointmentDate]
+              properties:
+                appointmentDate:
+                  type: string
+                  format: date
+      responses:
+        '200':
+          description: Appointment date updated.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+
+  /patient-care/patients/{id}/last-visit:
+    get:
+      tags: [patient-care]
+      summary: Get patient with last visit details
+      x-permission: patients:view
+      parameters:
+        - $ref: '#/components/parameters/pathId'
+      responses:
+        '200':
+          description: Patient record with last prescription/visit summary.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+
+  /patient-care/patients/{id}/receipt:
+    get:
+      tags: [patient-care]
+      summary: Get patient receipt data
+      x-permission: billing:view
+      parameters:
+        - $ref: '#/components/parameters/pathId'
+      responses:
+        '200':
+          description: Receipt data for printing.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+
+  /patient-care/patients/{id}/services:
+    post:
+      tags: [patient-care]
+      summary: Add service to patient (creates invoice item + payment)
+      x-permission: billing:create
+      parameters:
+        - $ref: '#/components/parameters/pathId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [serviceTemplateId, paymentMode]
+              properties:
+                serviceTemplateId:
+                  type: string
+                paymentMode:
+                  type: string
+                amount:
+                  type: number
+                  format: double
+      responses:
+        '201':
+          description: Service added and invoice item created.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+
+  /patient-care/patients/{id}/prescriptions:
+    post:
+      tags: [patient-care]
+      summary: Create prescription with billing
+      description: Creates a Prescription + InvoiceItems + initial Payment in a single transaction.
+      x-permission: billing:create
+      parameters:
+        - $ref: '#/components/parameters/pathId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                prescription:
+                  $ref: '#/components/schemas/Prescription'
+                invoiceItems:
+                  type: array
+                  items:
+                    $ref: '#/components/schemas/InvoiceItem'
+                payment:
+                  $ref: '#/components/schemas/Payment'
+      responses:
+        '201':
+          description: Prescription and billing records created.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+
+  # ================================================================
+  # patient-care — inpatients (14 endpoints) + dropdown-options (2)
+  # ================================================================
+  /patient-care/inpatients:
+    get:
+      tags: [patient-care]
+      summary: List inpatients
+      description: Offset-paginated list of inpatients, filtered by date and/or status.
+      x-permission: inpatients:view
+      parameters:
+        - name: date
+          in: query
+          schema:
+            type: string
+            format: date
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [admitted, discharged]
+        - $ref: '#/components/parameters/page'
+        - $ref: '#/components/parameters/pageSize'
+      responses:
+        '200':
+          description: Paginated inpatient list.
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/ApiResponse'
+                  - type: object
+                    properties:
+                      data:
+                        type: array
+                        items:
+                          $ref: '#/components/schemas/InPatient'
+    post:
+      tags: [patient-care]
+      summary: Admit a new inpatient
+      x-permission: inpatients:create
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/InPatient'
+      responses:
+        '201':
+          description: Inpatient admitted.
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/ApiResponse'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/InPatient'
+
+  /patient-care/inpatients/next-id:
+    get:
+      tags: [patient-care]
+      summary: Preview next inpatient number
+      x-permission: inpatients:create
+      responses:
+        '200':
+          description: Next IP number string.
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/ApiResponse'
+                  - type: object
+                    properties:
+                      data:
+                        type: object
+                        properties:
+                          nextIpNumber:
+                            type: string
+                            example: IP-0017
+
+  /patient-care/inpatients/admission-form:
+    get:
+      tags: [patient-care]
+      summary: Get admission form reference data
+      description: Returns ward options, surgery types, doctor lists, and other reference data for the admission form.
+      x-permission: inpatients:create
+      responses:
+        '200':
+          description: Admission form reference data.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+
+  /patient-care/inpatients/{id}:
+    get:
+      tags: [patient-care]
+      summary: Get inpatient by ID
+      x-permission: inpatients:view
+      parameters:
+        - $ref: '#/components/parameters/pathId'
+      responses:
+        '200':
+          description: Inpatient record.
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/ApiResponse'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/InPatient'
+        '404':
+          description: InPatient with id {id} not found.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+    patch:
+      tags: [patient-care]
+      summary: Update inpatient (full update)
+      x-permission: inpatients:edit
+      parameters:
+        - $ref: '#/components/parameters/pathId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/InPatient'
+      responses:
+        '200':
+          description: Inpatient updated.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+    delete:
+      tags: [patient-care]
+      summary: Delete inpatient record
+      x-permission: inpatients:delete
+      parameters:
+        - $ref: '#/components/parameters/pathId'
+      responses:
+        '200':
+          description: Inpatient deleted.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+
+  /patient-care/inpatients/{id}/basic-info:
+    patch:
+      tags: [patient-care]
+      summary: Update inpatient basic info (partial)
+      x-permission: inpatients:edit
+      parameters:
+        - $ref: '#/components/parameters/pathId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                ward:
+                  type: string
+                bedNumber:
+                  type: string
+                onDutyDoctors:
+                  type: string
+      responses:
+        '200':
+          description: Basic info updated.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+
+  /patient-care/inpatients/{id}/details:
+    patch:
+      tags: [patient-care]
+      summary: Update inpatient clinical details
+      x-permission: inpatients:edit
+      parameters:
+        - $ref: '#/components/parameters/pathId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                prescriptions:
+                  type: string
+                paymentRecords:
+                  type: string
+      responses:
+        '200':
+          description: Details updated.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+
+  /patient-care/inpatients/{id}/status:
+    patch:
+      tags: [patient-care]
+      summary: Update inpatient status
+      x-permission: inpatients:edit
+      parameters:
+        - $ref: '#/components/parameters/pathId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [status]
+              properties:
+                status:
+                  type: string
+                  enum: [admitted, discharged]
+      responses:
+        '200':
+          description: Status updated.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+
+  /patient-care/inpatients/{id}/payments:
+    post:
+      tags: [patient-care]
+      summary: Add payment to inpatient record
+      x-permission: inpatients:edit
+      parameters:
+        - $ref: '#/components/parameters/pathId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [paymentMode, amount]
+              properties:
+                paymentMode:
+                  type: string
+                amount:
+                  type: number
+                  format: double
+                notes:
+                  type: string
+      responses:
+        '201':
+          description: Payment recorded.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+
+  /patient-care/inpatients/{id}/discharge:
+    post:
+      tags: [patient-care]
+      summary: Discharge inpatient
+      x-permission: inpatients:discharge
+      parameters:
+        - $ref: '#/components/parameters/pathId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [dischargeDate]
+              properties:
+                dischargeDate:
+                  type: string
+                  format: date
+                dischargeSummary:
+                  type: string
+                finalAmount:
+                  type: number
+                  format: double
+      responses:
+        '200':
+          description: Patient discharged.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+
+  /patient-care/dropdown-options:
+    get:
+      tags: [patient-care]
+      summary: Get dropdown options
+      description: Returns all dropdown options for patient-related fields (e.g. referredBy, patientType).
+      x-permission: patients:view
+      parameters:
+        - name: fieldName
+          in: query
+          schema:
+            type: string
+          description: Filter by field name.
+      responses:
+        '200':
+          description: Dropdown options list.
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/ApiResponse'
+                  - type: object
+                    properties:
+                      data:
+                        type: array
+                        items:
+                          $ref: '#/components/schemas/DropdownOption'
+    post:
+      tags: [patient-care]
+      summary: Add a dropdown option
+      x-permission: patients:edit
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [fieldName, value]
+              properties:
+                fieldName:
+                  type: string
+                value:
+                  type: string
+      responses:
+        '201':
+          description: Dropdown option created.
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/ApiResponse'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/DropdownOption'
+        '409':
+          description: Option with this fieldName+value already exists.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  # ================================================================
+  # billing (5 endpoints)
+  # ================================================================
+  /billing/daily:
+    get:
+      tags: [billing]
+      summary: Get daily billing summary
+      description: Aggregates today's prescription revenue totals.
+      x-permission: billing:view
+      parameters:
+        - name: date
+          in: query
+          schema:
+            type: string
+            format: date
+          description: Date for summary (defaults to today).
+      responses:
+        '200':
+          description: Daily billing aggregates.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+
+  /billing/prescriptions:
+    get:
+      tags: [billing]
+      summary: List prescriptions with billing details
+      x-permission: billing:view
+      parameters:
+        - name: date
+          in: query
+          schema:
+            type: string
+            format: date
+        - $ref: '#/components/parameters/page'
+        - $ref: '#/components/parameters/pageSize'
+      responses:
+        '200':
+          description: Paginated prescriptions with amounts and payments.
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/ApiResponse'
+                  - type: object
+                    properties:
+                      data:
+                        type: array
+                        items:
+                          $ref: '#/components/schemas/Prescription'
+
+  /billing/prescriptions/{id}:
+    get:
+      tags: [billing]
+      summary: Get prescription billing detail
+      x-permission: billing:view
+      parameters:
+        - $ref: '#/components/parameters/pathId'
+      responses:
+        '200':
+          description: Prescription with invoice items and payments.
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/ApiResponse'
+                  - type: object
+                    properties:
+                      data:
+                        type: object
+                        properties:
+                          prescription:
+                            $ref: '#/components/schemas/Prescription'
+                          invoiceItems:
+                            type: array
+                            items:
+                              $ref: '#/components/schemas/InvoiceItem'
+                          payments:
+                            type: array
+                            items:
+                              $ref: '#/components/schemas/Payment'
+        '404':
+          description: Prescription with id {id} not found.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /billing/prescriptions/{id}/payments:
+    post:
+      tags: [billing]
+      summary: Record additional payment on a prescription
+      x-permission: billing:create
+      parameters:
+        - $ref: '#/components/parameters/pathId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [paymentMode, amount]
+              properties:
+                paymentMode:
+                  type: string
+                amount:
+                  type: number
+                  format: double
+      responses:
+        '201':
+          description: Payment recorded.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+
+  /billing/prescriptions/{id}/payments/{payId}:
+    delete:
+      tags: [billing]
+      summary: Void a payment
+      description: Admin-only operation to void a recorded payment.
+      x-permission: billing:delete
+      parameters:
+        - $ref: '#/components/parameters/pathId'
+        - name: payId
+          in: path
+          required: true
+          schema:
+            type: string
+          description: Payment UUID.
+      responses:
+        '200':
+          description: Payment voided.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+        '404':
+          description: Payment with id {payId} on prescription {id} not found.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  # ================================================================
+  # pharmacy — medicines (4 endpoints)
+  # ================================================================
+  /pharmacy/medicines:
+    get:
+      tags: [pharmacy]
+      summary: List pharmacy medicines
+      x-permission: pharmacy:view
+      responses:
+        '200':
+          description: All active medicines (server-side limit, small master table).
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/ApiResponse'
+                  - type: object
+                    properties:
+                      data:
+                        type: array
+                        items:
+                          $ref: '#/components/schemas/PharmacyMedicine'
+    post:
+      tags: [pharmacy]
+      summary: Create a medicine
+      x-permission: pharmacy:manage_stock
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PharmacyMedicine'
+      responses:
+        '201':
+          description: Medicine created.
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/ApiResponse'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/PharmacyMedicine'
+        '409':
+          description: Medicine with name+manufacturer already exists.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /pharmacy/medicines/{id}:
+    patch:
+      tags: [pharmacy]
+      summary: Update a medicine
+      x-permission: pharmacy:manage_stock
+      parameters:
+        - $ref: '#/components/parameters/pathId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PharmacyMedicine'
+      responses:
+        '200':
+          description: Medicine updated.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+    delete:
+      tags: [pharmacy]
+      summary: Soft-delete a medicine
+      x-permission: pharmacy:manage_stock
+      parameters:
+        - $ref: '#/components/parameters/pathId'
+      responses:
+        '200':
+          description: Medicine soft-deleted (isDeleted=true).
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+
+  # pharmacy — stock (6 endpoints)
+  /pharmacy/stock:
+    get:
+      tags: [pharmacy]
+      summary: List stock items
+      x-permission: pharmacy:view
+      responses:
+        '200':
+          description: Stock list.
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/ApiResponse'
+                  - type: object
+                    properties:
+                      data:
+                        type: array
+                        items:
+                          $ref: '#/components/schemas/PharmacyStock'
+    post:
+      tags: [pharmacy]
+      summary: Add stock entry
+      x-permission: pharmacy:manage_stock
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PharmacyStock'
+      responses:
+        '201':
+          description: Stock entry created.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+
+  /pharmacy/stock/summary:
+    get:
+      tags: [pharmacy]
+      summary: Stock summary (low-stock, expiry alerts)
+      x-permission: pharmacy:view
+      responses:
+        '200':
+          description: Aggregated stock summary.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+
+  /pharmacy/stock/search:
+    get:
+      tags: [pharmacy]
+      summary: Search medicine stock
+      x-permission: pharmacy:view
+      parameters:
+        - name: q
+          in: query
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Matching stock items.
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/ApiResponse'
+                  - type: object
+                    properties:
+                      data:
+                        type: array
+                        items:
+                          $ref: '#/components/schemas/PharmacyStock'
+
+  /pharmacy/stock/{id}:
+    patch:
+      tags: [pharmacy]
+      summary: Update stock entry
+      x-permission: pharmacy:manage_stock
+      parameters:
+        - $ref: '#/components/parameters/pathId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PharmacyStock'
+      responses:
+        '200':
+          description: Stock updated.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+
+  # pharmacy — suppliers (4 endpoints)
+  /pharmacy/suppliers:
+    get:
+      tags: [pharmacy]
+      summary: List suppliers
+      x-permission: pharmacy:view
+      responses:
+        '200':
+          description: Supplier list.
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/ApiResponse'
+                  - type: object
+                    properties:
+                      data:
+                        type: array
+                        items:
+                          $ref: '#/components/schemas/PharmacySupplier'
+    post:
+      tags: [pharmacy]
+      summary: Create a supplier
+      x-permission: pharmacy:manage_stock
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PharmacySupplier'
+      responses:
+        '201':
+          description: Supplier created.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+        '409':
+          description: Supplier with this name already exists.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /pharmacy/suppliers/{id}:
+    patch:
+      tags: [pharmacy]
+      summary: Update a supplier
+      x-permission: pharmacy:manage_stock
+      parameters:
+        - $ref: '#/components/parameters/pathId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PharmacySupplier'
+      responses:
+        '200':
+          description: Supplier updated.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+    delete:
+      tags: [pharmacy]
+      summary: Soft-delete a supplier
+      x-permission: pharmacy:manage_stock
+      parameters:
+        - $ref: '#/components/parameters/pathId'
+      responses:
+        '200':
+          description: Supplier soft-deleted.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+
+  # pharmacy — purchase orders (4 endpoints)
+  /pharmacy/purchase-orders:
+    get:
+      tags: [pharmacy]
+      summary: List purchase orders
+      x-permission: pharmacy:purchase_orders
+      responses:
+        '200':
+          description: Purchase order list.
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/ApiResponse'
+                  - type: object
+                    properties:
+                      data:
+                        type: array
+                        items:
+                          $ref: '#/components/schemas/PurchaseOrder'
+    post:
+      tags: [pharmacy]
+      summary: Create a purchase order
+      x-permission: pharmacy:purchase_orders
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                order:
+                  $ref: '#/components/schemas/PurchaseOrder'
+                items:
+                  type: array
+                  items:
+                    $ref: '#/components/schemas/PurchaseOrderItem'
+      responses:
+        '201':
+          description: Purchase order created.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+
+  /pharmacy/purchase-orders/{id}/receive:
+    post:
+      tags: [pharmacy]
+      summary: Receive a purchase order (updates stock)
+      x-permission: pharmacy:purchase_orders
+      parameters:
+        - $ref: '#/components/parameters/pathId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                receivedItems:
+                  type: array
+                  items:
+                    $ref: '#/components/schemas/PurchaseOrderItem'
+      responses:
+        '200':
+          description: Order received and stock updated.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+
+  /pharmacy/purchase-orders/{id}/status:
+    patch:
+      tags: [pharmacy]
+      summary: Update purchase order status
+      x-permission: pharmacy:purchase_orders
+      parameters:
+        - $ref: '#/components/parameters/pathId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [status]
+              properties:
+                status:
+                  type: string
+                  enum: [pending, received, cancelled]
+      responses:
+        '200':
+          description: Status updated.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+
+  # pharmacy — bills (2 endpoints)
+  /pharmacy/bills:
+    get:
+      tags: [pharmacy]
+      summary: List pharmacy bills
+      x-permission: pharmacy:view
+      parameters:
+        - $ref: '#/components/parameters/page'
+        - $ref: '#/components/parameters/pageSize'
+      responses:
+        '200':
+          description: Paginated pharmacy bills.
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/ApiResponse'
+                  - type: object
+                    properties:
+                      data:
+                        type: array
+                        items:
+                          $ref: '#/components/schemas/PharmacyBill'
+    post:
+      tags: [pharmacy]
+      summary: Create a pharmacy bill
+      description: Creates a PharmacyBill with items. Bill number uses atomic sequence (H-3 fix).
+      x-permission: pharmacy:create
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                bill:
+                  $ref: '#/components/schemas/PharmacyBill'
+                items:
+                  type: array
+                  items:
+                    type: object
+                    properties:
+                      stockId:
+                        type: string
+                      quantity:
+                        type: integer
+                      unitPrice:
+                        type: number
+                        format: double
+      responses:
+        '201':
+          description: Pharmacy bill created.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+
+  # pharmacy — misc (3 endpoints)
+  /pharmacy/pending-medicines:
+    get:
+      tags: [pharmacy]
+      summary: Get pending medicines (prescribed but not dispensed)
+      x-permission: pharmacy:view
+      responses:
+        '200':
+          description: List of pending medicine dispense requests.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+
+  /pharmacy/patients/{patientId}/prescription:
+    get:
+      tags: [pharmacy]
+      summary: Get patient prescription for dispensing
+      x-permission: pharmacy:view
+      parameters:
+        - $ref: '#/components/parameters/patientId'
+      responses:
+        '200':
+          description: Latest prescription with medicines for the patient.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+
+  # ================================================================
+  # labs (14 endpoints)
+  # ================================================================
+  /labs/labs:
+    get:
+      tags: [labs]
+      summary: List labs
+      x-permission: labs:view
+      responses:
+        '200':
+          description: All labs.
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/ApiResponse'
+                  - type: object
+                    properties:
+                      data:
+                        type: array
+                        items:
+                          $ref: '#/components/schemas/Lab'
+    post:
+      tags: [labs]
+      summary: Create a lab
+      x-permission: labs:config
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Lab'
+      responses:
+        '201':
+          description: Lab created.
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/ApiResponse'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/Lab'
+        '409':
+          description: Lab with this name already exists.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /labs/labs/{id}:
+    get:
+      tags: [labs]
+      summary: Get lab by ID
+      x-permission: labs:view
+      parameters:
+        - $ref: '#/components/parameters/pathId'
+      responses:
+        '200':
+          description: Lab record with investigations.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+        '404':
+          description: Lab with id {id} not found.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+    patch:
+      tags: [labs]
+      summary: Update a lab
+      x-permission: labs:config
+      parameters:
+        - $ref: '#/components/parameters/pathId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Lab'
+      responses:
+        '200':
+          description: Lab updated.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+    delete:
+      tags: [labs]
+      summary: Soft-delete a lab
+      x-permission: labs:config
+      parameters:
+        - $ref: '#/components/parameters/pathId'
+      responses:
+        '200':
+          description: Lab soft-deleted.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+
+  /labs/labs/{labId}/investigations:
+    get:
+      tags: [labs]
+      summary: Get investigations for a lab
+      x-permission: labs:view
+      parameters:
+        - name: labId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Investigation list for the lab.
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/ApiResponse'
+                  - type: object
+                    properties:
+                      data:
+                        type: array
+                        items:
+                          $ref: '#/components/schemas/InvestigationMaster'
+    put:
+      tags: [labs]
+      summary: Replace all investigations for a lab
+      description: Replace-all operation — removes existing lab-investigation links and creates new ones.
+      x-permission: labs:config
+      parameters:
+        - name: labId
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [investigationIds]
+              properties:
+                investigationIds:
+                  type: array
+                  items:
+                    type: string
+      responses:
+        '200':
+          description: Lab investigations replaced.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+
+  /labs/investigations:
+    get:
+      tags: [labs]
+      summary: List all investigations (master)
+      x-permission: labs:view
+      responses:
+        '200':
+          description: All investigation master records.
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/ApiResponse'
+                  - type: object
+                    properties:
+                      data:
+                        type: array
+                        items:
+                          $ref: '#/components/schemas/InvestigationMaster'
+    post:
+      tags: [labs]
+      summary: Create an investigation master record
+      x-permission: labs:config
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/InvestigationMaster'
+      responses:
+        '201':
+          description: Investigation created.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+
+  /labs/patients/{patientId}/investigations:
+    get:
+      tags: [labs]
+      summary: Get investigations for a patient
+      x-permission: labs:view
+      parameters:
+        - $ref: '#/components/parameters/patientId'
+      responses:
+        '200':
+          description: Patient investigation history.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+
+  /labs/pending-investigations:
+    get:
+      tags: [labs]
+      summary: Get pending lab investigations (ordered but not resulted)
+      x-permission: labs:view
+      responses:
+        '200':
+          description: Pending investigation list.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+
+  /labs/bills:
+    get:
+      tags: [labs]
+      summary: List lab bills
+      x-permission: labs:view
+      parameters:
+        - $ref: '#/components/parameters/page'
+        - $ref: '#/components/parameters/pageSize'
+        - name: date
+          in: query
+          schema:
+            type: string
+            format: date
+      responses:
+        '200':
+          description: Paginated lab bills.
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/ApiResponse'
+                  - type: object
+                    properties:
+                      data:
+                        type: array
+                        items:
+                          $ref: '#/components/schemas/LabBill'
+    post:
+      tags: [labs]
+      summary: Create lab bills (multi-bill)
+      description: Creates one or more LabBill records in a single request (batch bill creation).
+      x-permission: labs:create
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [bills]
+              properties:
+                bills:
+                  type: array
+                  items:
+                    type: object
+                    properties:
+                      bill:
+                        $ref: '#/components/schemas/LabBill'
+                      items:
+                        type: array
+                        items:
+                          $ref: '#/components/schemas/LabBillItem'
+                      payment:
+                        $ref: '#/components/schemas/LabPayment'
+      responses:
+        '201':
+          description: Lab bills created.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+
+  /labs/bills/{id}:
+    get:
+      tags: [labs]
+      summary: Get lab bill by ID
+      x-permission: labs:view
+      parameters:
+        - $ref: '#/components/parameters/pathId'
+      responses:
+        '200':
+          description: Lab bill with items and payments.
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/ApiResponse'
+                  - type: object
+                    properties:
+                      data:
+                        type: object
+                        properties:
+                          bill:
+                            $ref: '#/components/schemas/LabBill'
+                          items:
+                            type: array
+                            items:
+                              $ref: '#/components/schemas/LabBillItem'
+                          payments:
+                            type: array
+                            items:
+                              $ref: '#/components/schemas/LabPayment'
+        '404':
+          description: LabBill with id {id} not found.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  # ================================================================
+  # optical (16 endpoints)
+  # ================================================================
+  /optical/products:
+    get:
+      tags: [optical]
+      summary: List optical products
+      x-permission: optical:view
+      responses:
+        '200':
+          description: Optical product list.
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/ApiResponse'
+                  - type: object
+                    properties:
+                      data:
+                        type: array
+                        items:
+                          $ref: '#/components/schemas/OpticalProduct'
+    post:
+      tags: [optical]
+      summary: Create an optical product
+      x-permission: optical:edit
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/OpticalProduct'
+      responses:
+        '201':
+          description: Product created.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+
+  /optical/products/{id}:
+    patch:
+      tags: [optical]
+      summary: Update an optical product
+      x-permission: optical:edit
+      parameters:
+        - $ref: '#/components/parameters/pathId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/OpticalProduct'
+      responses:
+        '200':
+          description: Product updated.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+    delete:
+      tags: [optical]
+      summary: Soft-delete an optical product
+      x-permission: optical:edit
+      parameters:
+        - $ref: '#/components/parameters/pathId'
+      responses:
+        '200':
+          description: Product soft-deleted.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+
+  /optical/stock:
+    get:
+      tags: [optical]
+      summary: List optical stock
+      x-permission: optical:view
+      responses:
+        '200':
+          description: Optical stock list.
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/ApiResponse'
+                  - type: object
+                    properties:
+                      data:
+                        type: array
+                        items:
+                          $ref: '#/components/schemas/OpticalStock'
+    post:
+      tags: [optical]
+      summary: Add optical stock (upsert by product+batch+power)
+      x-permission: optical:edit
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/OpticalStock'
+      responses:
+        '200':
+          description: Stock upserted.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+
+  /optical/stock/summary:
+    get:
+      tags: [optical]
+      summary: Optical stock summary (low-stock alerts)
+      x-permission: optical:view
+      responses:
+        '200':
+          description: Aggregated stock summary.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+
+  /optical/stock/search:
+    get:
+      tags: [optical]
+      summary: Search optical stock
+      x-permission: optical:view
+      parameters:
+        - name: q
+          in: query
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Matching stock items.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+
+  /optical/stock/{id}:
+    patch:
+      tags: [optical]
+      summary: Update optical stock entry
+      x-permission: optical:edit
+      parameters:
+        - $ref: '#/components/parameters/pathId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/OpticalStock'
+      responses:
+        '200':
+          description: Stock updated.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+
+  /optical/bills:
+    get:
+      tags: [optical]
+      summary: List optical bills
+      x-permission: optical:view
+      parameters:
+        - $ref: '#/components/parameters/page'
+        - $ref: '#/components/parameters/pageSize'
+        - name: date
+          in: query
+          schema:
+            type: string
+            format: date
+      responses:
+        '200':
+          description: Paginated optical bills.
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/ApiResponse'
+                  - type: object
+                    properties:
+                      data:
+                        type: array
+                        items:
+                          $ref: '#/components/schemas/OpticalBill'
+    post:
+      tags: [optical]
+      summary: Create an optical bill
+      x-permission: optical:create
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                bill:
+                  $ref: '#/components/schemas/OpticalBill'
+                items:
+                  type: array
+                  items:
+                    $ref: '#/components/schemas/OpticalBillItem'
+      responses:
+        '201':
+          description: Optical bill created.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+
+  /optical/bills/{id}/status:
+    patch:
+      tags: [optical]
+      summary: Update optical bill status
+      x-permission: optical:edit
+      parameters:
+        - $ref: '#/components/parameters/pathId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [status]
+              properties:
+                status:
+                  type: string
+      responses:
+        '200':
+          description: Bill status updated.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+
+  /optical/patients/{patientId}/ar-reading:
+    get:
+      tags: [optical]
+      summary: Get patient AR reading
+      x-permission: optical:view
+      parameters:
+        - $ref: '#/components/parameters/patientId'
+      responses:
+        '200':
+          description: Patient with auto-refractometer reading.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+
+  /optical/settings:
+    get:
+      tags: [optical]
+      summary: Get optical settings
+      x-permission: settings:view
+      responses:
+        '200':
+          description: Optical-specific settings from HospitalProfile.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+    patch:
+      tags: [optical]
+      summary: Update optical settings
+      x-permission: settings:edit
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: true
+      responses:
+        '200':
+          description: Optical settings updated.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+
+  /optical/hospital-profile:
+    get:
+      tags: [optical]
+      summary: Get hospital profile for optical print headers
+      x-permission: optical:view
+      responses:
+        '200':
+          description: Hospital profile subset for optical reports.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+
+  # ================================================================
+  # insurance (12 endpoints)
+  # ================================================================
+  /insurance/companies:
+    get:
+      tags: [insurance]
+      summary: List insurance companies
+      description: >-
+        Paginated by default. Pass `?paginated=false` to return every
+        active company unpaginated (for dropdown/select population) — this
+        replaces what was a separate `/insurance/companies/all` path;
+        filtering result quantity is a query parameter, not a distinct
+        resource path, per this project's API design principles.
+      x-permission: insurance:view
+      parameters:
+        - $ref: '#/components/parameters/page'
+        - $ref: '#/components/parameters/pageSize'
+        - name: paginated
+          in: query
+          schema:
+            type: boolean
+            default: true
+          description: >-
+            Set to false to return the full unpaginated list (for
+            dropdowns). `page`/`pageSize` are ignored when false.
+      responses:
+        '200':
+          description: Insurance companies (paginated, or all when paginated=false).
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/ApiResponse'
+                  - type: object
+                    properties:
+                      data:
+                        type: array
+                        items:
+                          $ref: '#/components/schemas/InsuranceCompany'
+    post:
+      tags: [insurance]
+      summary: Create an insurance company
+      x-permission: insurance:edit
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/InsuranceCompany'
+      responses:
+        '201':
+          description: Insurance company created.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+
+  /insurance/companies/{id}:
+    patch:
+      tags: [insurance]
+      summary: Update an insurance company
+      x-permission: insurance:edit
+      parameters:
+        - $ref: '#/components/parameters/pathId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/InsuranceCompany'
+      responses:
+        '200':
+          description: Company updated.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+    delete:
+      tags: [insurance]
+      summary: Soft-delete an insurance company
+      x-permission: insurance:edit
+      parameters:
+        - $ref: '#/components/parameters/pathId'
+      responses:
+        '200':
+          description: Company soft-deleted.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+
+  /insurance/claims:
+    get:
+      tags: [insurance]
+      summary: List insurance claims
+      x-permission: insurance:view
+      parameters:
+        - $ref: '#/components/parameters/page'
+        - $ref: '#/components/parameters/pageSize'
+        - name: status
+          in: query
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Paginated insurance claims.
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/ApiResponse'
+                  - type: object
+                    properties:
+                      data:
+                        type: array
+                        items:
+                          $ref: '#/components/schemas/InsuranceClaim'
+    post:
+      tags: [insurance]
+      summary: Create an insurance claim
+      x-permission: insurance:create
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/InsuranceClaim'
+      responses:
+        '201':
+          description: Claim created.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+
+  /insurance/claims/{id}:
+    get:
+      tags: [insurance]
+      summary: Get insurance claim by ID
+      x-permission: insurance:view
+      parameters:
+        - $ref: '#/components/parameters/pathId'
+      responses:
+        '200':
+          description: Insurance claim details.
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/ApiResponse'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/InsuranceClaim'
+        '404':
+          description: InsuranceClaim with id {id} not found.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /insurance/claims/{id}/status:
+    patch:
+      tags: [insurance]
+      summary: Update insurance claim status
+      x-permission: insurance:edit
+      parameters:
+        - $ref: '#/components/parameters/pathId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [status]
+              properties:
+                status:
+                  type: string
+      responses:
+        '200':
+          description: Claim status updated.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+
+  /insurance/claims/{id}/details:
+    patch:
+      tags: [insurance]
+      summary: Update insurance claim financial details
+      x-permission: insurance:edit
+      parameters:
+        - $ref: '#/components/parameters/pathId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                approvedAmount:
+                  type: number
+                  format: double
+                settledAmount:
+                  type: number
+                  format: double
+      responses:
+        '200':
+          description: Claim details updated.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+
+  /insurance/claims/{id}/payments:
+    post:
+      tags: [insurance]
+      summary: Add patient payment on an insurance claim
+      x-permission: insurance:edit
+      parameters:
+        - $ref: '#/components/parameters/pathId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [amount, paymentMode]
+              properties:
+                amount:
+                  type: number
+                  format: double
+                paymentMode:
+                  type: string
+      responses:
+        '201':
+          description: Payment recorded.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+
+  /insurance/inpatients/search:
+    get:
+      tags: [insurance]
+      summary: Search inpatients for insurance claim creation
+      x-permission: insurance:view
+      parameters:
+        - name: q
+          in: query
+          schema:
+            type: string
+          description: Search by patient name, phone, or IP number.
+      responses:
+        '200':
+          description: Matching inpatients.
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/ApiResponse'
+                  - type: object
+                    properties:
+                      data:
+                        type: array
+                        items:
+                          $ref: '#/components/schemas/InPatient'
+
+  # ================================================================
+  # queue (3 endpoints)
+  # ================================================================
+  /queue/opd:
+    get:
+      tags: [queue]
+      summary: OPD doctor queue
+      description: Returns today's patient queue for the doctor view, merging appointment, prescription, and eye-reading dates via 3 parallel queries.
+      x-permission: queue:view
+      responses:
+        '200':
+          description: OPD queue with patient status computed from data.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+
+  /queue/workup:
+    get:
+      tags: [queue]
+      summary: Workup queue
+      description: Returns today's workup queue (patients awaiting pre-consultation workup).
+      x-permission: queue:view
+      responses:
+        '200':
+          description: Workup queue.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+
+  /queue/inpatients:
+    get:
+      tags: [queue]
+      summary: Inpatient bed/status board
+      description: Returns currently admitted inpatients for the bed management board.
+      x-permission: queue:view
+      responses:
+        '200':
+          description: Admitted inpatients list.
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/ApiResponse'
+                  - type: object
+                    properties:
+                      data:
+                        type: array
+                        items:
+                          $ref: '#/components/schemas/InPatient'
+
+  # ================================================================
+  # doctor (11 endpoints)
+  # ================================================================
+  /doctor/queue:
+    get:
+      tags: [doctor]
+      summary: Doctor's OPD queue (doctor-scoped view)
+      x-permission: doctor:view
+      responses:
+        '200':
+          description: Doctor queue for the authenticated doctor.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+
+  /doctor/patients/{patientId}/consultation:
+    get:
+      tags: [doctor]
+      summary: Get patient data for consultation
+      x-permission: doctor:view
+      parameters:
+        - $ref: '#/components/parameters/patientId'
+      responses:
+        '200':
+          description: Patient with last prescription, eye reading, and history.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+
+  /doctor/patients/{patientId}/prescriptions:
+    post:
+      tags: [doctor]
+      summary: Save/upsert prescription
+      description: Upsert — creates a new prescription or updates today's existing one for the patient.
+      x-permission: doctor:consult
+      parameters:
+        - $ref: '#/components/parameters/patientId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Prescription'
+      responses:
+        '200':
+          description: Prescription saved.
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/ApiResponse'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/Prescription'
+
+  /doctor/reference-data:
+    get:
+      tags: [doctor]
+      summary: Get prescription reference data (combined)
+      description: Returns medicine master, investigation master, templates, and dropdown options in one call.
+      x-permission: doctor:view
+      responses:
+        '200':
+          description: Reference data bundle.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+
+  /doctor/medicine-master:
+    get:
+      tags: [doctor]
+      summary: Get medicine master list
+      x-permission: doctor:view
+      responses:
+        '200':
+          description: Medicine master records.
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/ApiResponse'
+                  - type: object
+                    properties:
+                      data:
+                        type: array
+                        items:
+                          $ref: '#/components/schemas/MedicineMaster'
+
+  /doctor/investigation-master:
+    get:
+      tags: [doctor]
+      summary: Get investigation master list
+      x-permission: doctor:view
+      responses:
+        '200':
+          description: Investigation master records.
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/ApiResponse'
+                  - type: object
+                    properties:
+                      data:
+                        type: array
+                        items:
+                          $ref: '#/components/schemas/InvestigationMaster'
+
+  /doctor/prescription-templates:
+    get:
+      tags: [doctor]
+      summary: Get predefined prescription templates
+      x-permission: doctor:view
+      responses:
+        '200':
+          description: Prescription templates.
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/ApiResponse'
+                  - type: object
+                    properties:
+                      data:
+                        type: array
+                        items:
+                          $ref: '#/components/schemas/PredefinedTemplate'
+
+  /doctor/dropdown-options:
+    get:
+      tags: [doctor]
+      summary: Get doctor-specific dropdown options
+      x-permission: doctor:view
+      responses:
+        '200':
+          description: Dropdown options for doctor workflow.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+    post:
+      tags: [doctor]
+      summary: Add a dropdown option (doctor scope)
+      x-permission: doctor:consult
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [fieldName, value]
+              properties:
+                fieldName:
+                  type: string
+                value:
+                  type: string
+      responses:
+        '201':
+          description: Dropdown option added.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+
+  /doctor/medicines:
+    post:
+      tags: [doctor]
+      summary: Create a medicine (from doctor workflow)
+      x-permission: doctor:consult
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/MedicineMaster'
+      responses:
+        '201':
+          description: Medicine created.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+
+  /doctor/patients/{patientId}/receipt:
+    get:
+      tags: [doctor]
+      summary: Get receipt data for a patient (doctor view)
+      x-permission: billing:view
+      parameters:
+        - $ref: '#/components/parameters/patientId'
+      responses:
+        '200':
+          description: Receipt data for printing.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+
+  # ================================================================
+  # staff (12 endpoints)
+  # ================================================================
+  /staff/members:
+    get:
+      tags: [staff]
+      summary: List staff members
+      x-permission: staff:view
+      responses:
+        '200':
+          description: All staff members.
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/ApiResponse'
+                  - type: object
+                    properties:
+                      data:
+                        type: array
+                        items:
+                          $ref: '#/components/schemas/User'
+    post:
+      tags: [staff]
+      summary: Create a staff member (provisions Supabase auth user + User row)
+      description: This is the only way to add users — no self-service registration endpoint exists.
+      x-permission: staff:create
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [name, email, password, role]
+              properties:
+                name:
+                  type: string
+                email:
+                  type: string
+                  format: email
+                password:
+                  type: string
+                  format: password
+                role:
+                  type: string
+                employeeId:
+                  type: string
+      responses:
+        '201':
+          description: Staff member created.
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/ApiResponse'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/User'
+        '409':
+          description: A staff member with email {email} already exists. Please log in or reset the password.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /staff/members/{id}:
+    get:
+      tags: [staff]
+      summary: Get staff member by ID
+      x-permission: staff:view
+      parameters:
+        - $ref: '#/components/parameters/pathId'
+      responses:
+        '200':
+          description: Staff member record.
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/ApiResponse'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/User'
+        '404':
+          description: Staff member with id {id} not found.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+    patch:
+      tags: [staff]
+      summary: Update staff member profile
+      x-permission: staff:edit
+      parameters:
+        - $ref: '#/components/parameters/pathId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/User'
+      responses:
+        '200':
+          description: Staff member updated.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+
+  /staff/members/{id}/active:
+    patch:
+      tags: [staff]
+      summary: Toggle staff member active/inactive
+      x-permission: staff:deactivate
+      parameters:
+        - $ref: '#/components/parameters/pathId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [isActive]
+              properties:
+                isActive:
+                  type: boolean
+      responses:
+        '200':
+          description: Active status toggled.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+
+  /staff/members/{id}/reset-password:
+    post:
+      tags: [staff]
+      summary: Reset staff member password (admin action)
+      x-permission: staff:edit
+      parameters:
+        - $ref: '#/components/parameters/pathId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [newPassword]
+              properties:
+                newPassword:
+                  type: string
+                  format: password
+      responses:
+        '200':
+          description: Password reset successfully.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+
+  /staff/roles:
+    get:
+      tags: [staff]
+      summary: List roles
+      x-permission: staff:view
+      responses:
+        '200':
+          description: All roles with permissions.
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/ApiResponse'
+                  - type: object
+                    properties:
+                      data:
+                        type: array
+                        items:
+                          $ref: '#/components/schemas/Role'
+    post:
+      tags: [staff]
+      summary: Create a role
+      x-permission: staff:manage_roles
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Role'
+      responses:
+        '201':
+          description: Role created.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+
+  /staff/roles/{id}:
+    patch:
+      tags: [staff]
+      summary: Update a role
+      x-permission: staff:manage_roles
+      parameters:
+        - $ref: '#/components/parameters/pathId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Role'
+      responses:
+        '200':
+          description: Role updated.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+    delete:
+      tags: [staff]
+      summary: Delete a role (non-system roles only)
+      x-permission: staff:manage_roles
+      parameters:
+        - $ref: '#/components/parameters/pathId'
+      responses:
+        '200':
+          description: Role deleted.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+        '409':
+          description: Cannot delete a system role or a role that is assigned to staff members.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /staff/roles/{id}/permissions:
+    patch:
+      tags: [staff]
+      summary: Update role permissions
+      x-permission: staff:manage_roles
+      parameters:
+        - $ref: '#/components/parameters/pathId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [permissions]
+              properties:
+                permissions:
+                  type: array
+                  items:
+                    type: string
+                  description: Full replacement list of permission scope strings.
+      responses:
+        '200':
+          description: Permissions updated.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+
+  /staff/roles/seed:
+    post:
+      tags: [staff]
+      summary: Seed system roles
+      description: Creates the default system roles (Admin, Doctor, Nurse, etc.) if they do not exist.
+      x-permission: staff:manage_roles
+      responses:
+        '200':
+          description: System roles seeded.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+
+  # ================================================================
+  # settings — service templates (4) + hospital profile (2)
+  # + print config (2) + nav style (1) + prescription templates (4)
+  # ================================================================
+  /settings/service-templates:
+    get:
+      tags: [settings]
+      summary: List service templates
+      x-permission: settings:view
+      responses:
+        '200':
+          description: All service templates.
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/ApiResponse'
+                  - type: object
+                    properties:
+                      data:
+                        type: array
+                        items:
+                          $ref: '#/components/schemas/ServiceTemplate'
+    post:
+      tags: [settings]
+      summary: Create a service template
+      x-permission: settings:edit
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ServiceTemplate'
+      responses:
+        '201':
+          description: Service template created.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+
+  /settings/service-templates/{id}:
+    patch:
+      tags: [settings]
+      summary: Update a service template
+      x-permission: settings:edit
+      parameters:
+        - $ref: '#/components/parameters/pathId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ServiceTemplate'
+      responses:
+        '200':
+          description: Service template updated.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+    delete:
+      tags: [settings]
+      summary: Delete a service template
+      x-permission: settings:edit
+      parameters:
+        - $ref: '#/components/parameters/pathId'
+      responses:
+        '200':
+          description: Service template deleted.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+
+  /settings/hospital-profile:
+    get:
+      tags: [settings]
+      summary: Get hospital profile
+      x-permission: settings:view
+      responses:
+        '200':
+          description: Hospital profile (singleton row).
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/ApiResponse'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/HospitalProfile'
+    patch:
+      tags: [settings]
+      summary: Update hospital profile
+      x-permission: settings:edit
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/HospitalProfile'
+      responses:
+        '200':
+          description: Hospital profile updated.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+
+  /settings/print-config:
+    get:
+      tags: [settings]
+      summary: Get default print configuration
+      x-permission: settings:view
+      responses:
+        '200':
+          description: Print config from HospitalProfile.settings JSON.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+    patch:
+      tags: [settings]
+      summary: Save default print configuration
+      x-permission: settings:edit
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: true
+              description: Print configuration key-value blob stored in HospitalProfile.settings.
+      responses:
+        '200':
+          description: Print config saved.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+
+  /settings/nav-style:
+    patch:
+      tags: [settings]
+      summary: Update navigation style preference
+      x-permission: settings:edit
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [navStyle]
+              properties:
+                navStyle:
+                  type: string
+                  description: Navigation layout style identifier.
+      responses:
+        '200':
+          description: Nav style updated.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+
+  /settings/prescription-templates:
+    get:
+      tags: [settings]
+      summary: List prescription templates
+      x-permission: settings:view
+      responses:
+        '200':
+          description: All prescription templates.
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/ApiResponse'
+                  - type: object
+                    properties:
+                      data:
+                        type: array
+                        items:
+                          $ref: '#/components/schemas/PredefinedTemplate'
+    post:
+      tags: [settings]
+      summary: Create a prescription template
+      x-permission: settings:edit
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PredefinedTemplate'
+      responses:
+        '201':
+          description: Template created.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+
+  /settings/prescription-templates/{id}:
+    patch:
+      tags: [settings]
+      summary: Update a prescription template
+      x-permission: settings:edit
+      parameters:
+        - $ref: '#/components/parameters/pathId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PredefinedTemplate'
+      responses:
+        '200':
+          description: Template updated.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+    delete:
+      tags: [settings]
+      summary: Delete a prescription template
+      x-permission: settings:edit
+      parameters:
+        - $ref: '#/components/parameters/pathId'
+      responses:
+        '200':
+          description: Template deleted.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+
+  /settings/inpatient-templates:
+    get:
+      tags: [settings]
+      summary: List inpatient templates
+      x-permission: settings:view
+      responses:
+        '200':
+          description: All inpatient templates.
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/ApiResponse'
+                  - type: object
+                    properties:
+                      data:
+                        type: array
+                        items:
+                          $ref: '#/components/schemas/InpatientTemplate'
+    post:
+      tags: [settings]
+      summary: Create an inpatient template
+      x-permission: settings:edit
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/InpatientTemplate'
+      responses:
+        '201':
+          description: Inpatient template created.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+
+  /settings/inpatient-templates/{id}:
+    patch:
+      tags: [settings]
+      summary: Update an inpatient template
+      x-permission: settings:edit
+      parameters:
+        - $ref: '#/components/parameters/pathId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/InpatientTemplate'
+      responses:
+        '200':
+          description: Template updated.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+    delete:
+      tags: [settings]
+      summary: Delete an inpatient template
+      x-permission: settings:edit
+      parameters:
+        - $ref: '#/components/parameters/pathId'
+      responses:
+        '200':
+          description: Template deleted.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+
+  /settings/packages:
+    get:
+      tags: [settings]
+      summary: List predefined packages
+      x-permission: settings:view
+      responses:
+        '200':
+          description: All predefined packages.
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/ApiResponse'
+                  - type: object
+                    properties:
+                      data:
+                        type: array
+                        items:
+                          $ref: '#/components/schemas/PredefinedPackage'
+    post:
+      tags: [settings]
+      summary: Create a predefined package
+      x-permission: settings:edit
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PredefinedPackage'
+      responses:
+        '201':
+          description: Package created.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+
+  /settings/packages/{id}:
+    patch:
+      tags: [settings]
+      summary: Update a predefined package
+      x-permission: settings:edit
+      parameters:
+        - $ref: '#/components/parameters/pathId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PredefinedPackage'
+      responses:
+        '200':
+          description: Package updated.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+    delete:
+      tags: [settings]
+      summary: Delete a predefined package
+      x-permission: settings:edit
+      parameters:
+        - $ref: '#/components/parameters/pathId'
+      responses:
+        '200':
+          description: Package deleted.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+
+  /settings/surgeries:
+    get:
+      tags: [settings]
+      summary: List predefined surgeries
+      x-permission: settings:view
+      responses:
+        '200':
+          description: All predefined surgeries.
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/ApiResponse'
+                  - type: object
+                    properties:
+                      data:
+                        type: array
+                        items:
+                          $ref: '#/components/schemas/PredefinedSurgery'
+    post:
+      tags: [settings]
+      summary: Create a predefined surgery
+      x-permission: settings:edit
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PredefinedSurgery'
+      responses:
+        '201':
+          description: Surgery created.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+
+  /settings/surgeries/{id}:
+    patch:
+      tags: [settings]
+      summary: Update a predefined surgery
+      x-permission: settings:edit
+      parameters:
+        - $ref: '#/components/parameters/pathId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PredefinedSurgery'
+      responses:
+        '200':
+          description: Surgery updated.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+    delete:
+      tags: [settings]
+      summary: Soft-delete a predefined surgery
+      x-permission: settings:edit
+      parameters:
+        - $ref: '#/components/parameters/pathId'
+      responses:
+        '200':
+          description: Surgery soft-deleted.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+
+  /settings/discharges:
+    get:
+      tags: [settings]
+      summary: List predefined discharge summaries
+      x-permission: settings:view
+      responses:
+        '200':
+          description: All predefined discharge records.
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/ApiResponse'
+                  - type: object
+                    properties:
+                      data:
+                        type: array
+                        items:
+                          $ref: '#/components/schemas/PredefinedDischarge'
+    post:
+      tags: [settings]
+      summary: Create a predefined discharge summary
+      x-permission: settings:edit
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PredefinedDischarge'
+      responses:
+        '201':
+          description: Discharge summary created.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+
+  /settings/discharges/{id}:
+    patch:
+      tags: [settings]
+      summary: Update a predefined discharge summary
+      x-permission: settings:edit
+      parameters:
+        - $ref: '#/components/parameters/pathId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PredefinedDischarge'
+      responses:
+        '200':
+          description: Discharge summary updated.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+    delete:
+      tags: [settings]
+      summary: Soft-delete a predefined discharge summary
+      x-permission: settings:edit
+      parameters:
+        - $ref: '#/components/parameters/pathId'
+      responses:
+        '200':
+          description: Discharge summary soft-deleted.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+
+  /settings/medicine-master:
+    get:
+      tags: [settings]
+      summary: List medicine master records
+      x-permission: settings:view
+      responses:
+        '200':
+          description: All medicine master records.
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/ApiResponse'
+                  - type: object
+                    properties:
+                      data:
+                        type: array
+                        items:
+                          $ref: '#/components/schemas/MedicineMaster'
+    post:
+      tags: [settings]
+      summary: Create a medicine master record
+      x-permission: settings:edit
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/MedicineMaster'
+      responses:
+        '201':
+          description: Medicine master record created.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+
+  /settings/medicine-master/{id}:
+    patch:
+      tags: [settings]
+      summary: Update a medicine master record
+      x-permission: settings:edit
+      parameters:
+        - $ref: '#/components/parameters/pathId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/MedicineMaster'
+      responses:
+        '200':
+          description: Medicine master updated.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+    delete:
+      tags: [settings]
+      summary: Delete a medicine master record
+      x-permission: settings:edit
+      parameters:
+        - $ref: '#/components/parameters/pathId'
+      responses:
+        '200':
+          description: Medicine master deleted.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+
+  # ================================================================
+  # analytics (19 endpoints) — all require reports:view
+  # All share query params: filter, customStart, customEnd
+  # Rate limit: 30 req/min per user
+  # ================================================================
+  /analytics/overview:
+    get:
+      tags: [analytics]
+      summary: Analytics overview
+      description: "Key metrics summary. Rate limit: 30 req/min per user."
+      x-permission: reports:view
+      parameters:
+        - $ref: '#/components/parameters/analyticsFilter'
+        - $ref: '#/components/parameters/customStart'
+        - $ref: '#/components/parameters/customEnd'
+      responses:
+        '200':
+          description: Overview metrics.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+
+  /analytics/gender-distribution:
+    get:
+      tags: [analytics]
+      summary: Gender distribution of patients
+      x-permission: reports:view
+      parameters:
+        - $ref: '#/components/parameters/analyticsFilter'
+        - $ref: '#/components/parameters/customStart'
+        - $ref: '#/components/parameters/customEnd'
+      responses:
+        '200':
+          description: Gender breakdown.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+
+  /analytics/age-distribution:
+    get:
+      tags: [analytics]
+      summary: Age distribution of patients
+      x-permission: reports:view
+      parameters:
+        - $ref: '#/components/parameters/analyticsFilter'
+        - $ref: '#/components/parameters/customStart'
+        - $ref: '#/components/parameters/customEnd'
+      responses:
+        '200':
+          description: Age bracket breakdown.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+
+  /analytics/revenue-by-category:
+    get:
+      tags: [analytics]
+      summary: Revenue breakdown by category
+      x-permission: reports:view
+      parameters:
+        - $ref: '#/components/parameters/analyticsFilter'
+        - $ref: '#/components/parameters/customStart'
+        - $ref: '#/components/parameters/customEnd'
+      responses:
+        '200':
+          description: Revenue by service category.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+
+  /analytics/time-series:
+    get:
+      tags: [analytics]
+      summary: Patient and revenue time series
+      x-permission: reports:view
+      parameters:
+        - $ref: '#/components/parameters/analyticsFilter'
+        - $ref: '#/components/parameters/customStart'
+        - $ref: '#/components/parameters/customEnd'
+      responses:
+        '200':
+          description: Time-series data points.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+
+  /analytics/top-services:
+    get:
+      tags: [analytics]
+      summary: Top services by volume and revenue
+      x-permission: reports:view
+      parameters:
+        - $ref: '#/components/parameters/analyticsFilter'
+        - $ref: '#/components/parameters/customStart'
+        - $ref: '#/components/parameters/customEnd'
+      responses:
+        '200':
+          description: Ranked service list.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+
+  /analytics/expense-breakdown:
+    get:
+      tags: [analytics]
+      summary: Expense breakdown by category
+      x-permission: reports:view
+      parameters:
+        - $ref: '#/components/parameters/analyticsFilter'
+        - $ref: '#/components/parameters/customStart'
+        - $ref: '#/components/parameters/customEnd'
+      responses:
+        '200':
+          description: Expense by category.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+
+  /analytics/financial-summary:
+    get:
+      tags: [analytics]
+      summary: Financial summary (revenue vs expenses)
+      x-permission: reports:view
+      parameters:
+        - $ref: '#/components/parameters/analyticsFilter'
+        - $ref: '#/components/parameters/customStart'
+        - $ref: '#/components/parameters/customEnd'
+      responses:
+        '200':
+          description: P&L-style financial summary.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+
+  /analytics/payment-mode-breakdown:
+    get:
+      tags: [analytics]
+      summary: Payment mode breakdown (Cash, Card, UPI, etc.)
+      x-permission: reports:view
+      parameters:
+        - $ref: '#/components/parameters/analyticsFilter'
+        - $ref: '#/components/parameters/customStart'
+        - $ref: '#/components/parameters/customEnd'
+      responses:
+        '200':
+          description: Payment mode distribution.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+
+  /analytics/doctor-performance:
+    get:
+      tags: [analytics]
+      summary: Doctor performance metrics
+      x-permission: reports:view
+      parameters:
+        - $ref: '#/components/parameters/analyticsFilter'
+        - $ref: '#/components/parameters/customStart'
+        - $ref: '#/components/parameters/customEnd'
+      responses:
+        '200':
+          description: Per-doctor patient and revenue stats.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+
+  /analytics/status-distribution:
+    get:
+      tags: [analytics]
+      summary: Patient status distribution
+      x-permission: reports:view
+      parameters:
+        - $ref: '#/components/parameters/analyticsFilter'
+        - $ref: '#/components/parameters/customStart'
+        - $ref: '#/components/parameters/customEnd'
+      responses:
+        '200':
+          description: Patient status breakdown.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+
+  /analytics/common-diagnoses:
+    get:
+      tags: [analytics]
+      summary: Most common diagnoses
+      x-permission: reports:view
+      parameters:
+        - $ref: '#/components/parameters/analyticsFilter'
+        - $ref: '#/components/parameters/customStart'
+        - $ref: '#/components/parameters/customEnd'
+      responses:
+        '200':
+          description: Ranked diagnosis list.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+
+  /analytics/common-medicines:
+    get:
+      tags: [analytics]
+      summary: Most commonly prescribed medicines
+      x-permission: reports:view
+      parameters:
+        - $ref: '#/components/parameters/analyticsFilter'
+        - $ref: '#/components/parameters/customStart'
+        - $ref: '#/components/parameters/customEnd'
+      responses:
+        '200':
+          description: Ranked medicine list.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+
+  /analytics/top-prescribed-investigations:
+    get:
+      tags: [analytics]
+      summary: Top prescribed investigations
+      x-permission: reports:view
+      parameters:
+        - $ref: '#/components/parameters/analyticsFilter'
+        - $ref: '#/components/parameters/customStart'
+        - $ref: '#/components/parameters/customEnd'
+      responses:
+        '200':
+          description: Ranked investigation list.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+
+  /analytics/top-pharmacy-sales:
+    get:
+      tags: [analytics]
+      summary: Top pharmacy sales by medicine
+      x-permission: reports:view
+      parameters:
+        - $ref: '#/components/parameters/analyticsFilter'
+        - $ref: '#/components/parameters/customStart'
+        - $ref: '#/components/parameters/customEnd'
+      responses:
+        '200':
+          description: Top-selling pharmacy medicines.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+
+  /analytics/top-lab-tests:
+    get:
+      tags: [analytics]
+      summary: Top lab tests ordered
+      x-permission: reports:view
+      parameters:
+        - $ref: '#/components/parameters/analyticsFilter'
+        - $ref: '#/components/parameters/customStart'
+        - $ref: '#/components/parameters/customEnd'
+      responses:
+        '200':
+          description: Top lab tests.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+
+  /analytics/referral-stats:
+    get:
+      tags: [analytics]
+      summary: Referral source statistics
+      x-permission: reports:view
+      parameters:
+        - $ref: '#/components/parameters/analyticsFilter'
+        - $ref: '#/components/parameters/customStart'
+        - $ref: '#/components/parameters/customEnd'
+      responses:
+        '200':
+          description: Referral source breakdown.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+
+  /analytics/surgery-breakdown:
+    get:
+      tags: [analytics]
+      summary: Surgery type breakdown
+      x-permission: reports:view
+      parameters:
+        - $ref: '#/components/parameters/analyticsFilter'
+        - $ref: '#/components/parameters/customStart'
+        - $ref: '#/components/parameters/customEnd'
+      responses:
+        '200':
+          description: Surgery type distribution.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+
+  /analytics/region-stats:
+    get:
+      tags: [analytics]
+      summary: Patient region/geography statistics
+      x-permission: reports:view
+      parameters:
+        - $ref: '#/components/parameters/analyticsFilter'
+        - $ref: '#/components/parameters/customStart'
+        - $ref: '#/components/parameters/customEnd'
+      responses:
+        '200':
+          description: Geographic distribution of patients.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+
+  # ================================================================
+  # reports (17 endpoints) — all require reports:view or reports:export
+  # ================================================================
+  /reports/patients/search:
+    get:
+      tags: [reports]
+      summary: Search patients for reports (cursor-based)
+      description: Cursor-based search; limit defaults to 8 matching existing .limit(8) query.
+      x-permission: reports:view
+      parameters:
+        - name: q
+          in: query
+          schema:
+            type: string
+          description: Search term (name, phone, patientId).
+        - $ref: '#/components/parameters/cursor'
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 8
+      responses:
+        '200':
+          description: Cursor-paginated patient search.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+
+  /reports/patients/{patientId}/summary:
+    get:
+      tags: [reports]
+      summary: Get patient summary report
+      x-permission: reports:view
+      parameters:
+        - $ref: '#/components/parameters/patientId'
+      responses:
+        '200':
+          description: Patient summary with demographics and stats.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+
+  /reports/patients/{patientId}/visits:
+    get:
+      tags: [reports]
+      summary: Get patient visit history
+      x-permission: reports:view
+      parameters:
+        - $ref: '#/components/parameters/patientId'
+      responses:
+        '200':
+          description: Full visit history.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+
+  /reports/patients/{patientId}/prescriptions:
+    get:
+      tags: [reports]
+      summary: Get patient prescription history
+      x-permission: reports:view
+      parameters:
+        - $ref: '#/components/parameters/patientId'
+      responses:
+        '200':
+          description: All prescriptions for the patient.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+
+  /reports/patients/{patientId}/inpatient:
+    get:
+      tags: [reports]
+      summary: Get patient inpatient records
+      x-permission: reports:view
+      parameters:
+        - $ref: '#/components/parameters/patientId'
+      responses:
+        '200':
+          description: Inpatient admission records.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+
+  /reports/patients/{patientId}/receipt:
+    get:
+      tags: [reports]
+      summary: Get patient receipt data (reports view)
+      x-permission: reports:view
+      parameters:
+        - $ref: '#/components/parameters/patientId'
+      responses:
+        '200':
+          description: Receipt data for report printing.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+
+  /reports/patients/{patientId}/labs:
+    get:
+      tags: [reports]
+      summary: Get patient lab records
+      x-permission: reports:view
+      parameters:
+        - $ref: '#/components/parameters/patientId'
+      responses:
+        '200':
+          description: Lab bills and results for the patient.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+
+  /reports/patients/{patientId}/billing:
+    get:
+      tags: [reports]
+      summary: Get patient billing overview
+      x-permission: reports:view
+      parameters:
+        - $ref: '#/components/parameters/patientId'
+      responses:
+        '200':
+          description: Billing history and totals.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+
+  /reports/exports/patients:
+    get:
+      tags: [reports]
+      summary: Export patient data
+      description: "Returns up to 5000 patient records for bulk export. Rate limit: 10 req/min per user."
+      x-permission: data:export
+      parameters:
+        - $ref: '#/components/parameters/analyticsFilter'
+        - $ref: '#/components/parameters/customStart'
+        - $ref: '#/components/parameters/customEnd'
+      responses:
+        '200':
+          description: Patient export dataset.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+
+  /reports/exports/prescriptions:
+    get:
+      tags: [reports]
+      summary: Export prescription data
+      description: "Rate limit: 10 req/min per user."
+      x-permission: data:export
+      parameters:
+        - $ref: '#/components/parameters/analyticsFilter'
+        - $ref: '#/components/parameters/customStart'
+        - $ref: '#/components/parameters/customEnd'
+      responses:
+        '200':
+          description: Prescription export dataset.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+
+  /reports/exports/eye-readings:
+    get:
+      tags: [reports]
+      summary: Export eye reading data
+      description: "Rate limit: 10 req/min per user."
+      x-permission: data:export
+      parameters:
+        - $ref: '#/components/parameters/analyticsFilter'
+        - $ref: '#/components/parameters/customStart'
+        - $ref: '#/components/parameters/customEnd'
+      responses:
+        '200':
+          description: Eye reading export dataset.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+
+  /reports/exports/inpatients:
+    get:
+      tags: [reports]
+      summary: Export inpatient data
+      description: "Rate limit: 10 req/min per user."
+      x-permission: data:export
+      parameters:
+        - $ref: '#/components/parameters/analyticsFilter'
+        - $ref: '#/components/parameters/customStart'
+        - $ref: '#/components/parameters/customEnd'
+      responses:
+        '200':
+          description: Inpatient export dataset.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+
+  /reports/exports/insurance-claims:
+    get:
+      tags: [reports]
+      summary: Export insurance claims
+      description: "Rate limit: 10 req/min per user."
+      x-permission: data:export
+      parameters:
+        - $ref: '#/components/parameters/analyticsFilter'
+        - $ref: '#/components/parameters/customStart'
+        - $ref: '#/components/parameters/customEnd'
+      responses:
+        '200':
+          description: Insurance claims export dataset.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+
+  /reports/exports/lab-bills:
+    get:
+      tags: [reports]
+      summary: Export lab bills
+      description: "Rate limit: 10 req/min per user."
+      x-permission: data:export
+      parameters:
+        - $ref: '#/components/parameters/analyticsFilter'
+        - $ref: '#/components/parameters/customStart'
+        - $ref: '#/components/parameters/customEnd'
+      responses:
+        '200':
+          description: Lab bills export dataset.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+
+  /reports/exports/pharmacy-bills:
+    get:
+      tags: [reports]
+      summary: Export pharmacy bills
+      description: "Rate limit: 10 req/min per user."
+      x-permission: data:export
+      parameters:
+        - $ref: '#/components/parameters/analyticsFilter'
+        - $ref: '#/components/parameters/customStart'
+        - $ref: '#/components/parameters/customEnd'
+      responses:
+        '200':
+          description: Pharmacy bills export dataset.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+
+  /reports/exports/optical-bills:
+    get:
+      tags: [reports]
+      summary: Export optical bills
+      description: "Rate limit: 10 req/min per user."
+      x-permission: data:export
+      parameters:
+        - $ref: '#/components/parameters/analyticsFilter'
+        - $ref: '#/components/parameters/customStart'
+        - $ref: '#/components/parameters/customEnd'
+      responses:
+        '200':
+          description: Optical bills export dataset.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+
+  /reports/exports/expenses:
+    get:
+      tags: [reports]
+      summary: Export expenses
+      description: "Rate limit: 10 req/min per user."
+      x-permission: data:export
+      parameters:
+        - $ref: '#/components/parameters/analyticsFilter'
+        - $ref: '#/components/parameters/customStart'
+        - $ref: '#/components/parameters/customEnd'
+      responses:
+        '200':
+          description: Expenses export dataset.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+
+  # ================================================================
+  # workup (4 endpoints)
+  # ================================================================
+  /workup/queue:
+    get:
+      tags: [workup]
+      summary: Get workup queue
+      x-permission: workup:view
+      responses:
+        '200':
+          description: Today's patients pending workup.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+
+  /workup/patients/{patientId}:
+    get:
+      tags: [workup]
+      summary: Get patient data for workup
+      x-permission: workup:view
+      parameters:
+        - $ref: '#/components/parameters/patientId'
+      responses:
+        '200':
+          description: Patient with prescription and existing eye readings.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+
+  /workup/patients/{patientId}/eye-readings:
+    post:
+      tags: [workup]
+      summary: Save eye reading (upsert)
+      description: Upsert — creates or updates the eye reading for the patient's current prescription.
+      x-permission: workup:create
+      parameters:
+        - $ref: '#/components/parameters/patientId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/EyeReading'
+      responses:
+        '200':
+          description: Eye reading saved.
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/ApiResponse'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/EyeReading'
+
+  /workup/patients/{patientId}/start:
+    post:
+      tags: [workup]
+      summary: Start workup (deprecated no-op)
+      description: |
+        Deprecated. Patient workup status is computed from data (eye reading existence),
+        not stored. This endpoint is kept for backward compatibility during migration.
+        It performs no database write. Will be removed in a future version.
+      deprecated: true
+      x-permission: workup:create
+      parameters:
+        - $ref: '#/components/parameters/patientId'
+      responses:
+        '200':
+          description: No-op success response.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+
+  # ================================================================
+  # expenses (10 endpoints)
+  # ================================================================
+  /expenses/categories/seed:
+    post:
+      tags: [expenses]
+      summary: Seed default expense categories
+      x-permission: expenses:edit
+      responses:
+        '200':
+          description: Default categories created (idempotent).
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+
+  /expenses/categories:
+    get:
+      tags: [expenses]
+      summary: List expense categories
+      x-permission: expenses:view
+      responses:
+        '200':
+          description: All expense categories ordered by sortOrder.
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/ApiResponse'
+                  - type: object
+                    properties:
+                      data:
+                        type: array
+                        items:
+                          $ref: '#/components/schemas/ExpenseCategory'
+    post:
+      tags: [expenses]
+      summary: Create an expense category
+      x-permission: expenses:edit
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ExpenseCategory'
+      responses:
+        '201':
+          description: Category created.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+
+  /expenses/categories/{id}:
+    patch:
+      tags: [expenses]
+      summary: Update an expense category
+      x-permission: expenses:edit
+      parameters:
+        - $ref: '#/components/parameters/pathId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ExpenseCategory'
+      responses:
+        '200':
+          description: Category updated.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+    delete:
+      tags: [expenses]
+      summary: Delete an expense category
+      x-permission: expenses:edit
+      parameters:
+        - $ref: '#/components/parameters/pathId'
+      responses:
+        '200':
+          description: Category deleted (RESTRICT — fails if expenses exist).
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+        '409':
+          description: Cannot delete category with id {id} — expenses are linked to it.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /expenses/categories/reorder:
+    patch:
+      tags: [expenses]
+      summary: Reorder expense categories (bulk sortOrder update)
+      x-permission: expenses:edit
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [order]
+              properties:
+                order:
+                  type: array
+                  items:
+                    type: object
+                    properties:
+                      id:
+                        type: string
+                      sortOrder:
+                        type: integer
+      responses:
+        '200':
+          description: Categories reordered.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+
+  /expenses:
+    get:
+      tags: [expenses]
+      summary: List expenses by date range
+      x-permission: expenses:view
+      parameters:
+        - name: startDate
+          in: query
+          schema:
+            type: string
+            format: date
+        - name: endDate
+          in: query
+          schema:
+            type: string
+            format: date
+      responses:
+        '200':
+          description: Expenses in the date range.
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/ApiResponse'
+                  - type: object
+                    properties:
+                      data:
+                        type: array
+                        items:
+                          $ref: '#/components/schemas/Expense'
+    post:
+      tags: [expenses]
+      summary: Create an expense
+      x-permission: expenses:create
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Expense'
+      responses:
+        '201':
+          description: Expense created.
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/ApiResponse'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/Expense'
+
+  /expenses/{id}:
+    patch:
+      tags: [expenses]
+      summary: Update an expense
+      x-permission: expenses:edit
+      parameters:
+        - $ref: '#/components/parameters/pathId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Expense'
+      responses:
+        '200':
+          description: Expense updated.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+    delete:
+      tags: [expenses]
+      summary: Delete an expense
+      x-permission: expenses:delete
+      parameters:
+        - $ref: '#/components/parameters/pathId'
+      responses:
+        '200':
+          description: Expense deleted.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+
+  # ================================================================
+  # dues-followups (8 endpoints)
+  # ================================================================
+  /dues-followups/dues:
+    get:
+      tags: [dues-followups]
+      summary: Get dues (outstanding balances across all modules)
+      description: |
+        Reads Prescription, InPatient, LabBill, and PharmacyBill tables in parallel
+        to compile outstanding balance list. Offset-paginated.
+      x-permission: dues:view
+      parameters:
+        - $ref: '#/components/parameters/page'
+        - $ref: '#/components/parameters/pageSize'
+      responses:
+        '200':
+          description: Paginated dues list.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+
+  /dues-followups/followups:
+    get:
+      tags: [dues-followups]
+      summary: Get follow-ups list
+      x-permission: dues:view
+      parameters:
+        - $ref: '#/components/parameters/page'
+        - $ref: '#/components/parameters/pageSize'
+      responses:
+        '200':
+          description: Paginated follow-ups.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+
+  /dues-followups/dues/{id}/mark-paid:
+    patch:
+      tags: [dues-followups]
+      summary: Mark a due as paid
+      x-permission: dues:edit
+      parameters:
+        - $ref: '#/components/parameters/pathId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [type]
+              properties:
+                type:
+                  type: string
+                  enum: [prescription, inpatient, labBill, pharmacyBill]
+                  description: The source module for this due record.
+                paymentMode:
+                  type: string
+                amount:
+                  type: number
+                  format: double
+      responses:
+        '200':
+          description: Due marked as paid.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+
+  /dues-followups/doctors:
+    get:
+      tags: [dues-followups]
+      summary: Get doctor list for follow-up filtering
+      x-permission: dues:view
+      responses:
+        '200':
+          description: Doctor list.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+
+  /dues-followups/departments:
+    get:
+      tags: [dues-followups]
+      summary: Get department list for follow-up filtering
+      x-permission: dues:view
+      responses:
+        '200':
+          description: Department list.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+
+  /dues-followups/email-templates:
+    get:
+      tags: [dues-followups]
+      summary: Get available email templates for patient communication
+      x-permission: dues:view
+      responses:
+        '200':
+          description: Available email template list.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+
+  /dues-followups/hospital-name:
+    get:
+      tags: [dues-followups]
+      summary: Get hospital display name (for email footer)
+      x-permission: dues:view
+      responses:
+        '200':
+          description: Hospital display name.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+
+  /dues-followups/send-email:
+    post:
+      tags: [dues-followups]
+      summary: Send follow-up email to a patient
+      x-permission: dues:edit
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [patientId, templateId]
+              properties:
+                patientId:
+                  type: string
+                templateId:
+                  type: string
+                customMessage:
+                  type: string
+                  nullable: true
+      responses:
+        '200':
+          description: Email queued/sent.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+
+  # ================================================================
+  # call-logs (8 endpoints)
+  # ================================================================
+  /call-logs/analytics:
+    get:
+      tags: [call-logs]
+      summary: Get call analytics
+      x-permission: call_logs:view
+      parameters:
+        - $ref: '#/components/parameters/analyticsFilter'
+        - $ref: '#/components/parameters/customStart'
+        - $ref: '#/components/parameters/customEnd'
+      responses:
+        '200':
+          description: Call analytics aggregates.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+
+  /call-logs:
+    get:
+      tags: [call-logs]
+      summary: List call logs
+      x-permission: call_logs:view
+      parameters:
+        - $ref: '#/components/parameters/page'
+        - $ref: '#/components/parameters/pageSize'
+        - name: date
+          in: query
+          schema:
+            type: string
+            format: date
+      responses:
+        '200':
+          description: Paginated call log list.
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/ApiResponse'
+                  - type: object
+                    properties:
+                      data:
+                        type: array
+                        items:
+                          $ref: '#/components/schemas/CallLog'
+
+  /call-logs/stats:
+    get:
+      tags: [call-logs]
+      summary: Get call statistics
+      x-permission: call_logs:view
+      responses:
+        '200':
+          description: Call volume and status stats.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+
+  /call-logs/{id}/notes:
+    patch:
+      tags: [call-logs]
+      summary: Update call notes
+      x-permission: call_logs:edit
+      parameters:
+        - $ref: '#/components/parameters/pathId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [notes]
+              properties:
+                notes:
+                  type: string
+      responses:
+        '200':
+          description: Notes updated.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+
+  /call-logs/{id}/patient:
+    patch:
+      tags: [call-logs]
+      summary: Link a call log to a patient
+      x-permission: call_logs:edit
+      parameters:
+        - $ref: '#/components/parameters/pathId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [patientId]
+              properties:
+                patientId:
+                  type: string
+      responses:
+        '200':
+          description: Call linked to patient.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+
+  /call-logs/patients/search:
+    get:
+      tags: [call-logs]
+      summary: Search patients for call log linkage
+      x-permission: call_logs:view
+      parameters:
+        - name: q
+          in: query
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Matching patients.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+
+  /call-logs/sync:
+    post:
+      tags: [call-logs]
+      summary: Sync Exotel call logs
+      description: "Fetches recent calls from Exotel API and upserts into CallLog table. Rate limit: 6 req/min per user."
+      x-permission: call_logs:sync
+      responses:
+        '200':
+          description: Sync completed.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+
+  /call-logs/webhook/exotel:
+    post:
+      tags: [call-logs]
+      summary: Exotel call webhook (token-authenticated, no JWT)
+      description: |
+        Receives real-time call events from Exotel. Authentication is via a shared
+        webhook token — a simple string comparison against the EXOTEL_WEBHOOK_TOKEN
+        environment variable, not JWT and not an HMAC signature. The token may be
+        supplied either as the `X-Exotel-Token` request header, or as a `token` URL
+        query parameter (Exotel's own webhook config supports either). Accepts both
+        `application/json` and `application/x-www-form-urlencoded` (Exotel sends
+        form-encoded). Rate limit: unrestricted — token-validated only.
+
+        KNOWN ISSUE (tracked as H-2 in 0-analysis.md, must be fixed during this
+        endpoint's implementation, not carried forward as-is): in the current
+        Next.js implementation, if EXOTEL_WEBHOOK_TOKEN is unset in the
+        environment, the token check is skipped entirely and the endpoint accepts
+        unauthenticated requests. The Edge Function implementation must make the
+        token check unconditional — fail closed (401) if the env var itself is
+        missing, never fail open.
+      x-permission: token-only
+      parameters:
+        - name: token
+          in: query
+          required: false
+          schema:
+            type: string
+          description: >-
+            Webhook token, if not supplied via the X-Exotel-Token header instead.
+            One of the two is required.
+        - name: X-Exotel-Token
+          in: header
+          required: false
+          schema:
+            type: string
+          description: Webhook token, if not supplied via the token query parameter instead.
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: true
+          application/x-www-form-urlencoded:
+            schema:
+              type: object
+              additionalProperties: true
+      responses:
+        '200':
+          description: Webhook received and processed.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+        '401':
+          description: Invalid or missing webhook token.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  # ================================================================
+  # license-tracker (6 endpoints)
+  # ================================================================
+  /license-tracker:
+    get:
+      tags: [license-tracker]
+      summary: List licenses
+      x-permission: licenses:view
+      responses:
+        '200':
+          description: All licenses ordered by expiry date.
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/ApiResponse'
+                  - type: object
+                    properties:
+                      data:
+                        type: array
+                        items:
+                          $ref: '#/components/schemas/License'
+    post:
+      tags: [license-tracker]
+      summary: Create a license
+      x-permission: licenses:create
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/License'
+      responses:
+        '201':
+          description: License created.
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/ApiResponse'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/License'
+
+  /license-tracker/{id}:
+    patch:
+      tags: [license-tracker]
+      summary: Update a license
+      x-permission: licenses:edit
+      parameters:
+        - $ref: '#/components/parameters/pathId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/License'
+      responses:
+        '200':
+          description: License updated.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+    delete:
+      tags: [license-tracker]
+      summary: Delete a license
+      x-permission: licenses:delete
+      parameters:
+        - $ref: '#/components/parameters/pathId'
+      responses:
+        '200':
+          description: License deleted.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+
+  /license-tracker/{id}/document:
+    patch:
+      tags: [license-tracker]
+      summary: Save license document URL (after upload to Supabase Storage)
+      x-permission: licenses:edit
+      parameters:
+        - $ref: '#/components/parameters/pathId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [documentUrl]
+              properties:
+                documentUrl:
+                  type: string
+                  description: URL to the uploaded document in the license-documents Storage bucket.
+      responses:
+        '200':
+          description: Document URL saved.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+    delete:
+      tags: [license-tracker]
+      summary: Remove license document reference
+      x-permission: licenses:edit
+      parameters:
+        - $ref: '#/components/parameters/pathId'
+      responses:
+        '200':
+          description: Document URL cleared from license record.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+
+  # ================================================================
+  # dashboard (2 endpoints)
+  # ================================================================
+  /dashboard/summary:
+    get:
+      tags: [dashboard]
+      summary: Dashboard summary (today's patient + revenue stats)
+      x-permission: reports:view
+      responses:
+        '200':
+          description: "Today's summary: new patients, total revenue, inpatient count, pending workup."
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+
+  /dashboard/quick-stats:
+    get:
+      tags: [dashboard]
+      summary: Dashboard quick stats (YTD/MTD totals)
+      x-permission: reports:view
+      responses:
+        '200':
+          description: Year-to-date and month-to-date totals; active inpatient count.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
