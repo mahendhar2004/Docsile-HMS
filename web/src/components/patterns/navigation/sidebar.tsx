@@ -52,32 +52,34 @@ const NAV_GROUPS: NavGroup[] = [
   {
     label: "Clinical",
     items: [
-      { label: "Patients",  path: "/patients",  icon: Users,         permission: "patients"  },
-      { label: "Billing",   path: "/billing",   icon: Receipt,       permission: "billing"   },
-      { label: "Pharmacy",  path: "/pharmacy",  icon: Pill,          permission: "pharmacy"  },
-      { label: "Labs",      path: "/labs",      icon: FlaskConical,  permission: "labs"      },
-      { label: "Optical",   path: "/optical",   icon: Glasses,       permission: "optical"   },
-      { label: "Insurance", path: "/insurance", icon: ShieldCheck,   permission: "insurance" },
-      { label: "Queue",     path: "/queue",     icon: ListOrdered,   permission: "queue"     },
-      { label: "Doctor",    path: "/doctor",    icon: Stethoscope,   permission: "doctor"    },
-      { label: "Workup",    path: "/workup",    icon: ClipboardPlus, permission: "workup"    },
+      { label: "Patients",  path: "/patients",  icon: Users,         permission: "patients:view"  },
+      { label: "Billing",   path: "/billing",   icon: Receipt,       permission: "billing:view"   },
+      { label: "Pharmacy",  path: "/pharmacy",  icon: Pill,          permission: "pharmacy:view"  },
+      { label: "Labs",      path: "/labs",      icon: FlaskConical,  permission: "labs:view"      },
+      { label: "Optical",   path: "/optical",   icon: Glasses,       permission: "optical:view"   },
+      { label: "Insurance", path: "/insurance", icon: ShieldCheck,   permission: "insurance:view" },
+      { label: "Queue",     path: "/queue",     icon: ListOrdered,   permission: "queue:view"     },
+      { label: "Doctor",    path: "/doctor",    icon: Stethoscope,   permission: "doctor:view"    },
+      { label: "Workup",    path: "/workup",    icon: ClipboardPlus, permission: "workup:view"    },
     ],
   },
   {
     label: "Operations",
     items: [
-      { label: "Staff",             path: "/staff",            icon: UserCog,   permission: "staff"            },
-      { label: "Expenses",          path: "/expenses",         icon: Wallet,    permission: "expenses"          },
-      { label: "Dues & Follow-ups", path: "/dues-followups",   icon: Bell,      permission: "dues-followups"   },
-      { label: "Call Logs",         path: "/call-logs",        icon: PhoneCall, permission: "call-logs"        },
-      { label: "License Tracker",   path: "/license-tracker",  icon: BadgeCheck, permission: "license-tracker" },
+      { label: "Staff",             path: "/staff",            icon: UserCog,   permission: "staff:view"    },
+      { label: "Expenses",          path: "/expenses",         icon: Wallet,    permission: "expenses:view" },
+      { label: "Dues & Follow-ups", path: "/dues-followups",   icon: Bell,      permission: "dues:view"     },
+      { label: "Call Logs",         path: "/call-logs",        icon: PhoneCall, permission: "call_logs:view" },
+      { label: "License Tracker",   path: "/license-tracker",  icon: BadgeCheck, permission: "licenses:view" },
     ],
   },
   {
     label: "Analytics",
     items: [
-      { label: "Analytics", path: "/analytics", icon: BarChart2, permission: "analytics" },
-      { label: "Reports",   path: "/reports",   icon: FileText,  permission: "reports"   },
+      // Both AnalyticsPage and ReportsPage gate on reports:view — there is no
+      // separate analytics:view permission key in src/lib/permissions.ts.
+      { label: "Analytics", path: "/analytics", icon: BarChart2, permission: "reports:view" },
+      { label: "Reports",   path: "/reports",   icon: FileText,  permission: "reports:view" },
     ],
   },
 ]
@@ -87,7 +89,7 @@ const SETTINGS_ITEM: NavItem = {
   label: "Settings",
   path: "/settings",
   icon: Settings,
-  permission: "settings",
+  permission: "settings:view",
 }
 
 // ─── Internal NavItemLink ─────────────────────────────────────────────────────

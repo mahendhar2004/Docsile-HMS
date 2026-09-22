@@ -7,6 +7,7 @@ import {
 } from "react-router-dom"
 import { useSessionStore } from "@/store/session"
 import { Skeleton } from "@/components/ui/skeleton"
+import { AppShell } from "@/components/layout/app-shell"
 
 // Lazy-load all page components (route-level code splitting)
 const LoginPage = React.lazy(() => import("@/pages/LoginPage"))
@@ -58,9 +59,11 @@ function ProtectedRoute() {
     return <Navigate to="/login" replace />
   }
   return (
-    <Suspense fallback={<PageSkeleton />}>
-      <Outlet />
-    </Suspense>
+    <AppShell>
+      <Suspense fallback={<PageSkeleton />}>
+        <Outlet />
+      </Suspense>
+    </AppShell>
   )
 }
 
