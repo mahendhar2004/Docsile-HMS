@@ -34,10 +34,12 @@ const ComboboxContent = React.forwardRef<
       className={cn(
         // Layout
         "z-50 min-w-[8rem] overflow-hidden p-0",
-        // Surface
-        "rounded-[--radius] border border-[--color-border]",
+        // Surface — --shadow-popover bundles the hairline ring + a strong
+        // blur shadow, making this panel read as clearly elevated above
+        // the page (no separate border property needed).
+        "rounded-[--radius]",
         "bg-[--color-popover] text-[--color-popover-foreground]",
-        "shadow-[--shadow-md]",
+        "shadow-[--shadow-popover]",
         // Entrance — uses keyframe defined in index.css
         "animate-zoom-in",
         className

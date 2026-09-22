@@ -14,16 +14,22 @@ const iconButtonVariants = cva(
   {
     variants: {
       variant: {
+        // Solid variants get --shadow-card (hairline ring + resting shadow) for
+        // real depth — mirrors the treatment in button.tsx.
         primary:
-          "bg-primary text-primary-foreground hover:bg-primary/90 shadow-xs rounded-sm",
+          "bg-primary text-primary-foreground hover:bg-primary/90 shadow-[--shadow-card] rounded-sm",
+        // Secondary/outline get the hairline ring only (--shadow-border) so they
+        // read as defined surfaces rather than flat colour blobs.
         secondary:
-          "bg-secondary text-secondary-foreground hover:bg-secondary/80 rounded-sm",
+          "bg-secondary text-secondary-foreground hover:bg-secondary/80 shadow-[--shadow-border] rounded-sm",
+        // outline moves off bg-transparent onto a card surface so it doesn't
+        // vanish against tinted page backgrounds — matches Button's treatment.
         outline:
-          "border border-border bg-transparent text-foreground hover:bg-muted rounded-sm",
+          "bg-[--color-card] text-foreground hover:bg-muted shadow-[--shadow-border] rounded-sm",
         ghost:
           "bg-transparent text-foreground hover:bg-muted rounded-sm",
         destructive:
-          "bg-destructive text-destructive-foreground hover:bg-destructive/90 shadow-xs rounded-sm",
+          "bg-destructive text-destructive-foreground hover:bg-destructive/90 shadow-[--shadow-card] rounded-sm",
         link:
           "bg-transparent text-primary hover:text-primary/80 rounded-sm",
       },

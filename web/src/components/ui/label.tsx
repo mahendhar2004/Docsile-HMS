@@ -14,7 +14,9 @@ const Label = React.forwardRef<
   <LabelPrimitive.Root
     ref={ref}
     className={cn(
-      "text-sm font-medium leading-none text-foreground select-none",
+      // Use the text-body token (14 px) so label text is anchored to the
+      // same typographic scale as body copy rather than being an ad-hoc size.
+      "text-[length:var(--text-body)] font-medium leading-none text-[--color-foreground] select-none",
       "peer-disabled:cursor-not-allowed peer-disabled:opacity-70",
       className
     )}

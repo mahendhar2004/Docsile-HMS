@@ -124,11 +124,13 @@ const SelectContent = React.forwardRef<
     <SelectPrimitive.Content
       ref={ref}
       className={cn(
-        // Surface
+        // Surface — --shadow-popover bundles the hairline ring + a strong
+        // blur shadow, making the dropdown read as clearly elevated above
+        // the page (no separate border property needed).
         "relative z-50 overflow-hidden",
-        "rounded-[--radius] border border-[--color-border]",
+        "rounded-[--radius]",
         "bg-[--color-popover] text-[--color-popover-foreground]",
-        "shadow-[--shadow-md]",
+        "shadow-[--shadow-popover]",
         // Entrance
         "animate-zoom-in",
         // Width matches trigger when popper

@@ -28,6 +28,10 @@ const avatarVariants = cva(
     "relative shrink-0 overflow-hidden rounded-full",
     "inline-flex items-center justify-center",
     "select-none",
+    // Hairline ring so the avatar boundary reads clearly against
+    // both light and image backgrounds (e.g. a white avatar on a
+    // white card, or the fallback swatch against a pale sidebar).
+    "shadow-[--shadow-border]",
   ],
   {
     variants: {

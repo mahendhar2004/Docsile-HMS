@@ -69,7 +69,9 @@ const Toaster = ({ className, ...props }: ToasterProps) => (
         "--normal-text": "var(--color-foreground)",
         "--border-radius": "var(--radius)",
         "--font-family": "var(--font-sans)",
-        "--toast-shadow": "var(--shadow-md)",
+        // Toasts float above page content — use the popover elevation tier
+        // (hairline ring + strong blur shadow) so they read as clearly lifted.
+        "--toast-shadow": "var(--shadow-popover)",
       } as React.CSSProperties
     }
     toastOptions={{

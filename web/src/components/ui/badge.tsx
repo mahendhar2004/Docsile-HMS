@@ -27,24 +27,30 @@ const badgeVariants = cva(
     variants: {
       /** Color intent */
       variant: {
+        // Solid fill — border stays transparent (fill provides definition).
         default:
-          "bg-[--color-primary] text-[--color-primary-foreground]",
+          "bg-[--color-primary] text-[--color-primary-foreground] border-transparent",
+        // Neutral surfaces — use the standard border token for definition.
         secondary:
-          "bg-[--color-secondary] text-[--color-secondary-foreground]",
+          "bg-[--color-secondary] text-[--color-secondary-foreground] border-[--color-border]",
         outline:
           "border-[--color-border] bg-transparent text-[--color-foreground]",
         muted:
-          "bg-[--color-muted] text-[--color-muted-foreground]",
+          "bg-[--color-muted] text-[--color-muted-foreground] border-[--color-border]",
+        // Soft-colour badges: 20% alpha tonal border so the pill reads as a
+        // deliberate coloured surface rather than a flat washed-out fill.
+        // Same var-based opacity pattern as patterns/status/status-pill.tsx
+        // (a sibling component) — tracks the base token if it's ever retuned.
         success:
-          "bg-[--color-success-soft] text-[--color-success-soft-foreground]",
+          "bg-[--color-success-soft] text-[--color-success-soft-foreground] border-[--color-success]/20",
         warning:
-          "bg-[--color-warning-soft] text-[--color-warning-soft-foreground]",
+          "bg-[--color-warning-soft] text-[--color-warning-soft-foreground] border-[--color-warning]/20",
         error:
-          "bg-[--color-error-soft] text-[--color-error-soft-foreground]",
+          "bg-[--color-error-soft] text-[--color-error-soft-foreground] border-[--color-error]/20",
         info:
-          "bg-[--color-info-soft] text-[--color-info-soft-foreground]",
+          "bg-[--color-info-soft] text-[--color-info-soft-foreground] border-[--color-info]/20",
         neutral:
-          "bg-[--color-neutral-soft] text-[--color-neutral-soft-foreground]",
+          "bg-[--color-neutral-soft] text-[--color-neutral-soft-foreground] border-[--color-neutral]/20",
       },
       /** Shape */
       shape: {
