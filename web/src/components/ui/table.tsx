@@ -13,20 +13,28 @@ import { cn } from "@/lib/utils"
 // ---------------------------------------------------------------------------
 
 /**
- * Outermost table container. Wraps a native <table> in an overflow scroll
- * container so wide tables scroll horizontally on small screens.
+ * Outermost table container. Wraps a native <table> in a bordered, rounded
+ * card-like frame (--shadow-card, matching ui/card.tsx) with its own
+ * overflow scroll so wide tables scroll horizontally without breaking the
+ * rounded corners — the previous bare, borderless <table> read as an
+ * unstyled HTML table dropped straight onto the page.
  *
  * Props:
- * - `containerClassName` — applied to the scroll wrapper div, not the <table>.
+ * - `containerClassName` — applied to the outer bordered frame, not the <table>.
  */
 const Table = React.forwardRef<
   HTMLTableElement,
   React.HTMLAttributes<HTMLTableElement> & {
-    /** Class name applied to the outer scroll wrapper, not the <table> itself. */
+    /** Class name applied to the outer bordered frame, not the <table> itself. */
     containerClassName?: string
   }
 >(({ className, containerClassName, ...props }, ref) => (
-  <div className={cn("relative w-full overflow-x-auto", containerClassName)}>
+  <div
+    className={cn(
+      "relative w-full overflow-x-auto overflow-y-hidden rounded-[--radius-lg] bg-[--color-card] shadow-[--shadow-card]",
+      containerClassName,
+    )}
+  >
     <table
       ref={ref}
       className={cn("w-full caption-bottom text-[var(--text-body)]", className)}
@@ -37,8 +45,9 @@ const Table = React.forwardRef<
 Table.displayName = "Table"
 
 /**
- * <thead> wrapper. Applies the subtle muted background that distinguishes
- * the header band from body rows.
+ * <thead> wrapper. A slightly stronger surface tint than the body plus a
+ * crisp bottom rule gives the header band real separation instead of a
+ * near-invisible tonal shift.
  */
 const TableHeader = React.forwardRef<
   HTMLTableSectionElement,
@@ -47,7 +56,7 @@ const TableHeader = React.forwardRef<
   <thead
     ref={ref}
     className={cn(
-      "bg-[var(--color-muted)] [&_tr]:border-b [&_tr]:border-[var(--color-border)]",
+      "bg-[var(--color-muted)]/60 [&_tr]:border-b [&_tr]:border-[var(--color-border)]",
       className,
     )}
     {...props}

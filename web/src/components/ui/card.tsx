@@ -9,13 +9,18 @@
  *   Card > CardFooter
  *
  * Variants:
- *   elevated (default) — white bg + shadow-sm, the standard dashboard card look
- *   flat               — white bg + 1px border, no shadow (use inside another
+ *   elevated (default) — hairline ring + soft resting shadow (--shadow-card),
+ *                        the standard dashboard/panel card look
+ *   flat               — hairline ring only, no shadow (use inside another
  *                        elevated surface, e.g. a detail panel inside a sheet)
+ *
+ * Both use the same box-shadow-based ring (--shadow-border / --shadow-card)
+ * rather than the `border` property — renders crisp at any radius and lets
+ * `interactive` swap in --shadow-card-hover without a border/shadow seam.
  *
  * Props:
  *   interactive — adds hover/active micro-feedback via .motion-interactive +
- *                 a faint hover highlight; use for clickable nav/dashboard tiles
+ *                 a lifted shadow + faint tint; use for clickable nav/dashboard tiles
  */
 
 import * as React from "react"
@@ -32,8 +37,8 @@ const cardVariants = cva(
   {
     variants: {
       variant: {
-        elevated: "shadow-[--shadow-sm]",
-        flat: "border border-[--color-border]",
+        elevated: "shadow-[--shadow-card]",
+        flat: "shadow-[--shadow-border]",
       },
     },
     defaultVariants: {
@@ -57,7 +62,7 @@ const Card = React.forwardRef<HTMLDivElement, CardProps>(
         cardVariants({ variant }),
         interactive && [
           "motion-interactive cursor-pointer",
-          "hover:shadow-[--shadow] hover:bg-[--color-surface]",
+          "hover:shadow-[--shadow-card-hover] hover:bg-[--color-surface]",
           "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[--color-ring] focus-visible:ring-offset-2",
         ],
         className

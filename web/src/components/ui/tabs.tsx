@@ -7,9 +7,13 @@ import { cn } from '@/lib/utils';
 const tabsListVariants = cva('flex', {
   variants: {
     variant: {
+      // A muted background strip + inset top padding gives the tab bar its
+      // own visual footprint (like a browser/VS Code tab strip) instead of
+      // bare text with a hairline underneath — the active tab then "docks"
+      // into this strip with a filled surface + rounded top corners.
       underline: [
-        'border-b border-[var(--color-border)]',
-        'gap-0',
+        'gap-1 rounded-t-[var(--radius-md)] px-1.5 pt-1.5',
+        'bg-[var(--color-muted)]/50 border-b border-[var(--color-border)]',
       ],
       pill: [
         'gap-1 p-1 rounded-[var(--radius-lg)]',
@@ -36,9 +40,10 @@ const tabsTriggerVariants = cva(
     variants: {
       variant: {
         underline: [
-          'px-3 py-2 -mb-px rounded-none border-b-2 border-transparent',
+          'px-3.5 py-2 -mb-px rounded-t-[var(--radius-sm)] border-b-2 border-transparent',
           'text-[var(--color-muted-foreground)]',
-          'hover:text-[var(--color-foreground)]',
+          'hover:text-[var(--color-foreground)] hover:bg-[var(--color-surface)]/60',
+          'data-[state=active]:bg-[var(--color-surface)] data-[state=active]:shadow-[--shadow-xs]',
           'data-[state=active]:border-[var(--color-primary)]',
           'data-[state=active]:text-[var(--color-primary)]',
           'data-[state=active]:font-semibold',

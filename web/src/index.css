@@ -96,21 +96,55 @@
   --color-sidebar-active-foreground: #2563eb;
 
   /* ─── Border Radius ─────────────────────────────── */
-  --radius-xs: 4px;
-  --radius-sm: 6px;
-  --radius: 8px;
-  --radius-md: 10px;
-  --radius-lg: 12px;
-  --radius-xl: 16px;
-  --radius-2xl: 20px;
+  /* Nudged up a step across the whole scale — subtly softer corners
+     everywhere (buttons, inputs, cards, tables, dialogs) rather than
+     reading as boxy/sharp-edged. Still restrained, not pill-shaped;
+     --radius-full stays for chips/badges/avatars that should be pills. */
+  --radius-xs: 6px;
+  --radius-sm: 8px;
+  --radius: 10px;
+  --radius-md: 12px;
+  --radius-lg: 14px;
+  --radius-xl: 18px;
+  --radius-2xl: 22px;
   --radius-full: 9999px;
 
   /* ─── Shadows ────────────────────────────────────── */
-  --shadow-xs: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
-  --shadow-sm: 0 1px 3px 0 rgba(0, 0, 0, 0.08), 0 1px 2px -1px rgba(0, 0, 0, 0.04);
-  --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.08), 0 2px 4px -2px rgba(0, 0, 0, 0.04);
-  --shadow-md: 0 10px 15px -3px rgba(0, 0, 0, 0.08), 0 4px 6px -4px rgba(0, 0, 0, 0.04);
-  --shadow-lg: 0 20px 25px -5px rgba(0, 0, 0, 0.08), 0 8px 10px -6px rgba(0, 0, 0, 0.04);
+  /* Slightly deeper than a generic Tailwind shadow scale — tuned for a
+     "premium SaaS" feel (Linear/Stripe/Vercel-dashboard territory): a
+     tight, dark contact shadow right under the edge plus a soft, wide
+     ambient falloff, rather than one blurry uniform blob. */
+  --shadow-xs: 0 1px 2px 0 rgba(15, 23, 42, 0.06);
+  --shadow-sm: 0 1px 2px 0 rgba(15, 23, 42, 0.04), 0 2px 6px -1px rgba(15, 23, 42, 0.08);
+  --shadow: 0 2px 4px -1px rgba(15, 23, 42, 0.06), 0 8px 16px -4px rgba(15, 23, 42, 0.10);
+  --shadow-md: 0 4px 8px -2px rgba(15, 23, 42, 0.08), 0 16px 32px -8px rgba(15, 23, 42, 0.12);
+  --shadow-lg: 0 8px 16px -4px rgba(15, 23, 42, 0.10), 0 24px 48px -12px rgba(15, 23, 42, 0.16);
+
+  /* Hairline "ring" — a 1px border rendered as a box-shadow layer instead
+     of the `border` property. Composites cleanly with the blur shadows
+     above (`box-shadow: var(--shadow-border), var(--shadow-sm)`) so every
+     elevated surface (card, table, popover, dropdown, dialog) reads as
+     both crisply outlined AND softly lifted — the combination is what a
+     flat `border` + `shadow-sm` alone was missing. Renders identically at
+     any border-radius, unlike an actual `border` which can look slightly
+     uneven on rounded corners at some zoom levels. */
+  --shadow-border: 0 0 0 1px var(--color-border);
+
+  /* Composite elevation tiers — hairline ring + blur shadow bundled into one
+     variable so components use a single `shadow-[--shadow-card]` reference
+     rather than hand-stacking two layers everywhere. Pick the tier by how
+     far the surface sits above the page, not by component type:
+       card     — resting surfaces sitting flush-ish on the page (cards,
+                   table containers, static panels)
+       card-hover — the same surfaces once elevated (hover/interactive state,
+                   or an already-"lifted" card like a stat tile)
+       popover  — content that floats and can be dismissed by an outside
+                   click (dropdowns, selects, popovers, tooltips)
+       overlay  — content that blocks the page behind it (dialogs, sheets) */
+  --shadow-card: var(--shadow-border), var(--shadow-sm);
+  --shadow-card-hover: var(--shadow-border), var(--shadow);
+  --shadow-popover: var(--shadow-border), var(--shadow-md);
+  --shadow-overlay: var(--shadow-border), var(--shadow-lg);
 
   /* ─── Motion ─────────────────────────────────────── */
   /* Two-tier system, deliberately CSS-only (no JS animation library) —
