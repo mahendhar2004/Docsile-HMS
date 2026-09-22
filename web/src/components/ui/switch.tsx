@@ -1,29 +1,65 @@
-"use client"
-
 import * as React from "react"
-import * as SwitchPrimitives from "@radix-ui/react-switch"
-
+import * as SwitchPrimitive from "@radix-ui/react-switch"
+import { cva, type VariantProps } from "class-variance-authority"
 import { cn } from "@/lib/utils"
 
+const switchTrackVariants = cva(
+  [
+    "relative inline-flex shrink-0 cursor-pointer items-center rounded-full",
+    "border-2 border-transparent bg-muted",
+    "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
+    "disabled:cursor-not-allowed disabled:opacity-50",
+    "data-[state=checked]:bg-primary",
+    "motion-interactive",
+  ],
+  {
+    variants: {
+      size: {
+        sm: "h-5 w-9",
+        md: "h-6 w-11",
+      },
+    },
+    defaultVariants: {
+      size: "md",
+    },
+  }
+)
+
+const switchThumbVariants = cva(
+  [
+    "pointer-events-none block rounded-full bg-white shadow-xs",
+    "transition-transform",
+    "duration-[var(--duration-micro)]",
+  ],
+  {
+    variants: {
+      size: {
+        sm: "h-4 w-4 data-[state=checked]:translate-x-4",
+        md: "h-5 w-5 data-[state=checked]:translate-x-5",
+      },
+    },
+    defaultVariants: {
+      size: "md",
+    },
+  }
+)
+
+export interface SwitchProps
+  extends React.ComponentPropsWithoutRef<typeof SwitchPrimitive.Root>,
+    VariantProps<typeof switchTrackVariants> {}
+
 const Switch = React.forwardRef<
-  React.ElementRef<typeof SwitchPrimitives.Root>,
-  React.ComponentPropsWithoutRef<typeof SwitchPrimitives.Root>
->(({ className, ...props }, ref) => (
-  <SwitchPrimitives.Root
-    className={cn(
-      "peer inline-flex h-6 w-11 shrink-0 cursor-pointer items-center rounded-full border-2 border-transparent transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background disabled:cursor-not-allowed disabled:opacity-50 data-[state=checked]:bg-primary data-[state=unchecked]:bg-input",
-      className
-    )}
-    {...props}
+  React.ElementRef<typeof SwitchPrimitive.Root>,
+  SwitchProps
+>(({ className, size, ...props }, ref) => (
+  <SwitchPrimitive.Root
     ref={ref}
+    className={cn(switchTrackVariants({ size }), className)}
+    {...props}
   >
-    <SwitchPrimitives.Thumb
-      className={cn(
-        "pointer-events-none block h-5 w-5 rounded-full bg-background shadow-lg ring-0 transition-transform data-[state=checked]:translate-x-5 data-[state=unchecked]:translate-x-0"
-      )}
-    />
-  </SwitchPrimitives.Root>
+    <SwitchPrimitive.Thumb className={cn(switchThumbVariants({ size }))} />
+  </SwitchPrimitive.Root>
 ))
-Switch.displayName = SwitchPrimitives.Root.displayName
+Switch.displayName = "Switch"
 
 export { Switch }
