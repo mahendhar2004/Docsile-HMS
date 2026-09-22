@@ -32,11 +32,11 @@ corresponding old `src/app/(...)/<module>` code has 🗑️.
 | 1 | auth | 3 | ✅ | ⬜ | ⬜ | ⬜ |
 | 2 | health | 2 | ⬜ | n/a | ⬜ | n/a |
 | 3 | patient-care | 28 | ✅ | ⬜ | ⬜ | ⬜ |
-| 4 | billing | 5 | ⬜ | ⬜ | ⬜ | ⬜ |
-| 5 | pharmacy | 21 | ⬜ | ⬜ | ⬜ | ⬜ |
-| 6 | labs | 14 | ⬜ | ⬜ | ⬜ | ⬜ |
-| 7 | optical | 16 | ⬜ | ⬜ | ⬜ | ⬜ |
-| 8 | insurance | 11 | ⬜ | ⬜ | ⬜ | ⬜ |
+| 4 | billing | 5 | ✅ | ⬜ | ⬜ | ⬜ |
+| 5 | pharmacy | 21 | ✅ | ⬜ | ⬜ | ⬜ |
+| 6 | labs | 14 | ✅ | ⬜ | ⬜ | ⬜ |
+| 7 | optical | 16 | ✅ | ⬜ | ⬜ | ⬜ |
+| 8 | insurance | 11 | ✅ | ⬜ | ⬜ | ⬜ |
 | 9 | queue | 3 | ✅ | ⬜ | ⬜ | ⬜ |
 | 10 | doctor | 12 | ✅ | ⬜ | ⬜ | ⬜ |
 | 11 | staff | 12 | ✅ | ⬜ | ⬜ | ⬜ |
@@ -44,8 +44,8 @@ corresponding old `src/app/(...)/<module>` code has 🗑️.
 | 13 | analytics | 19 | ✅ | ⬜ | ⬜ | ⬜ |
 | 14 | reports | 17 | ⬜ | ⬜ | ⬜ | ⬜ |
 | 15 | workup | 4 | ⬜ | ⬜ | ⬜ | ⬜ |
-| 16 | expenses | 10 | ⬜ | ⬜ | ⬜ | ⬜ |
-| 17 | dues-followups | 8 | ⬜ | ⬜ | ⬜ | ⬜ |
+| 16 | expenses | 10 | ✅ | ⬜ | ⬜ | ⬜ |
+| 17 | dues-followups | 8 | ✅ | ⬜ | ⬜ | ⬜ |
 | 18 | call-logs | 8 | ✅ | ⬜ | ⬜ | ⬜ |
 | 19 | license-tracker | 6 | ✅ | ⬜ | ⬜ | ⬜ |
 | 20 | dashboard | 2 | ⬜ | ⬜ | ⬜ | ⬜ |
@@ -68,7 +68,7 @@ From `.sde/phases/5-api-design.md` §8 and the OpenAPI spec's tag descriptions:
 | PDF report generation/storage endpoint | Deferred — not yet designed; all 17 `reports` endpoints are data queries only | `reports` tag description in openapi.yaml |
 | `workup/patients/{id}/start` | Included but marked `deprecated: true` — it's a no-op in the current code (only calls `revalidatePath`) | 5-api-design.md §8.5 |
 | 3 new permission keys not yet in code | `billing:*`, `call_logs:*`, `queue:view` must be added to `src/lib/permissions.ts` `ALL_PERMISSIONS` + role defaults before their Edge Functions can enforce anything | openapi.yaml `info.description` |
-| Pharmacy bill sequence | Needs its own atomic Postgres sequence (like patient/IP/prescription numbers) — not yet created in the Phase 4 migrations, only 4 sequences exist so far | 5-api-design.md §8.8 — **action item, not yet resolved as of this writing** |
+| Pharmacy bill sequence | **RESOLVED** — migration `20260922020000_pharmacy_bill_sequence.sql` creates `pharmacy_bill_number_seq` and `next_pharmacy_bill_number(p_year TEXT)` following the exact pattern of `next_prescription_number`. Repository calls `supabase.rpc('next_pharmacy_bill_number', { p_year })`. New format: `PH-YYYY-NNNN` (old `PH-YYYYMMDD-NNNN` format superseded; no collision risk). See Phase 7 Wave 3 session log entry 2026-09-22. | 5-api-design.md §8.8 — **resolved 2026-09-22** |
 | Financial fields are `DOUBLE PRECISION` not `NUMERIC` | Pre-existing issue, out of scope for the migration itself, flagged for whenever the billing module is touched | 4-datamodel.md open question 5 |
 | `StaffAttendance` / `SocialPost` live-DB status uncertain | Needs owner confirmation in the Supabase dashboard | 4-datamodel.md open questions 1-2 |
 | Supabase project region (India-DPDP) | Needs owner confirmation in the Supabase dashboard | 2-architecture.md §1.1, 4-datamodel.md open question 3 |
@@ -133,91 +133,91 @@ work progresses, not appended to.
 ### billing (5) — new module, permissions not yet in permissions.ts
 | Status | Method | Path | Permission | Source |
 |---|---|---|---|---|
-| ⬜ | GET | /billing/daily | `billing:view` (new) | Aggregates today's Prescription revenue |
-| ⬜ | GET | /billing/prescriptions | `billing:view` (new) | List prescriptions with amounts/payments |
-| ⬜ | GET | /billing/prescriptions/{id} | `billing:view` (new) | Single prescription + items + payments |
-| ⬜ | POST | /billing/prescriptions/{id}/payments | `billing:create` (new) | Record additional payment |
-| ⬜ | DELETE | /billing/prescriptions/{id}/payments/{payId} | `billing:delete` (new) | Void a payment (admin only) |
+| ✅ | GET | /billing/daily | `billing:view` (new) | Aggregates today's Prescription revenue |
+| ✅ | GET | /billing/prescriptions | `billing:view` (new) | List prescriptions with amounts/payments |
+| ✅ | GET | /billing/prescriptions/{id} | `billing:view` (new) | Single prescription + items + payments |
+| ✅ | POST | /billing/prescriptions/{id}/payments | `billing:create` (new) | Record additional payment |
+| ✅ | DELETE | /billing/prescriptions/{id}/payments/{payId} | `billing:delete` (new) | Void a payment (admin only) |
 
 ### pharmacy (21)
 | Status | Method | Path | Permission | Source |
 |---|---|---|---|---|
-| ⬜ | GET | /pharmacy/medicines | `pharmacy:view` | `getMedicines` |
-| ⬜ | POST | /pharmacy/medicines | `pharmacy:manage_stock` | `createMedicine` |
-| ⬜ | PATCH | /pharmacy/medicines/{id} | `pharmacy:manage_stock` | `updateMedicine` |
-| ⬜ | DELETE | /pharmacy/medicines/{id} | `pharmacy:manage_stock` | `deleteMedicine` (soft) |
-| ⬜ | GET | /pharmacy/stock | `pharmacy:view` | `getStock` |
-| ⬜ | POST | /pharmacy/stock | `pharmacy:manage_stock` | `addStock` |
-| ⬜ | PATCH | /pharmacy/stock/{id} | `pharmacy:manage_stock` | `updateStock` |
-| ⬜ | GET | /pharmacy/stock/summary | `pharmacy:view` | `getStockSummary` |
-| ⬜ | GET | /pharmacy/stock/search | `pharmacy:view` | `searchMedicineStock` |
-| ⬜ | GET | /pharmacy/suppliers | `pharmacy:view` | `getSuppliers` |
-| ⬜ | POST | /pharmacy/suppliers | `pharmacy:manage_stock` | `createSupplier` |
-| ⬜ | PATCH | /pharmacy/suppliers/{id} | `pharmacy:manage_stock` | `updateSupplier` |
-| ⬜ | DELETE | /pharmacy/suppliers/{id} | `pharmacy:manage_stock` | `deleteSupplier` (soft) |
-| ⬜ | GET | /pharmacy/purchase-orders | `pharmacy:purchase_orders` | `getPurchaseOrders` |
-| ⬜ | POST | /pharmacy/purchase-orders | `pharmacy:purchase_orders` | `createPurchaseOrder` |
-| ⬜ | POST | /pharmacy/purchase-orders/{id}/receive | `pharmacy:purchase_orders` | `receivePurchaseOrder` |
-| ⬜ | PATCH | /pharmacy/purchase-orders/{id}/status | `pharmacy:purchase_orders` | `updatePOStatus` |
-| ⬜ | GET | /pharmacy/bills | `pharmacy:view` | `getPharmacyBills` |
-| ⬜ | POST | /pharmacy/bills | `pharmacy:create` | `createPharmacyBill` — **needs new atomic sequence, see deferred items** |
-| ⬜ | GET | /pharmacy/pending-medicines | `pharmacy:view` | `getPendingMedicines` |
-| ⬜ | GET | /pharmacy/patients/{patientId}/prescription | `pharmacy:view` | `getPatientPrescription` |
+| ✅ | GET | /pharmacy/medicines | `pharmacy:view` | `getMedicines` |
+| ✅ | POST | /pharmacy/medicines | `pharmacy:manage_stock` | `createMedicine` |
+| ✅ | PATCH | /pharmacy/medicines/{id} | `pharmacy:manage_stock` | `updateMedicine` |
+| ✅ | DELETE | /pharmacy/medicines/{id} | `pharmacy:manage_stock` | `deleteMedicine` (soft) |
+| ✅ | GET | /pharmacy/stock | `pharmacy:view` | `getStock` |
+| ✅ | POST | /pharmacy/stock | `pharmacy:manage_stock` | `addStock` |
+| ✅ | PATCH | /pharmacy/stock/{id} | `pharmacy:manage_stock` | `updateStock` |
+| ✅ | GET | /pharmacy/stock/summary | `pharmacy:view` | `getStockSummary` |
+| ✅ | GET | /pharmacy/stock/search | `pharmacy:view` | `searchMedicineStock` |
+| ✅ | GET | /pharmacy/suppliers | `pharmacy:view` | `getSuppliers` |
+| ✅ | POST | /pharmacy/suppliers | `pharmacy:manage_stock` | `createSupplier` |
+| ✅ | PATCH | /pharmacy/suppliers/{id} | `pharmacy:manage_stock` | `updateSupplier` |
+| ✅ | DELETE | /pharmacy/suppliers/{id} | `pharmacy:manage_stock` | `deleteSupplier` (soft) |
+| ✅ | GET | /pharmacy/purchase-orders | `pharmacy:purchase_orders` | `getPurchaseOrders` |
+| ✅ | POST | /pharmacy/purchase-orders | `pharmacy:purchase_orders` | `createPurchaseOrder` |
+| ✅ | POST | /pharmacy/purchase-orders/{id}/receive | `pharmacy:purchase_orders` | `receivePurchaseOrder` |
+| ✅ | PATCH | /pharmacy/purchase-orders/{id}/status | `pharmacy:purchase_orders` | `updatePOStatus` |
+| ✅ | GET | /pharmacy/bills | `pharmacy:view` | `getPharmacyBills` |
+| ✅ | POST | /pharmacy/bills | `pharmacy:create` | `createPharmacyBill` — atomic sequence via `next_pharmacy_bill_number` RPC (see Known Deferred Items — RESOLVED) |
+| ✅ | GET | /pharmacy/pending-medicines | `pharmacy:view` | `getPendingMedicines` |
+| ✅ | GET | /pharmacy/patients/{patientId}/prescription | `pharmacy:view` | `getPatientPrescription` |
 
 ### labs (14)
 | Status | Method | Path | Permission | Source |
 |---|---|---|---|---|
-| ⬜ | GET | /labs/labs | `labs:view` | `getLabs` |
-| ⬜ | POST | /labs/labs | `labs:config` | `createLab` |
-| ⬜ | GET | /labs/labs/{id} | `labs:view` | `getLabById` |
-| ⬜ | PATCH | /labs/labs/{id} | `labs:config` | `updateLab` |
-| ⬜ | DELETE | /labs/labs/{id} | `labs:config` | `deleteLab` (soft) |
-| ⬜ | GET | /labs/labs/{labId}/investigations | `labs:view` | `getLabInvestigations` |
-| ⬜ | GET | /labs/investigations | `labs:view` | `getAllInvestigations` |
-| ⬜ | POST | /labs/investigations | `labs:config` | `createInvestigation` |
-| ⬜ | PUT | /labs/labs/{labId}/investigations | `labs:config` | `updateLabInvestigations` (replace-all) |
-| ⬜ | GET | /labs/patients/{patientId}/investigations | `labs:view` | `getPatientInvestigations` |
-| ⬜ | GET | /labs/pending-investigations | `labs:view` | `getPendingLabInvestigations` |
-| ⬜ | GET | /labs/bills | `labs:view` | `getLabBills` |
-| ⬜ | POST | /labs/bills | `labs:create` | `createLabBills` (multi-bill) |
-| ⬜ | GET | /labs/bills/{id} | `labs:view` | `getLabBillById` |
+| ✅ | GET | /labs/labs | `labs:view` | `getLabs` |
+| ✅ | POST | /labs/labs | `labs:config` | `createLab` |
+| ✅ | GET | /labs/labs/{id} | `labs:view` | `getLabById` |
+| ✅ | PATCH | /labs/labs/{id} | `labs:config` | `updateLab` |
+| ✅ | DELETE | /labs/labs/{id} | `labs:config` | `deleteLab` (soft) |
+| ✅ | GET | /labs/labs/{labId}/investigations | `labs:view` | `getLabInvestigations` |
+| ✅ | GET | /labs/investigations | `labs:view` | `getAllInvestigations` |
+| ✅ | POST | /labs/investigations | `labs:config` | `createInvestigation` |
+| ✅ | PUT | /labs/labs/{labId}/investigations | `labs:config` | `updateLabInvestigations` (replace-all) |
+| ✅ | GET | /labs/patients/{patientId}/investigations | `labs:view` | `getPatientInvestigations` |
+| ✅ | GET | /labs/pending-investigations | `labs:view` | `getPendingLabInvestigations` |
+| ✅ | GET | /labs/bills | `labs:view` | `getLabBills` |
+| ✅ | POST | /labs/bills | `labs:create` | `createLabBills` (multi-bill) |
+| ✅ | GET | /labs/bills/{id} | `labs:view` | `getLabBillById` |
 
 *(Lab result recording is explicitly deferred — see Known Deferred Items.)*
 
 ### optical (16)
 | Status | Method | Path | Permission | Source |
 |---|---|---|---|---|
-| ⬜ | GET | /optical/products | `optical:view` | `getOpticalProducts` |
-| ⬜ | POST | /optical/products | `optical:edit` | `createOpticalProduct` |
-| ⬜ | PATCH | /optical/products/{id} | `optical:edit` | `updateOpticalProduct` |
-| ⬜ | DELETE | /optical/products/{id} | `optical:edit` | `deleteOpticalProduct` (soft) |
-| ⬜ | GET | /optical/stock | `optical:view` | `getOpticalStock` |
-| ⬜ | POST | /optical/stock | `optical:edit` | `addOpticalStock` (upsert) |
-| ⬜ | PATCH | /optical/stock/{id} | `optical:edit` | `updateOpticalStock` |
-| ⬜ | GET | /optical/stock/summary | `optical:view` | `getStockSummary` |
-| ⬜ | GET | /optical/stock/search | `optical:view` | `searchOpticalStock` |
-| ⬜ | GET | /optical/bills | `optical:view` | `getOpticalBills` |
-| ⬜ | POST | /optical/bills | `optical:create` | `createOpticalBill` |
-| ⬜ | PATCH | /optical/bills/{id}/status | `optical:edit` | `updateOpticalBillStatus` |
-| ⬜ | GET | /optical/patients/{patientId}/ar-reading | `optical:view` | `getPatientWithARReading` |
-| ⬜ | GET | /optical/settings | `settings:view` | `getOpticalSettings` |
-| ⬜ | PATCH | /optical/settings | `settings:edit` | `updateOpticalSettings` |
-| ⬜ | GET | /optical/hospital-profile | `optical:view` | `getOpticalHospitalProfile` |
+| ✅ | GET | /optical/products | `optical:view` | `getOpticalProducts` |
+| ✅ | POST | /optical/products | `optical:edit` | `createOpticalProduct` |
+| ✅ | PATCH | /optical/products/{id} | `optical:edit` | `updateOpticalProduct` |
+| ✅ | DELETE | /optical/products/{id} | `optical:edit` | `deleteOpticalProduct` (soft) |
+| ✅ | GET | /optical/stock | `optical:view` | `getOpticalStock` |
+| ✅ | POST | /optical/stock | `optical:edit` | `addOpticalStock` (upsert) |
+| ✅ | PATCH | /optical/stock/{id} | `optical:edit` | `updateOpticalStock` |
+| ✅ | GET | /optical/stock/summary | `optical:view` | `getStockSummary` |
+| ✅ | GET | /optical/stock/search | `optical:view` | `searchOpticalStock` |
+| ✅ | GET | /optical/bills | `optical:view` | `getOpticalBills` |
+| ✅ | POST | /optical/bills | `optical:create` | `createOpticalBill` |
+| ✅ | PATCH | /optical/bills/{id}/status | `optical:edit` | `updateOpticalBillStatus` |
+| ✅ | GET | /optical/patients/{patientId}/ar-reading | `optical:view` | `getPatientWithARReading` |
+| ✅ | GET | /optical/settings | `settings:view` | `getOpticalSettings` |
+| ✅ | PATCH | /optical/settings | `settings:edit` | `updateOpticalSettings` |
+| ✅ | GET | /optical/hospital-profile | `optical:view` | `getOpticalHospitalProfile` |
 
 ### insurance (11)
 | Status | Method | Path | Permission | Source |
 |---|---|---|---|---|
-| ⬜ | GET | /insurance/companies | `insurance:view` | `getInsuranceCompanies` (+ `?paginated=false` for all, merged from old `/all`) |
-| ⬜ | POST | /insurance/companies | `insurance:edit` | `createInsuranceCompany` |
-| ⬜ | PATCH | /insurance/companies/{id} | `insurance:edit` | `updateInsuranceCompany` |
-| ⬜ | DELETE | /insurance/companies/{id} | `insurance:edit` | `deleteInsuranceCompany` (soft) |
-| ⬜ | GET | /insurance/claims | `insurance:view` | `getInsuranceClaims` |
-| ⬜ | POST | /insurance/claims | `insurance:create` | `createInsuranceClaim` |
-| ⬜ | GET | /insurance/claims/{id} | `insurance:view` | `getInsuranceClaimById` |
-| ⬜ | PATCH | /insurance/claims/{id}/status | `insurance:edit` | `updateInsuranceClaimStatus` |
-| ⬜ | PATCH | /insurance/claims/{id}/details | `insurance:edit` | `updateInsuranceClaimDetails` |
-| ⬜ | POST | /insurance/claims/{id}/payments | `insurance:edit` | `addInsurancePatientPayment` |
-| ⬜ | GET | /insurance/inpatients/search | `insurance:view` | `searchInPatientsForInsurance` |
+| ✅ | GET | /insurance/companies | `insurance:view` | `getInsuranceCompanies` (+ `?paginated=false` for all, merged from old `/all`) |
+| ✅ | POST | /insurance/companies | `insurance:edit` | `createInsuranceCompany` |
+| ✅ | PATCH | /insurance/companies/{id} | `insurance:edit` | `updateInsuranceCompany` |
+| ✅ | DELETE | /insurance/companies/{id} | `insurance:edit` | `deleteInsuranceCompany` (soft) |
+| ✅ | GET | /insurance/claims | `insurance:view` | `getInsuranceClaims` |
+| ✅ | POST | /insurance/claims | `insurance:create` | `createInsuranceClaim` |
+| ✅ | GET | /insurance/claims/{id} | `insurance:view` | `getInsuranceClaimById` |
+| ✅ | PATCH | /insurance/claims/{id}/status | `insurance:edit` | `updateInsuranceClaimStatus` |
+| ✅ | PATCH | /insurance/claims/{id}/details | `insurance:edit` | `updateInsuranceClaimDetails` |
+| ✅ | POST | /insurance/claims/{id}/payments | `insurance:edit` | `addInsurancePatientPayment` |
+| ✅ | GET | /insurance/inpatients/search | `insurance:view` | `searchInPatientsForInsurance` |
 
 *(11 rows — the old `/companies/all` endpoint was merged into the first row, not dropped; see openapi.yaml.)*
 
@@ -356,28 +356,28 @@ work progresses, not appended to.
 ### expenses (10)
 | Status | Method | Path | Permission | Source |
 |---|---|---|---|---|
-| ⬜ | POST | /expenses/categories/seed | `expenses:edit` | `seedDefaultCategories` |
-| ⬜ | GET | /expenses/categories | `expenses:view` | `getCategories` |
-| ⬜ | POST | /expenses/categories | `expenses:edit` | `createCategory` |
-| ⬜ | PATCH | /expenses/categories/{id} | `expenses:edit` | `updateCategory` |
-| ⬜ | DELETE | /expenses/categories/{id} | `expenses:edit` | `deleteCategory` |
-| ⬜ | PATCH | /expenses/categories/reorder | `expenses:edit` | `reorderCategories` (bulk) |
-| ⬜ | GET | /expenses | `expenses:view` | `getExpensesByDateRange` |
-| ⬜ | POST | /expenses | `expenses:create` | `createExpense` |
-| ⬜ | PATCH | /expenses/{id} | `expenses:edit` | `updateExpense` |
-| ⬜ | DELETE | /expenses/{id} | `expenses:delete` | `deleteExpense` |
+| ✅ | POST | /expenses/categories/seed | `expenses:edit` | `seedDefaultCategories` |
+| ✅ | GET | /expenses/categories | `expenses:view` | `getCategories` |
+| ✅ | POST | /expenses/categories | `expenses:edit` | `createCategory` |
+| ✅ | PATCH | /expenses/categories/{id} | `expenses:edit` | `updateCategory` |
+| ✅ | DELETE | /expenses/categories/{id} | `expenses:edit` | `deleteCategory` |
+| ✅ | PATCH | /expenses/categories/reorder | `expenses:edit` | `reorderCategories` (bulk) |
+| ✅ | GET | /expenses | `expenses:view` | `getExpensesByDateRange` |
+| ✅ | POST | /expenses | `expenses:create` | `createExpense` |
+| ✅ | PATCH | /expenses/{id} | `expenses:edit` | `updateExpense` |
+| ✅ | DELETE | /expenses/{id} | `expenses:delete` | `deleteExpense` |
 
 ### dues-followups (8)
 | Status | Method | Path | Permission | Source |
 |---|---|---|---|---|
-| ⬜ | GET | /dues-followups/dues | `dues:view` | `getDues` (crosses Prescription/InPatient/LabBill/PharmacyBill) |
-| ⬜ | GET | /dues-followups/followups | `dues:view` | `getFollowUps` |
-| ⬜ | PATCH | /dues-followups/dues/{id}/mark-paid | `dues:edit` | `markDueAsPaid` |
-| ⬜ | GET | /dues-followups/doctors | `dues:view` | `getDoctorList` |
-| ⬜ | GET | /dues-followups/departments | `dues:view` | `getDepartmentList` |
-| ⬜ | GET | /dues-followups/email-templates | `dues:view` | `getAvailableTemplates` |
-| ⬜ | GET | /dues-followups/hospital-name | `dues:view` | `getHospitalDisplayName` |
-| ⬜ | POST | /dues-followups/send-email | `dues:edit` | `sendPatientEmail` |
+| ✅ | GET | /dues-followups/dues | `dues:view` | `getDues` (crosses Prescription/InPatient/LabBill/PharmacyBill) |
+| ✅ | GET | /dues-followups/followups | `dues:view` | `getFollowUps` |
+| ✅ | PATCH | /dues-followups/dues/{id}/mark-paid | `dues:edit` | `markDueAsPaid` |
+| ✅ | GET | /dues-followups/doctors | `dues:view` | `getDoctorList` |
+| ✅ | GET | /dues-followups/departments | `dues:view` | `getDepartmentList` |
+| ✅ | GET | /dues-followups/email-templates | `dues:view` | `getAvailableTemplates` |
+| ✅ | GET | /dues-followups/hospital-name | `dues:view` | `getHospitalDisplayName` |
+| ✅ | POST | /dues-followups/send-email | `dues:edit` | `sendPatientEmail` |
 
 ### call-logs (8) — new module, permission not yet in permissions.ts
 | Status | Method | Path | Permission | Source |
@@ -647,6 +647,196 @@ captured in the phase docs.
     `queue:view`) in `src/lib/permissions.ts` — already flagged in
     Known Deferred Items above, repeating here since it's now blocking
     Phase 7 start, not just a future concern.
+- **2026-09-22** — Phase 7 Wave 3: `labs` module backend complete (14 endpoints).
+  `types.ts` corrected: `LabSchema` extended with `description`, `location`, `isActive`,
+  `sortOrder` (all present in the DB); scaffold's erroneous `isDeleted` field removed (Lab
+  table has no such column — soft-delete uses `isActive`). `LabBillItemSchema.price` renamed
+  to `amount` (matching DB column `amount`). `LabBillSchema.totalAmount` renamed to `total`
+  (matching DB column `total`); `discount` and `discountReason` added as optional fields.
+  `repository.ts` implements `LabsRepository` with full hospital_id scoping on every entity
+  query (ADR-007); child/junction tables (LabInvestigation, LabBillItem, LabPayment) accessed
+  via parent FK only — no hospital_id on those tables, consistent with 4-datamodel.md §5.2.
+  Methods: `findAll`, `countInvestigationsForLab`, `findById`, `insert`, `update`,
+  `softDelete` (Lab); `findLabInvestigations`, `replaceLabInvestigations`,
+  `findLabMappingsByInvestigationIds` (LabInvestigation); `findAllInvestigations`,
+  `findInvestigationByName`, `findInvestigationsByNames`, `insertInvestigation`
+  (InvestigationMaster); `findPatientByPatientId`, `findLatestPrescriptionWithInvestigations`,
+  `findBillsForPrescription`, `findPrescriptionsWithInvestigationsBetween`,
+  `findBillStatusesByPrescriptionIds`, `getNextBillNumber`, `insertBill`, `insertBillItems`,
+  `insertPayment`, `findBills`, `countBills`, `findBillById`.
+  `service.ts` implements all 14 functions. Key semantics:
+  — `createLabBills` (multi-bill): iterates `data.bills` array and creates ONE LabBill per
+    entry; each entry targets its own lab, has its own total/discount/payment; LabBillItems
+    and (when amountPaid > 0) a LabPayment are created for each bill in the same loop. Bill
+    number uses the old LB-YYYYMMDD-NNNN pattern (same TOCTOU limitation as old app; no
+    lab-bill sequence exists — only patient/IP/prescription sequences from Phase 4).
+  — `updateLabInvestigations` (replace-all): DELETE all LabInvestigation rows for labId,
+    then INSERT new rows for each investigationId with amount=0/isDefault=false defaults
+    (scaffold schema supplies only IDs, not amounts — simplification from old Next.js shape).
+  — `deleteLab` (soft): sets isActive=false rather than hard-deleting; PROGRESS.md says
+    "(soft)", Lab table has isActive, and a hard delete would fail on FK constraint from
+    LabBill rows — the old code tried hard delete and surfaced the FK error, this is correct.
+  — `getPatientInvestigations`: full multi-step logic ported from old actions.ts — patient
+    lookup, latest prescription with non-empty investigations JSON, master-name resolution,
+    lab-mapping fetch (LabInvestigation is NOT hospital_id-scoped — child table), active-lab
+    filter, existing-bill check, group-by-lab with isDefault-preferred mapping.
+  — `getPendingLabInvestigations`: uses IST today as default (index.ts does not forward a
+    date param); filters out fully-billed prescriptions (no PENDING/PARTIAL bill statuses).
+  `index.ts` required no changes (all 14 routes already correctly wired in Phase 6 scaffold).
+  `deno check` not run — Deno not installed in this environment.
+  labs module Status Summary Backend column: ⬜ → ✅.
+- **2026-09-22** — Phase 7 Wave 3: `expenses` module backend complete (10 endpoints).
+  `types.ts` corrected: `ExpenseCategorySchema` was missing `color` field (real DB column
+  `color TEXT NOT NULL DEFAULT '#6B7280'` — required in DB, optional via API with service-layer
+  default); `ExpenseSchema` had two invented field names — `description` → `title` and
+  `notes` → `reason` (both verified against `supabase-migration.sql` §24); `paymentMode`
+  field (TEXT nullable, present in DB) added to `ExpenseSchema`. Named interfaces
+  `ExpenseCategoryRow` and `ExpenseRow` added for full DB row shapes. openapi.yaml uses
+  `description` for the expense title field — divergence from the real DB column `title`
+  noted; implementation uses the DB column name `title` since the actual CREATE TABLE and
+  old actions.ts both use `title`. `repository.ts` implements `ExpensesRepository` with full
+  hospital_id scoping on every query (ADR-007): `countCategories` (seed idempotency check),
+  `bulkInsertCategories` (seed insert), `findAllCategories` (active only, sortOrder+name order),
+  `findCategoryById`, `findMaxSortOrder`, `insertCategory`, `updateCategory`, `deleteCategoryById`,
+  `countExpensesForCategory` (RESTRICT guard), `updateCategoryOrders` (concurrent bulk update),
+  `findExpenses` (optional date-range filter, category join, date DESC), `findExpenseById`
+  (with category join), `insertExpense`, `updateExpense`, `deleteExpenseById` — 15 methods
+  total. `service.ts` implements all 10 functions: `seedCategories` (idempotent —
+  hospital-scoped count check before bulk insert; 10 default categories match old
+  `DEFAULT_CATEGORIES` constant exactly); `listCategories` (thin delegate); `createCategory`
+  (findMaxSortOrder + insert, 409 on 23505 Postgres unique violation); `updateCategory`
+  (404 guard + selective patch + 409 on duplicate name); `deleteCategory` (404 guard +
+  application-layer RESTRICT check before hard delete, 409 with descriptive count);
+  `reorderCategories` (delegates explicit {id, sortOrder} pairs to repo — shape matches
+  openapi.yaml and scaffold's ReorderCategoriesSchema, not old code's string[] shape);
+  `listExpenses` (full date range filter delegate); `createExpense` (category existence
+  guard + ISO date conversion + insert); `updateExpense` (existence guard + optional
+  category re-validation + selective patch + ISO date conversion); `deleteExpense`
+  (existence guard + hard delete). `index.ts` not modified — route wiring and permission
+  guards were already correct in the Phase 6 scaffold; all imported Zod schema names
+  remain exported from the updated types.ts. `deno check` not run — Deno not installed
+  in this environment. expenses module Status Summary Backend column: ⬜ → ✅.
+- **2026-09-22** — Phase 7 Wave 3: `insurance` module backend complete (11 endpoints).
+  `types.ts` corrected to match real DB columns: `InsuranceCompanySchema` fixed from scaffold's
+  invented `contactPerson`/`phone`/`isDeleted` fields to actual DB columns `contactNumber`,
+  `address`, `isActive` (confirmed from supabase-migration.sql). `InsuranceClaimSchema` rebuilt
+  from scratch matching old `createInsuranceClaim` input shape: `inPatientId` (not `inpatientId`),
+  `insuranceCompanyId` (not `companyId`), `insuranceCompanyName`, `tpaName`, `policyNumber`,
+  `policyHolderName`, `insuranceCardNumber`, `relationToInsured`, `preauthAmount` (not `claimedAmount`),
+  `notes`. `UpdateClaimStatusSchema` extended with optional `notes/amount/rejectionReason/
+  settlementReference/deductions` needed for SETTLED/PREAUTH_APPROVED/rejection transitions.
+  `UpdateClaimDetailsSchema` widened to also accept policy admin fields (insuranceCompanyName,
+  tpaName, policyNumber, etc.) matching old `updateInsuranceClaimDetails`. `AddClaimPaymentSchema`
+  gained optional `notes` field (old code supported it).
+  `repository.ts` implements `InsuranceRepository` with full hospital_id scoping (ADR-007):
+  `findCompanies` (paginated, activeOnly flag), `findAllCompanies` (unpaginated, no isActive filter
+  — replaces old `getAllInsuranceCompanies`), `findCompanyById`, `insertCompany`, `updateCompany`,
+  `softDeleteCompany` (isActive=false — NOT hard-delete), `findClaims` (paginated, optional status
+  filter, narrow select for list view), `findClaimById` (full select), `insertClaim`, `updateClaim`,
+  `findInpatientById` (cross-module read), `searchInpatients` (ilike/like on ipNumber/name/phone,
+  limit 10), `updateInpatientPaymentRecords` (cross-module write for payment recording).
+  `service.ts` implements all 11 functions. Key notes:
+  — `getCompanies`: `paginated=false` → all companies no isActive filter (old `getAllInsuranceCompanies`);
+    `paginated=true` → active-only paginated (old `getInsuranceCompanies`).
+  — `createClaim`: uses `supabase.rpc('next_insurance_claim_number', { p_year })` for atomic claim
+    number (H-3 pattern); denormalizes InPatient fields into claim row on creation; computes initial
+    financial fields (patientPayable, patientBalance) from InPatient.netAmount.
+  — `deleteCompany`: soft-delete only (isActive=false); verified against old `deleteInsuranceCompany`
+    which set isActive=false, never hard-deleted (companies referenced by existing claims via FK).
+  — `updateClaimStatus`: full status-machine implementation with financial recalculation for
+    PREAUTH_APPROVED, ENHANCEMENT_APPROVED, SETTLED, PARTIALLY_SETTLED, CLAIM_REJECTED; SETTLED
+    also writes an Insurance payment record to linked InPatient.paymentRecords (replacing prior
+    Insurance entry to prevent double-counting on re-settlement) matching old behavior exactly.
+  — `addClaimPayment`: writes to InPatient.paymentRecords JSON array (no separate InsurancePayment
+    table — that table does not exist in the DB despite the scaffold comment); recomputes InPatient
+    totalReceivedAmount/balanceAmount; derives authoritative patientCashPaid from non-Insurance
+    records only; updates claim patientPaidAmount/patientBalance/statusHistory — all matching old
+    `addInsurancePatientPayment` exactly.
+  — `searchInpatients`: filters InPatient on ipNumber/name/phone ilike/like with min 2-char guard,
+    returns id/ipNumber/name/age/gender/phone/department/packageAmount/netAmount/admissionDate/
+    operationName — exactly what old `searchInPatientsForInsurance` returned.
+  `index.ts` bug fix: scaffold passed only `b.data.status` to `updateClaimStatus`, silently
+  discarding amount/notes/rejectionReason needed for SETTLED/PREAUTH_APPROVED transitions (would
+  record $0 settled amount). Fixed to pass full `b.data` (UpdateClaimStatus typed object).
+  openapi.yaml field discrepancy noted: InsuranceCompany schema uses `contactPerson`/`phone` but
+  DB has `contactNumber`/`address` — implementation uses DB column names to prevent silent data
+  loss; this is a spec bug not a code bug.
+  `deno check` not run — Deno not installed in this environment.
+  insurance module Status Summary Backend column: ⬜ → ✅.
+- **2026-09-22** — Phase 7 Wave 3: `dues-followups` module backend complete (8 endpoints).
+  `types.ts` extended with `DueRecord`, `FollowUpRecord`, `EmailTemplate` interfaces and named
+  type aliases `DuesListQuery`, `MarkPaidInput`, `SendEmailInput`. `repository.ts` implements
+  `DuesFollowupsRepository` with mandatory `.eq('hospital_id', this.hospitalId)` on every
+  Prescription/InPatient/LabBill/PharmacyBill query (ADR-007), and correctly uses
+  `.eq('id', this.hospitalId)` on HospitalProfile (no hospital_id column — its own id IS the
+  hospital identifier; this is the exact bug that broke settings and doctor modules). Methods:
+  `getAllOPDDues` (Prescription balanceDue > 0, joins Patient + InvoiceItem),
+  `getAllIPDDues` (InPatient balanceAmount > 0, joins Patient for UHID),
+  `getAllLABDues` (LabBill balanceDue > 0, not CANCELLED, joins Patient + Lab + LabBillItem),
+  `getAllPharmacyDues` (PharmacyBill balanceDue > 0, joins PharmacyBillItem!billId),
+  `getAllOPDFollowups` (Prescription followUpDate not null), `getAllIPDFollowups`
+  (InPatient followUpDate not null, joins Patient for UHID + email),
+  `findPrescriptionForPaid` / `markPrescriptionPaid` / `insertPayment` (Payment row uses
+  crypto.randomUUID() for id — no DB DEFAULT exists), `findInpatientForPaid` /
+  `markInpatientPaid` (paymentRecords JSON array append), `findLabBillForPaid` /
+  `markLabBillPaid` / `insertLabPayment` (LabPayment row uses crypto.randomUUID()),
+  `findPharmacyBillForPaid` / `markPharmacyBillPaid` (no payment record, just balance update),
+  `getDistinctDoctorNames` / `getDistinctDepartments` (from Prescription, deduped in service),
+  `getHospitalProfile`, `findPatientByUhid`. `service.ts` implements all 8 functions:
+  `getDues` (four parallel repository calls → combined sort date-desc → in-memory pagination),
+  `getFollowups` (two parallel calls → combined sort followUpDate-asc → in-memory pagination;
+  includes ALL non-null followUpDate records — overdue + future — callers use `isOverdue` flag),
+  `markPaid` (dispatches on type enum: prescription/labBill/pharmacyBill/inpatient, each with
+  hospital-scoped existence check before write; paymentMode defaults to 'CASH'),
+  `getDoctors` / `getDepartments` (thin delegates), `getEmailTemplates` (calls Sitha
+  SITHA_API_URL/api/v1/templates with SITHA_API_KEY header; returns [] on missing config or
+  non-OK response — exactly matching old getAvailableTemplates() behavior), `getHospitalName`
+  (repo.getHospitalProfile → displayName ?? name ?? 'Hospital'), `sendEmail` (looks up patient
+  by UHID to resolve email; throws ServiceUnavailableError if SITHA not configured or API fails;
+  throws ValidationError if patient not found or has no email; never logs patient PII).
+  `sendEmail` email integration: REAL external call to Sitha AI service via SITHA_API_URL +
+  SITHA_API_KEY — not a stub. Matches old sendPatientEmail which also called
+  `${sithaUrl}/api/v1/email/send` — the same env var names are used. `index.ts` verified
+  correct, no changes made. `deno check` not run — Deno not installed in this environment.
+  dues-followups module Status Summary Backend column: ⬜ → ✅.
+- **2026-09-22** — Phase 7 Wave 3: `pharmacy` module backend complete (21 endpoints).
+  New migration `20260922020000_pharmacy_bill_sequence.sql` created: adds
+  `pharmacy_bill_number_seq` (yearly-scoped, CACHE 1) and `next_pharmacy_bill_number(p_year TEXT)`
+  Postgres function following the exact pattern of `next_prescription_number` in
+  migration `20260921130000_atomic_sequences.sql`. Closes the "Pharmacy bill sequence"
+  Known Deferred Item — old `getNextBillNumber()` TOCTOU race replaced by atomic RPC.
+  New bill number format: `PH-YYYY-NNNN` (old `PH-YYYYMMDD-NNNN` daily format superseded;
+  no collision risk since formats are distinct). `types.ts` corrected: scaffold had wrong
+  field names (`purchasePrice`/`sellingPrice` → `mrp`/`costPrice` matching actual DB columns
+  in PharmacyStock; `isDeleted` removed from Medicine/Supplier — DB soft-deletes via
+  `isActive=false`; `patientName` added as required to `CreatePharmacyBillSchema` — NOT NULL
+  in DB; `discountPercent`/`roundOff`/`paymentMode`/`paidAmount` added to bill header;
+  full item fields restored; PO status enum corrected to uppercase DB values; `ReceiveItemSchema`
+  rebuilt to match actual receive flow: `itemId`/`receivedQty`/`batchNumber`/`expiryDate`/
+  `mrp`/`costPrice`). `repository.ts` implements `PharmacyRepository` with all data-access
+  methods (hospital_id scoped on every entity query per ADR-007): `findAllMedicines`,
+  `findMedicineById`, `insertMedicine`, `updateMedicine`, `softDeleteMedicine`;
+  `findAllSuppliers`, `findSupplierById`, `findSupplierCountsByIds`, `insertSupplier`,
+  `updateSupplier`, `softDeleteSupplier`; `findAllStock`, `findStockById`,
+  `findStockByMedicineAndBatch`, `insertStock`, `updateStock`,
+  `getStockSummaryCountsAndValue` (5 parallel COUNT queries + value sum),
+  `searchMedicineStock` (2-step: medicine IDs → stock); `findAllPurchaseOrders`,
+  `findPurchaseOrderById`, `insertPurchaseOrder`, `insertPurchaseOrderItems`,
+  `updatePurchaseOrderItem`, `findPurchaseOrderItemsByPoId`, `updatePurchaseOrderStatus`,
+  `getNextPONumber` (read-max pattern — acceptable for PO numbers, which fail closed on
+  UNIQUE violation unlike bill numbers); `findBills` (paginated + DB-level search via
+  ilike — fixes old code's client-side filter that broke accurate total counts),
+  `nextBillNumber` (RPC call), `insertBill`, `insertBillItems`; `findPatientByPatientId`,
+  `findLatestPrescriptionForPatient`, `findPendingPrescriptions`, `findBillsByPrescriptionIds`.
+  `service.ts` implements all 21 functions. Key safety guarantees: `addStock` always
+  increments quantity (never overwrites) when a batch already exists. `receivePurchaseOrder`
+  always increments `PurchaseOrderItem.receivedQty` (never overwrites), upserts PharmacyStock
+  same way. `createPharmacyBill` validates ALL stock quantities FIRST (Phase 1) before any
+  write — prevents a bill existing without stock deducted if a mid-loop validation fails;
+  stock deduction (Phase 3) uses the quantity snapshot from Phase 1. `getPharmacyBills`
+  applies search filter at DB level (ilike) rather than client-side, making pagination
+  totals accurate. `index.ts` not modified (no bugs found). `deno check` not run — Deno
+  not installed in this environment. pharmacy module Status Summary Backend column: ⬜ → ✅.
 - **2026-09-22** — Phase 7 Wave 2: `doctor` module 12th endpoint (`POST /doctor/ai/ask`)
   implemented. Four new files added to the doctor Edge Function:
   `gemini-client.ts` (Gemini REST wrapper — M-5 fixed: API key sent as `x-goog-api-key`
@@ -660,3 +850,80 @@ captured in the phase docs.
   GEMINI_API_KEY and GEMINI_MODEL are read from `Deno.env` (Edge Function secrets) — never
   exposed to clients. `deno check` not run — Deno not installed in this environment.
   doctor module Status Summary Backend column: 🔨 → ✅ (all 12 endpoints done).
+- **2026-09-22** — Phase 7 Wave 3: `billing` module backend complete (5 endpoints).
+  `repository.ts` implements `BillingRepository` with mandatory hospital_id scoping on every
+  Prescription query (ADR-007); InvoiceItem and Payment are child tables with no hospital_id —
+  ownership is validated via the parent Prescription before operating on them. Methods:
+  `getDailySummary(dateStr)` (IST day bounds via `new Date('YYYY-MM-DDT00:00:00.000+05:30')`,
+  aggregates total/amountPaid/balanceDue/discount on non-CANCELLED Prescriptions, counts unique
+  patientIds), `listPrescriptions(opts)` (IST day bounds when dateStr provided, paginated by
+  offset/limit, ordered prescriptionDate DESC), `getPrescriptionById(id)` (parallel fetch of
+  Prescription + InvoiceItem + Payment), `findPrescription(id)` (hospital-scoped minimal select
+  for ownership checks and math), `insertPayment(...)` (insert Payment row, returns full row),
+  `updatePrescriptionAmounts(id, amountPaid, balanceDue)` (hospital-scoped UPDATE), `findPayment(payId)`
+  (no hospital_id — child table; caller validates ownership via prescriptionId match + findPrescription),
+  `deletePayment(payId)` (hard delete). `service.ts` implements all 5 service functions.
+  `getDailySummary`: defaults date to today-in-IST via `now.getTime() + 5.5h` offset.
+  Revenue definition confirmed from `analytics/repository.ts` line 530 and `analytics/actions.ts`
+  line 294: `total` = totalBilled (revenue), `amountPaid` = totalCollected, `balanceDue` = totalDues.
+  `listPrescriptions`: maps page/pageSize to offset/limit. `getPrescriptionById`: throws 404 if
+  prescription missing or belongs to a different hospital. `recordPayment`: findPrescription
+  (404 if missing) → insertPayment → updatePrescriptionAmounts (newAmountPaid = old + body.amount,
+  newBalanceDue = max(0, total - newAmountPaid)). `voidPayment` (billing:delete permission, wired
+  structurally in index.ts — no redundant admin-role check in service.ts): findPayment (404 if
+  missing) → assert payment.prescriptionId === :id path param (404 if mismatch) → findPrescription
+  hospital ownership check (404 if different hospital) → deletePayment → updatePrescriptionAmounts
+  (newAmountPaid = max(0, old - voidedAmount), newBalanceDue = total - newAmountPaid). `index.ts`
+  not modified — all 5 route wirings confirmed correct from Phase 6 scaffold. `types.ts` not
+  modified — BillingDateQuerySchema/RecordPaymentSchema already correct. DB column names verified
+  against `supabase-migration.sql` CREATE TABLE statements: Prescription fields `total`,
+  `amountPaid`, `balanceDue`, `discount`, `prescriptionDate`; InvoiceItem fields `description`,
+  `amount`, `unitPrice`, `quantity`, `sortOrder`; Payment fields `amount`, `paymentMode`,
+  `paymentDate`, `receivedBy`, `paymentRef`. No invented field names. `deno check` not run —
+  Deno not installed in this environment (same constraint as all prior modules). billing module
+  Status Summary Backend column: ⬜ → ✅.
+- **2026-09-22** — Phase 7 Wave 3: `optical` module backend complete (16 endpoints).
+  `types.ts` corrected from scaffold's wrong field names to real DB column names:
+  `isDeleted` → `isActive` on OpticalProductSchema (DB uses isActive for soft-delete, no isDeleted
+  column); `batch` → `batchNumber` on OpticalStockSchema (DB column is "batchNumber"); `name` →
+  `itemName` on OpticalBillItemSchema (DB column is "itemName"). OpticalProductSchema widened to
+  include all real product catalog fields (type, material, color, size, coating, index, modelNumber,
+  hsnCode, gstPercent). OpticalStockSchema widened to include mrp, gstPercent, supplierId, isActive.
+  OpticalBillItemSchema widened to include category, eye, mrp, total, discountPercent, amount,
+  gstPercent. CreateOpticalBillSchema rebuilt from scratch matching old createOpticalBill input shape
+  (patientName required; patientId optional for walk-in sales; all financial/delivery/payment fields).
+  OpticalBillListQuerySchema extended with dateFrom/dateTo/search/status optional filters.
+  Response-side interfaces added: OpticalBillRow, OpticalBillItemRow, StockSummary, StockSearchResult,
+  PatientArReading, OpticalSettings.
+  `repository.ts` implements OpticalRepository with full hospital_id scoping on all entity tables
+  (OpticalProduct, OpticalStock, OpticalBill, Patient): `listProducts`, `findProductById`,
+  `insertProduct`, `updateProduct`, `softDeleteProduct` (isActive=false); `listStock`,
+  `findExistingStock` (exact null-matching on batchNumber/power for UNIQUE key lookup),
+  `insertStock`, `incrementStockQuantity`, `findStockById`, `updateStock`, `getStockSummary`
+  (parallel count queries — total and lowStock), `searchStock` (in-process name/brand/model filter,
+  maps to StockSearchResult); `listBills` (paginated, count: exact, optional date/status/search
+  filters; in-process search post-fetch), `getNextBillNumber` (OPT-YYYYMMDD-NNNN sequential),
+  `insertBill`, `insertBillItem` (no hospital_id — pure child table per 4-datamodel.md),
+  `findBillById`, `updateBillStatus`, `decrementStockQuantity` (read-then-update pattern matching
+  old code); `findPatientWithReadings` (eyeReadings+prescriptions nested join, hospital_id-scoped).
+  HospitalProfile methods: `getHospitalProfile` uses .eq('id', this.hospitalId) — NOT a
+  nonexistent hospital_id column (known bug from settings/doctor modules, avoided here).
+  `updateHospitalProfileSettings` writes only the settings TEXT blob, also .eq('id', hospitalId).
+  `service.ts` implements all 16 functions:
+  `createProduct` (all optional fields defaulted, isActive=true, createdBy from session);
+  `updateProduct`/`deleteProduct` (404 guard before patch/soft-delete);
+  `upsertStock` — upsert key is (productId, batchNumber, power) with explicit null-matching;
+  existing row → incrementStockQuantity (adds to existing quantity); no row → insertStock;
+  `updateStock` (404 guard); `getStockSummary`, `searchStock` (2-char minimum matches old behavior);
+  `getBills`, `createBill` (financials computed server-side: subtotal, gstAmount, discountAmount,
+  netAmount, billAmount=Math.round(netAmount+roundOff), balanceDue; items and stock decrement in
+  sequential loop); `updateBillStatus` (404 guard);
+  `getPatientArReading` — ports old getPatientWithARReading exactly (sort by readingDate, filter
+  prescriptions COMPLETED/DRAFT, safeParse JSON fields, returns null if patient not found);
+  `getSettings`/`updateSettings` — read/write opticalPrintHeaderKey inside HospitalProfile.settings
+  JSON blob (same pattern as PrintConfig/NavStyle in settings module; hospital_id bug avoided:
+  getHospitalProfile uses .eq('id', hospitalId));
+  `getHospitalProfile` — delegates to repo.getHospitalProfile() with correct .eq('id', hospitalId).
+  `index.ts` not modified — all 16 route wirings and permission guards correct from Phase 6 scaffold.
+  `deno check` not run — Deno not installed in this environment.
+  optical module Status Summary Backend column: ⬜ → ✅.
