@@ -38,7 +38,7 @@ corresponding old `src/app/(...)/<module>` code has 🗑️.
 | 7 | optical | 16 | ⬜ | ⬜ | ⬜ | ⬜ |
 | 8 | insurance | 11 | ⬜ | ⬜ | ⬜ | ⬜ |
 | 9 | queue | 3 | ✅ | ⬜ | ⬜ | ⬜ |
-| 10 | doctor | 11 | ✅ | ⬜ | ⬜ | ⬜ |
+| 10 | doctor | 12 | 🔨 | ⬜ | ⬜ | ⬜ |
 | 11 | staff | 12 | ✅ | ⬜ | ⬜ | ⬜ |
 | 12 | settings | 33 | ✅ | ⬜ | ⬜ | ⬜ |
 | 13 | analytics | 19 | ✅ | ⬜ | ⬜ | ⬜ |
@@ -49,7 +49,7 @@ corresponding old `src/app/(...)/<module>` code has 🗑️.
 | 18 | call-logs | 8 | ✅ | ⬜ | ⬜ | ⬜ |
 | 19 | license-tracker | 6 | ✅ | ⬜ | ⬜ | ⬜ |
 | 20 | dashboard | 2 | ⬜ | ⬜ | ⬜ | ⬜ |
-| | **Total** | **233** | | | | |
+| | **Total** | **234** | | | | |
 
 Scaffold status (Phase 6, structural skeleton — not counted as "Backend
 done"/"Frontend done" above, those mean real logic): see the two entries
@@ -73,9 +73,9 @@ From `.sde/phases/5-api-design.md` §8 and the OpenAPI spec's tag descriptions:
 | `StaffAttendance` / `SocialPost` live-DB status uncertain | Needs owner confirmation in the Supabase dashboard | 4-datamodel.md open questions 1-2 |
 | Supabase project region (India-DPDP) | Needs owner confirmation in the Supabase dashboard | 2-architecture.md §1.1, 4-datamodel.md open question 3 |
 | Exotel webhook hospitalId resolution is single-tenant only | `POST /call-logs/webhook/exotel` falls back to a single-row `HospitalProfile` lookup when Exotel's request carries no `X-Hospital-Id` header — correct for the current one-hospital deployment, but will misattribute calls (or need to error) once a second hospital tenant is onboarded. Needs real per-hospital webhook routing (e.g. a hospital-specific webhook URL/token, or requiring the header) before that happens. | `call-logs` module implementation notes, 2026-09-22 |
-| **"Ask Sitha AI" — an entire feature has NO endpoint in the API design** | `src/app/(hospital)/doctor/ai-actions.ts` (968 lines, `askSithaAI`) is a Gemini-backed AI consultation assistant built into the current app's doctor UI (`AskSithaAI` component, referenced from `patients/PatientsPage.tsx` too). Phase 5's API design never accounted for it — there is no `/doctor/ai/*` endpoint anywhere in openapi.yaml. This was NOT a deliberate deferral like Doctor CRUD/lab-results/PDF-export (those are noted in tag descriptions); it was simply missed. **This needs an explicit decision from the project owner**: port it (needs its own endpoint design + an ADR on whether Gemini calls happen from an Edge Function or stay client-side) or consciously drop it from this migration. Until decided, this is a real "hole," not a documented deferral. | Found during `doctor` module Phase 7 implementation, 2026-09-22 — **UNRESOLVED, needs owner decision** |
+| **"Ask Sitha AI" — RESOLVED: owner confirmed it's required, added to spec** | `src/app/(hospital)/doctor/ai-actions.ts` (968 lines, `askSithaAI`) is a Gemini-backed AI consultation assistant. Phase 5's API design never accounted for it — this was a real gap, not a deliberate deferral. **Owner decision (2026-09-22): port it.** Added as `POST /doctor/ai/ask` in openapi.yaml (doctor tag, 12th endpoint, `doctor:consult` permission matching the old code exactly). Gemini calls stay server-side (Edge Function) — the API key must never reach the browser; this also fixes M-5 (old code passed the Gemini key as a URL query param, must move to an Authorization header when ported). Implementation (porting `buildPatientContext`/`buildAnalyticsContext`/`resolvePatientContext` + the Gemini call wrapper into the doctor Edge Function) is in progress — see doctor module status (🔨, not yet ✅ — the module's other 11 endpoints are done, this 12th is not). | Design added 2026-09-22; implementation tracked in doctor module row above |
 | Staff profile fields were write-path-only missing (fixed) | The `staff` module's Phase 7 implementation initially only accepted `{name, email, password, role, employeeId}` on create/update, silently dropping `phone/department/designation/qualifications/joiningDate/address/emergencyContact/bloodGroup/salary/salaryType` even though all 10 are real `User` columns already returned correctly on reads. Caught and fixed before commit (openapi.yaml `User` schema + create/update request bodies, types.ts, service.ts, repository.ts all widened). Also fixed: password minimum length had drifted to 8 chars (a generic default) instead of the old app's actual 6-char minimum. | `staff` module implementation notes, 2026-09-22 — **fixed, not just flagged** |
-| **Realtime broadcast doesn't actually do column-level PII filtering — ADR-003 assumed a mechanism that doesn't exist as described** | ADR-003 says "Realtime channels broadcast only non-PII status fields... Supabase column broadcast filtering enforces this." The `queue` module's new migration (`20260922010000_enable_realtime_queue_tables.sql`) does `ALTER PUBLICATION supabase_realtime ADD TABLE "Patient"` etc. — this is the standard, correct way to enable Realtime, but it broadcasts the FULL row (name, phone, diagnosis included) to every subscriber, filtered only by RLS (which table rows a user can see), not by which COLUMNS are included in the payload. Standard Supabase `postgres_changes` has no native column-level payload filtering — achieving that would require Supabase's separate "Broadcast" feature with a custom DB trigger function that hand-picks fields, which is real additional work, not a config toggle. **Practical read**: since only authenticated hospital staff (who already have full Patient-table read access via the regular endpoints) can subscribe to their own hospital's channel, this may be an acceptable gap rather than a real exposure — but that's a product/compliance judgment call, not a technical one, and it contradicts what ADR-003 literally said would happen. Needs an explicit decision: accept full-row-broadcast-scoped-by-RLS as good enough, or invest in trigger-based column-filtered broadcasts. | Found during `queue` module Phase 7 implementation, 2026-09-22 — **UNRESOLVED, needs owner/product decision** |
+| **Realtime broadcast doesn't do column-level PII filtering — RESOLVED, owner accepts as-is** | ADR-003 said "Realtime channels broadcast only non-PII status fields," but standard Supabase `postgres_changes` (used by the queue module's `ALTER PUBLICATION` migration) broadcasts full rows, filtered only by RLS (who can see the row), not by which columns are included. **Owner decision (2026-09-22): fine with the current approach.** Since only authenticated hospital staff who already have full read access can subscribe to their own hospital's channel, full-row-broadcast-scoped-by-RLS is accepted as sufficient — no trigger-based column-filtered broadcast work planned. ADR-003 should be updated to reflect this if it's revisited later, but no code change needed now. | Found during `queue` module Phase 7 implementation, 2026-09-22 — resolved same day |
 
 ---
 
@@ -228,7 +228,7 @@ work progresses, not appended to.
 | ✅ | GET | /queue/workup | `queue:view` (new) | `getWorkupQueue` (workup/actions.ts) |
 | ✅ | GET | /queue/inpatients | `queue:view` (new) | Reads InPatient table for bed/status board |
 
-### doctor (11)
+### doctor (12)
 | Status | Method | Path | Permission | Source |
 |---|---|---|---|---|
 | ✅ | GET | /doctor/queue | `doctor:view` | `getDoctorQueue` |
@@ -241,7 +241,8 @@ work progresses, not appended to.
 | ✅ | GET | /doctor/dropdown-options | `doctor:view` | `getDropdownOptions` |
 | ✅ | POST | /doctor/dropdown-options | `doctor:consult` | `addDropdownOption` |
 | ✅ | POST | /doctor/medicines | `doctor:consult` | `createMedicine` |
-| ✅ | GET | /doctor/patients/{patientId}/receipt | `billing:view` (new) | `getReceiptData` |
+| ✅ | GET | /doctor/patients/{patientId}/receipt | `billing:view` | `getReceiptData` |
+| 🔨 | POST | /doctor/ai/ask | `doctor:consult` | `askSithaAI` (`ai-actions.ts`) — added post-Phase-5 per owner decision 2026-09-22, see Known Deferred Items; also fixes M-5 (Gemini API key was passed as a URL query param in the old code — move to an Authorization header when porting) |
 
 *(No separate Doctor-entity CRUD here — deferred by design, see Known Deferred Items.)*
 

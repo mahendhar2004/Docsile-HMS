@@ -3746,6 +3746,71 @@ paths:
               schema:
                 $ref: '#/components/schemas/ApiResponse'
 
+  /doctor/ai/ask:
+    post:
+      tags: [doctor]
+      summary: Ask Sitha AI (Gemini-backed clinical/analytics assistant)
+      description: >-
+        Added post-Phase-5: this endpoint was missing from the original API
+        design (src/app/(hospital)/doctor/ai-actions.ts, 968 lines, was
+        never accounted for during Phase 5). Ported here as a 12th doctor
+        endpoint per the project owner's explicit decision that this
+        feature is required, not optional. Two modes selected by `module`:
+        default (patient-context clinical Q&A) and `module: "analytics"`
+        (hospital-analytics Q&A, reusing the same 10 analytics repository
+        queries the `analytics` module already exposes). x-permission
+        matches the OLD code's behavior exactly (doctor:consult
+        unconditionally, even in analytics mode) — this may be worth
+        revisiting as a product decision later (e.g. a receptionist with
+        reports:view but not doctor:consult currently cannot use analytics
+        chat either, in both the old app and here), but changing it now
+        would be an unrequested behavior change, not a migration fix.
+      x-permission: doctor:consult
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [question]
+              properties:
+                patientId:
+                  type: string
+                  nullable: true
+                  description: Sequential patient ID (e.g. P-0005) or phone number token, if locked to a specific patient.
+                question:
+                  type: string
+                  maxLength: 4000
+                history:
+                  type: array
+                  description: Prior turns in this conversation (capped server-side to the last 6).
+                  items:
+                    type: object
+                    properties:
+                      role:
+                        type: string
+                        enum: [user, model]
+                      text:
+                        type: string
+                module:
+                  type: string
+                  description: Which page the question originates from. "analytics" switches to the hospital-analytics system prompt/context; anything else uses patient-clinical context.
+      responses:
+        '200':
+          description: Sitha's answer, or a structured error (empty question, question too long, Gemini not configured, Gemini call failed).
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/ApiResponse'
+                  - type: object
+                    properties:
+                      data:
+                        type: object
+                        properties:
+                          answer:
+                            type: string
+
   # ================================================================
   # staff (12 endpoints)
   # ================================================================
