@@ -115,7 +115,7 @@ export function ConfirmationModal({
           {/* Icon badge */}
           <div
             className={cn(
-              'mb-3 flex h-10 w-10 items-center justify-center rounded-[var(--radius-lg)]',
+              'mb-3 flex h-10 w-10 items-center justify-center rounded-[--radius-lg]',
               config.iconBg,
               config.iconColor,
             )}
@@ -143,9 +143,10 @@ export function ConfirmationModal({
             disabled={isLoading}
             className={cn(
               'inline-flex items-center gap-2',
-              'px-4 py-2 text-sm font-medium rounded-[var(--radius-sm)]',
-              'transition-opacity duration-[var(--duration-micro)]',
-              'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-ring)]',
+              'px-4 py-2 text-[length:var(--text-body)] font-medium rounded-[--radius-sm]',
+              'shadow-[--shadow-card]',
+              'transition-opacity duration-[--duration-micro]',
+              'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[--color-ring]',
               'disabled:pointer-events-none disabled:opacity-50',
               config.actionClass,
             )}

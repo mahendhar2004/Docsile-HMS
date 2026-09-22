@@ -32,17 +32,17 @@ export function Breadcrumbs({ items, className = "" }: BreadcrumbsProps) {
 
   return (
     <nav aria-label="Breadcrumb" className={className}>
-      <ol className="flex flex-wrap items-center gap-1 text-sm">
+      <ol className="flex flex-wrap items-center gap-1 text-[length:var(--text-caption)]">
         {/* Home anchor */}
         <li>
           <Link
             to="/dashboard"
             aria-label="Home"
             className={[
-              "flex items-center rounded-[var(--radius-xs)] p-0.5",
-              "motion-interactive outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-ring)]",
+              "flex items-center rounded-[--radius-xs] p-0.5",
+              "text-[--color-muted-foreground] hover:text-[--color-foreground]",
+              "motion-interactive outline-none focus-visible:ring-2 focus-visible:ring-[--color-ring]",
             ].join(" ")}
-            style={{ color: "var(--color-muted-foreground)" }}
           >
             <Home size={14} aria-hidden="true" />
           </Link>
@@ -53,24 +53,21 @@ export function Breadcrumbs({ items, className = "" }: BreadcrumbsProps) {
           return (
             <React.Fragment key={`${item.label}-${index}`}>
               {/* Separator */}
-              <li aria-hidden="true" className="flex items-center">
-                <ChevronRight
-                  size={14}
-                  style={{ color: "var(--color-muted-foreground)" }}
-                />
+              <li aria-hidden="true" className="flex items-center text-[--color-muted-foreground]">
+                <ChevronRight size={12} />
               </li>
 
               {/* Crumb */}
               <li>
                 {isLast || !item.href ? (
                   <span
-                    className="font-medium"
+                    className={[
+                      "font-medium",
+                      isLast
+                        ? "text-[--color-foreground]"
+                        : "text-[--color-muted-foreground]",
+                    ].join(" ")}
                     aria-current={isLast ? "page" : undefined}
-                    style={{
-                      color: isLast
-                        ? "var(--color-foreground)"
-                        : "var(--color-muted-foreground)",
-                    }}
                   >
                     {item.label}
                   </span>
@@ -78,11 +75,10 @@ export function Breadcrumbs({ items, className = "" }: BreadcrumbsProps) {
                   <Link
                     to={item.href}
                     className={[
-                      "rounded-[var(--radius-xs)] px-0.5",
-                      "motion-interactive outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-ring)]",
-                      "hover:text-[var(--color-foreground)]",
+                      "rounded-[--radius-xs] px-0.5",
+                      "text-[--color-muted-foreground] hover:text-[--color-foreground]",
+                      "motion-interactive outline-none focus-visible:ring-2 focus-visible:ring-[--color-ring]",
                     ].join(" ")}
-                    style={{ color: "var(--color-muted-foreground)" }}
                   >
                     {item.label}
                   </Link>

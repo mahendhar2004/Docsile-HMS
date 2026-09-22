@@ -119,8 +119,8 @@ const ChartContainer = React.forwardRef<HTMLDivElement, ChartContainerProps>(
       <div
         ref={ref}
         className={cn(
-          "rounded-[--radius-lg] bg-[--color-card] border border-[--color-border]",
-          "shadow-[--shadow-sm] p-5 flex flex-col gap-4",
+          "rounded-[--radius-lg] bg-[--color-card]",
+          "shadow-[--shadow-card] p-5 flex flex-col gap-4",
           className
         )}
       >

@@ -51,19 +51,19 @@ const bannerVariants = cva(
     variants: {
       variant: {
         info: [
-          "bg-[--color-info-soft] border-[--color-info]",
+          "bg-[--color-info-soft] border-[--color-info]/40",
           "text-[--color-info-soft-foreground]",
         ].join(" "),
         success: [
-          "bg-[--color-success-soft] border-[--color-success]",
+          "bg-[--color-success-soft] border-[--color-success]/40",
           "text-[--color-success-soft-foreground]",
         ].join(" "),
         warning: [
-          "bg-[--color-warning-soft] border-[--color-warning]",
+          "bg-[--color-warning-soft] border-[--color-warning]/40",
           "text-[--color-warning-soft-foreground]",
         ].join(" "),
         error: [
-          "bg-[--color-error-soft] border-[--color-error]",
+          "bg-[--color-error-soft] border-[--color-error]/40",
           "text-[--color-error-soft-foreground]",
         ].join(" "),
       },

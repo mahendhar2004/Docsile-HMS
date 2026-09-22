@@ -75,7 +75,11 @@ const EmptyState = React.forwardRef<HTMLDivElement, EmptyStateProps>(
         {icon && (
           <span
             aria-hidden="true"
-            className="mb-4 text-[--color-muted-foreground] opacity-40"
+            className={cn(
+              "mb-4 flex items-center justify-center",
+              "h-16 w-16 rounded-[--radius-xl]",
+              "bg-[--color-muted] text-[--color-muted-foreground]"
+            )}
           >
             {icon}
           </span>

@@ -246,9 +246,8 @@ export function DateRangePicker({
         className={cn(
           "w-auto p-0",
           "motion-dialog-in",
-          "border-[var(--color-border)]",
-          "shadow-[var(--shadow-md)]",
-          "rounded-[var(--radius-lg)]",
+          "shadow-[--shadow-popover]",
+          "rounded-[--radius-lg]",
           "overflow-hidden"
         )}
         align="start"

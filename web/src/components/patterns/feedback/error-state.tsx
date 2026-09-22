@@ -89,7 +89,7 @@ const ErrorState = React.forwardRef<HTMLDivElement, ErrorStateProps>(
           aria-hidden="true"
           className={cn(
             "flex items-center justify-center mb-4",
-            "h-12 w-12 rounded-full",
+            "h-14 w-14 rounded-[--radius-xl]",
             "bg-[--color-error-soft]"
           )}
         >

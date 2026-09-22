@@ -573,9 +573,8 @@ function AutocompleteSearchBar<T = unknown>({
         <div
           className={cn(
             "absolute z-50 top-full left-0 right-0 mt-1",
-            "rounded-[var(--radius-md)]",
-            "border border-[var(--color-border)]",
-            "bg-[var(--color-surface)] shadow-[var(--shadow-md)]",
+            "rounded-[--radius-md]",
+            "bg-[--color-surface] shadow-[--shadow-popover]",
             "overflow-hidden",
             "animate-slide-in-top",
           )}

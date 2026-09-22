@@ -180,8 +180,8 @@ function AccordionList({ items, className, ...rootProps }: AccordionListProps) {
   return (
     <AccordionRoot
       className={cn(
-        "rounded-[--radius] border border-[--color-border]",
-        "bg-[--color-surface] px-4",
+        "rounded-[--radius-md] shadow-[--shadow-card]",
+        "bg-[--color-card] px-4",
         className
       )}
       {...(rootProps as React.ComponentProps<typeof RadixAccordion.Root>)}

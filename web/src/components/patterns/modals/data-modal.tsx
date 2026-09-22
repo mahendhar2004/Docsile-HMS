@@ -61,11 +61,11 @@ export interface DataModalProps<TData> {
 function SkeletonBlock() {
   return (
     <div className="space-y-3 p-1" aria-busy="true" aria-label="Loading content">
-      <div className="h-4 w-3/4 animate-pulse rounded-[var(--radius-sm)] bg-[var(--color-muted)]" />
-      <div className="h-4 w-1/2 animate-pulse rounded-[var(--radius-sm)] bg-[var(--color-muted)]" />
-      <div className="h-4 w-5/6 animate-pulse rounded-[var(--radius-sm)] bg-[var(--color-muted)]" />
-      <div className="h-4 w-2/3 animate-pulse rounded-[var(--radius-sm)] bg-[var(--color-muted)]" />
-      <div className="h-20 mt-4 animate-pulse rounded-[var(--radius)] bg-[var(--color-muted)]" />
+      <div className="h-4 w-3/4 animate-pulse rounded-[--radius-sm] bg-[--color-muted]" />
+      <div className="h-4 w-1/2 animate-pulse rounded-[--radius-sm] bg-[--color-muted]" />
+      <div className="h-4 w-5/6 animate-pulse rounded-[--radius-sm] bg-[--color-muted]" />
+      <div className="h-4 w-2/3 animate-pulse rounded-[--radius-sm] bg-[--color-muted]" />
+      <div className="h-20 mt-4 animate-pulse rounded-[--radius] bg-[--color-muted]" />
     </div>
   );
 }
@@ -80,22 +80,30 @@ function ErrorBlock({ message, onRetry }: ErrorBlockProps) {
     <div
       className={cn(
         'flex flex-col items-center justify-center gap-3 py-8',
-        'text-center text-[var(--color-muted-foreground)]',
+        'text-center text-[--color-muted-foreground]',
       )}
       role="alert"
     >
-      <AlertCircle
-        className="h-8 w-8 text-[var(--color-error-soft-foreground)]"
+      <span
         aria-hidden="true"
-      />
+        className={cn(
+          "flex items-center justify-center",
+          "h-12 w-12 rounded-[--radius-lg]",
+          "bg-[--color-error-soft]"
+        )}
+      >
+        <AlertCircle
+          className="h-6 w-6 text-[--color-error-soft-foreground]"
+        />
+      </span>
       <p className="text-[length:var(--text-body)]">{message}</p>
       <button
         onClick={onRetry}
         className={cn(
           'inline-flex items-center gap-1.5 text-[length:var(--text-body)] font-medium',
-          'text-[var(--color-primary)] hover:underline',
-          'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-ring)]',
-          'rounded-[var(--radius-xs)]',
+          'text-[--color-primary] hover:underline',
+          'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[--color-ring]',
+          'rounded-[--radius-xs]',
         )}
       >
         <RefreshCw className="h-4 w-4" aria-hidden="true" />
