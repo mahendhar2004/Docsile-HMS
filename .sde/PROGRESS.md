@@ -42,7 +42,7 @@ corresponding old `src/app/(...)/<module>` code has 🗑️.
 | 11 | staff | 12 | ✅ | ⬜ | ⬜ | ⬜ |
 | 12 | settings | 33 | ✅ | ⬜ | ⬜ | ⬜ |
 | 13 | analytics | 19 | ✅ | ⬜ | ⬜ | ⬜ |
-| 14 | reports | 17 | ⬜ | ⬜ | ⬜ | ⬜ |
+| 14 | reports | 17 | ✅ | ⬜ | ⬜ | ⬜ |
 | 15 | workup | 4 | ⬜ | ⬜ | ⬜ | ⬜ |
 | 16 | expenses | 10 | ✅ | ⬜ | ⬜ | ⬜ |
 | 17 | dues-followups | 8 | ✅ | ⬜ | ⬜ | ⬜ |
@@ -325,23 +325,23 @@ work progresses, not appended to.
 ### reports (17)
 | Status | Method | Path | Permission | Source |
 |---|---|---|---|---|
-| ⬜ | GET | /reports/patients/search | `reports:view` | `searchPatients` (reports) |
-| ⬜ | GET | /reports/patients/{patientId}/summary | `reports:view` | `getPatientSummary` |
-| ⬜ | GET | /reports/patients/{patientId}/visits | `reports:view` | `getVisitHistory` |
-| ⬜ | GET | /reports/patients/{patientId}/prescriptions | `reports:view` | `getPrescriptions` |
-| ⬜ | GET | /reports/patients/{patientId}/inpatient | `reports:view` | `getInpatientRecords` |
-| ⬜ | GET | /reports/patients/{patientId}/receipt | `reports:view` | `getReportReceiptData` |
-| ⬜ | GET | /reports/patients/{patientId}/labs | `reports:view` | `getLabRecords` |
-| ⬜ | GET | /reports/patients/{patientId}/billing | `reports:view` | `getBillingOverview` |
-| ⬜ | GET | /reports/exports/patients | `data:export` | `getExportPatients` (data) |
-| ⬜ | GET | /reports/exports/prescriptions | `data:export` | `getExportPrescriptions` |
-| ⬜ | GET | /reports/exports/eye-readings | `data:export` | `getExportEyeReadings` |
-| ⬜ | GET | /reports/exports/inpatients | `data:export` | `getExportInPatients` |
-| ⬜ | GET | /reports/exports/insurance-claims | `data:export` | `getExportInsuranceClaims` |
-| ⬜ | GET | /reports/exports/lab-bills | `data:export` | `getExportLabBills` |
-| ⬜ | GET | /reports/exports/pharmacy-bills | `data:export` | `getExportPharmacyBills` |
-| ⬜ | GET | /reports/exports/optical-bills | `data:export` | `getExportOpticalBills` |
-| ⬜ | GET | /reports/exports/expenses | `data:export` | `getExportExpenses` |
+| ✅ | GET | /reports/patients/search | `reports:view` | `searchPatients` (reports) |
+| ✅ | GET | /reports/patients/{patientId}/summary | `reports:view` | `getPatientSummary` |
+| ✅ | GET | /reports/patients/{patientId}/visits | `reports:view` | `getVisitHistory` |
+| ✅ | GET | /reports/patients/{patientId}/prescriptions | `reports:view` | `getPrescriptions` |
+| ✅ | GET | /reports/patients/{patientId}/inpatient | `reports:view` | `getInpatientRecords` |
+| ✅ | GET | /reports/patients/{patientId}/receipt | `reports:view` | `getReportReceiptData` |
+| ✅ | GET | /reports/patients/{patientId}/labs | `reports:view` | `getLabRecords` |
+| ✅ | GET | /reports/patients/{patientId}/billing | `reports:view` | `getBillingOverview` |
+| ✅ | GET | /reports/exports/patients | `data:export` | `getExportPatients` (data) |
+| ✅ | GET | /reports/exports/prescriptions | `data:export` | `getExportPrescriptions` |
+| ✅ | GET | /reports/exports/eye-readings | `data:export` | `getExportEyeReadings` |
+| ✅ | GET | /reports/exports/inpatients | `data:export` | `getExportInPatients` |
+| ✅ | GET | /reports/exports/insurance-claims | `data:export` | `getExportInsuranceClaims` |
+| ✅ | GET | /reports/exports/lab-bills | `data:export` | `getExportLabBills` |
+| ✅ | GET | /reports/exports/pharmacy-bills | `data:export` | `getExportPharmacyBills` |
+| ✅ | GET | /reports/exports/optical-bills | `data:export` | `getExportOpticalBills` |
+| ✅ | GET | /reports/exports/expenses | `data:export` | `getExportExpenses` |
 
 *(PDF generation/storage is explicitly deferred — see Known Deferred Items.)*
 
@@ -927,6 +927,36 @@ captured in the phase docs.
   `index.ts` not modified — all 16 route wirings and permission guards correct from Phase 6 scaffold.
   `deno check` not run — Deno not installed in this environment.
   optical module Status Summary Backend column: ⬜ → ✅.
+- **2026-09-22** — Phase 7 Wave 4: `reports` module backend complete (17 endpoints).
+  **Schema corrections:** `ExportQuerySchema` extended with optional `search`, `patientType`, and
+  `status` fields — these are used by the old `data/actions.ts` contract that the frontend sends
+  but were absent from the scaffold's types.ts (silent data-loss bug). Not in openapi.yaml's
+  parameter list, but included here to match the real contract.
+  **Critical FK discovery:** verified against `db/create-hospital-db.sql` and the backfill
+  migration that (a) `Prescription.patientId`, `EyeReading.patientId`, `LabBill.patientId` are all
+  TEXT FKs to `Patient.patientId` (display ID, e.g. "P-2024-0001"), while (b) `InPatient.patientId`
+  is a UUID FK to `Patient.id`. The openapi.yaml `{patientId}` parameter is the UUID. This means
+  the service must call `findPatientById(uuid)` first to resolve the display patientId for
+  Prescription/EyeReading/LabBill queries; InPatient is queried directly by UUID.
+  **HospitalProfile bug avoided:** `getPatientReceipt` uses `.eq('id', this.hospitalId)` on
+  HospitalProfile — not `.limit(1)` — matching the known fix from settings/doctor modules.
+  **EyeReading hospital_id:** confirmed present (backfill migration), so export scopes directly
+  via `hospital_id` without a Patient join.
+  **Export limit/filtering matched:** all 9 export endpoints use `.limit(5000)` (exact match to
+  old `data/actions.ts`). Date field per export: patients→appointmentDate, prescriptions→
+  prescriptionDate, eye-readings→readingDate, inpatients→admissionDate, insurance-claims→createdAt,
+  lab-bills→createdAt, pharmacy-bills→billDate, optical-bills→billDate, expenses→date.
+  **Search semantics (reports vs other modules):** reports search returns broader result fields
+  (age/gender/dateOfBirth/patientType/registeredOn/lastVisitDate) vs call-logs (phone/UHID only)
+  and patient-care (page-context fields). Includes prescriptions nested for lastVisitDate. Short
+  explicit query (< 2 chars) returns [] matching old behavior; missing q returns paginated list.
+  `repository.ts` implements `ReportsRepository` with 18 methods covering patient search,
+  cross-table ID resolution, all 8 patient-detail queries, and 9 export queries — every query
+  scoped by `hospital_id` per ADR-007. `service.ts` implements all 17 functions with date-range
+  resolution (mirrors analytics/service.ts pattern), patient 404 guard, and output shaping matching
+  old code field-for-field. `index.ts` not modified (no bugs found). `deno check` not run —
+  Deno not installed in this environment.
+  reports module Status Summary Backend column: ⬜ → ✅.
 - **2026-09-22** — Phase 7 Wave 4: `dashboard` module backend complete (2 endpoints). The old
   DashboardClient.tsx is pure navigation UI — no data fetching, so there was no old actions.ts
   to reference for parity. Data definitions were sourced from other already-implemented modules:
