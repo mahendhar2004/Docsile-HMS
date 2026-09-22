@@ -18,9 +18,9 @@ modules produce).
 | 1 | Dashboard | `/dashboard` | `GET /dashboard/summary`, `GET /dashboard/quick-stats` | ✅ |
 | 2 | Patient Care | `/patients` | `patient-care/*` (patients + inpatients CRUD, search, services, receipt) | ✅ |
 | 3 | Queue | `/queue` | `queue/*` (OPD/workup/inpatient boards, Realtime) | ✅ |
-| 4 | Workup | `/workup` | `workup/*` (queue, eye readings) | ⬜ |
+| 4 | Workup | `/workup` | `workup/*` (queue, eye readings) | ✅ |
 | 5 | Doctor | `/doctor` | `doctor/*` (queue, consultation, prescriptions, AI assist, receipt) | ⬜ |
-| 6 | Billing | `/billing` | `billing/*` (daily summary, prescriptions, payments) | ⬜ |
+| 6 | Billing | `/billing` | `billing/*` (daily summary, prescriptions, payments) | ✅ |
 | 7 | Pharmacy | `/pharmacy` | `pharmacy/*` (medicines, stock, suppliers, purchase orders, bills) | ⬜ |
 | 8 | Optical | `/optical` | `optical/*` (products, stock, bills, AR reading, settings) | ⬜ |
 | 9 | Labs | `/labs` | `labs/*` (labs, investigations, patient investigations, bills) | ⬜ |
@@ -133,3 +133,90 @@ web/src/pages/patient-care/add-services-modal.tsx         — Dialog for adding 
 - **InPatient name join:** `InPatient` records may be enriched by the backend with `firstName/lastName/phone` fields (typed as optional). The table falls back to truncated UUID if name is not present.
 
 **Build:** `tsc -b && vite build` — zero TypeScript errors, successful Vite production build. PatientCarePage chunk: 277 kB / 79 kB gzip (expected: react-hook-form + zod + date-fns + all form components). Chunk size warning is pre-existing project-level, not new.
+
+### Page 6 — Billing (`/billing`) — 2026-09-22
+
+Replaced placeholder stub with a fully implemented BillingPage.
+
+**File structure:**
+```
+web/src/pages/BillingPage.tsx                          — thin composition root (permission gate + page shell)
+web/src/pages/billing/types.ts                         — all API types mirroring openapi.yaml + repository.ts field names
+web/src/pages/billing/hooks.ts                         — query + mutation hooks
+web/src/pages/billing/daily-summary.tsx                — date picker + StatCard tiles (DailySummary)
+web/src/pages/billing/prescriptions-table.tsx          — PaginatedDataTable for prescriptions list
+web/src/pages/billing/prescription-detail-panel.tsx    — Sheet: invoice items, payment history, void action
+web/src/pages/billing/record-payment-form.tsx          — RHF+Zod form: CurrencyInput + SingleSelect
+```
+
+**Endpoints consumed:**
+- `GET /billing/daily?date=YYYY-MM-DD` → `DailySummary` (single-day snapshot, plain `useQuery` — not paginated)
+- `GET /billing/prescriptions?date=YYYY-MM-DD&page=N&pageSize=N` → `BillingPrescription[]` (offset-paginated via `usePaginatedQuery`)
+- `GET /billing/prescriptions/{id}` → `PrescriptionDetailData` (`{ prescription, invoiceItems, payments }`)
+- `POST /billing/prescriptions/{id}/payments` → `{ paymentMode, amount }` body
+- `DELETE /billing/prescriptions/{id}/payments/{payId}` — no body
+
+**Permission keys used:**
+- `billing:view` — page gate + all reads + controls enabled state
+- `billing:create` — gates the "Record Payment" button/form inside the detail panel
+- `billing:delete` — gates the void-payment trash button per payment row (admin-only per spec)
+
+**DailySummary response fields** (cross-referenced against `supabase/functions/billing/repository.ts`):
+`date, totalPatients, totalPrescriptions, totalBilled, totalCollected, totalDues, totalDiscount`
+
+**BillingPrescription list fields** (from repository.ts `listPrescriptions` select clause):
+`id, prescriptionNumber, patientId, patientType, doctorName, department, total, amountPaid, balanceDue, discount, discountReason, status, prescriptionDate, paymentMode, createdAt`
+
+**Payment record fields** (from repository.ts `getPrescriptionById` select + `insertPayment`):
+`id, prescriptionId, amount, paymentMode, paymentRef, receivedBy, paymentDate, notes`
+
+**Payment modes** verified against old Next.js app (`PAYMENT_MODES` constant across multiple components):
+`Cash, UPI, Card, Cheque, Online, NEFT`
+
+**Build:** `npx tsc --noEmit` — zero TypeScript errors in all billing files. Full `npm run build` fails due to pre-existing errors in concurrently-built `workup/eye-reading-form.tsx` and `doctor/prescription-form.tsx` / `doctor/doctor-queue.tsx` (other agents' in-progress work — out of scope per task instructions).
+
+### Page 4 — Workup (`/workup`) — 2026-09-22
+
+Replaced placeholder stub with a fully implemented WorkupPage.
+
+**File structure:**
+```
+web/src/pages/WorkupPage.tsx                   — thin composition root
+web/src/pages/workup/types.ts                  — API + internal form types
+web/src/pages/workup/use-workup.ts             — query/mutation hooks
+web/src/pages/workup/workup-queue.tsx          — DataTable queue component
+web/src/pages/workup/eye-reading-form.tsx      — Structured 5-section eye-reading form
+```
+
+**Endpoints consumed:**
+- `GET /workup/queue` → `WorkupQueuePatient[]` (computed status: REGISTERED | WORKUP_DONE | MEDICAL_ONLY | COMPLETED | MOVED | CANCELLED | NO_SHOW | VISITED)
+- `GET /workup/patients/{id}` → `WorkupPatient` (same shape; today's eyeReadings + prescriptions nested)
+- `POST /workup/patients/{id}/eye-readings` → `EyeReadingRecord` (upsert — create or update; `start` endpoint skipped per deprecation note)
+
+**Eye reading field names / types (from supabase/functions/workup/types.ts + OpenAPI EyeReading schema):**
+All five fields are JSON-encoded TEXT stored as `string | null` in the DB:
+- `autoRefractometer` — JSON `{ right: { sph, cyl, axis }, left: { sph, cyl, axis } }`
+- `glassesReading`    — same shape as autoRefractometer
+- `previousPrescription` — JSON `{ right: { sph, cyl, axis, add }, left: { sph, cyl, axis, add } }`
+- `presentPrescription`  — same shape as previousPrescription
+- `clinicalFindings` — JSON `{ iop: { right, left }, va: { right, left }, remarks }`
+
+The inner JSON structure (SPH/CYL/AXIS/ADD/IOP/VA) is inferred from standard optometry conventions; the spec only specifies the outer field names and their "JSON-encoded" nature.
+
+**What was built:**
+- Permission gate via `workup:view` — `ErrorState` access denied page if absent; hooks called unconditionally above the early return.
+- `workup:create` permission gates the form's save action (fields are rendered read-only/disabled; a note explains the required permission if absent).
+- DataTable queue showing Patient (name + ID), Age/Gender, Appointment (formatted IST), `StatusPill` with status dot, and an "Workup" button per row.
+- Right-side Sheet (lg size, 32rem) slides over the queue when a patient is selected — queue remains visible in background.
+- Sheet header shows patient name, ID, age, gender, and `StatusPill`.
+- `useWorkupPatient` inside `PatientWorkupSheet` (child component mounted only when sheet is open) — `enabled: patientId != null` prevents spurious fetch.
+- `EyeReadingForm` pre-fills from `patient.eyeReadings[0]` if an eye reading already exists today (UPDATE path), or initialises blank (INSERT path).
+- Five `FormSection` blocks: Auto Refractometer, Glasses Reading, Previous Prescription, Present Prescription, Clinical Findings. `TextInput` for SPH/CYL/ADD (allows +/- clinical notation), `NumberInput` for AXIS (0–180°) and IOP (mmHg ≥ 0), `TextInput` for VA (fraction notation: 6/6, 6/12), `Textarea` for Remarks.
+- `useSaveEyeReading` mutation: invalidates queue + patient queries on success; `toast.success` / `toast.error` (Toaster already wired in main.tsx).
+- Loading: `Skeleton` rows in queue + sheet. Error: `ErrorState` with retry in both locations. Empty: `EmptyState` in queue with descriptive message.
+
+**Toaster:** Already wired at app root (`web/src/main.tsx`, line 7+17). `toast` imported from `@/components/ui/sonner` — no additional wiring needed.
+
+**Build:** `tsc -b && vite build` — zero TypeScript errors, successful Vite production build. WorkupPage chunk: 12.86 kB / 3.80 kB gzip. Chunk size warnings are pre-existing (shared table/index chunks).
+
+**Review correction (2026-09-22):** Eye-reading field shapes were corrected against `src/app/(hospital)/workup/components/EyeReadingForm.tsx` (the real old-app form). The original types were invented (`right`/`left` keys, missing `pd`/`vacph`, flat prescription without distance/near split, invented `add` field, minimal CF). Fixed shapes: `ARSection { re/le: { sph,cyl,axis,va,vacph }, pd }`, `DNSection { re/le: { d,n: { sph,cyl,axis,va } } }`, `SRSection = DNSection & { sightType }`, `CFSection { re/le: { lids,sac,conjunctiva,cornea,ac,iris,pupil,lens,vitreous,iop,iopMethod,fundus,cdr } }`. Constrained-choice fields now use `SingleSelect` backed by the real option lists from `src/lib/workup-options.ts` (copied to `web/src/lib/workup-options.ts`). Form reorganized to AR / SR / PGP / CF tabs matching the old app's 4-section structure. `glassesReading` correctly omitted from form UI (set to `null` in save payload).
