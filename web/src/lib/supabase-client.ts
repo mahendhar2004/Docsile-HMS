@@ -18,7 +18,8 @@ const SUPABASE_ANON_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY as string
 
 if (!SUPABASE_URL) {
   console.warn(
-    "[supabase-client] VITE_SUPABASE_URL is not set. Realtime subscriptions will fail.",
+    "[supabase-client] VITE_SUPABASE_URL is not set. Realtime subscriptions will fail " +
+      "(falling back to a placeholder URL so createClient() doesn't throw at import time).",
   )
 }
 if (!SUPABASE_ANON_KEY) {
@@ -27,7 +28,11 @@ if (!SUPABASE_ANON_KEY) {
   )
 }
 
-export const supabase = createClient(SUPABASE_URL ?? "", SUPABASE_ANON_KEY ?? "", {
+// createClient() throws synchronously on an empty/invalid URL — fall back to a
+// syntactically valid placeholder so the module can still load (e.g. mock mode,
+// or the dev server run before a real .env exists). The connection attempt then
+// fails asynchronously, which the polling-fallback logic already handles.
+export const supabase = createClient(SUPABASE_URL || "https://mock.supabase.co", SUPABASE_ANON_KEY || "mock-anon-key", {
   auth: {
     // Disable Supabase Auth session management — project uses custom JWT cookies.
     autoRefreshToken: false,

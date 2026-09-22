@@ -8,10 +8,18 @@
  *   If refresh also fails, redirects to /login.
  */
 
-const BASE_URL = import.meta.env.VITE_API_BASE_URL as string
+// Falls back to "" (relative paths) rather than leaving this `undefined` — an
+// unset env var must never end up interpolated as the literal string
+// "undefined" in front of every request path (`${BASE_URL}${path}`), which is
+// what happens with no .env configured (e.g. mock mode, via MSW's relative
+// path matching, or before a real backend is wired up).
+const BASE_URL = (import.meta.env.VITE_API_BASE_URL as string | undefined) ?? ""
 
 if (!BASE_URL) {
-  console.warn("[api-client] VITE_API_BASE_URL is not set. API calls will fail.")
+  console.warn(
+    "[api-client] VITE_API_BASE_URL is not set. Requests will use relative paths " +
+      "(only useful with mocks — real API calls will fail).",
+  )
 }
 
 export interface ApiMeta {
