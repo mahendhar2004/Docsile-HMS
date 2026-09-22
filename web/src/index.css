@@ -226,6 +226,14 @@ body {
   from { transform: translateY(8px) scale(0.98); opacity: 0; }
   to   { transform: translateY(0) scale(1); opacity: 1; }
 }
+@keyframes accordion-down {
+  from { height: 0; }
+  to   { height: var(--radix-accordion-content-height); }
+}
+@keyframes accordion-up {
+  from { height: var(--radix-accordion-content-height); }
+  to   { height: 0; }
+}
 
 .filter-chip {
   display: inline-flex;
@@ -290,6 +298,14 @@ body {
 .motion-sheet-out-l { animation: sheet-out-left var(--duration-macro) var(--ease-fluid); }
 .motion-list-item-in { animation: list-item-in var(--duration-macro) var(--ease-spring); }
 .motion-toast-in    { animation: toast-in var(--duration-macro) var(--ease-spring); }
+.motion-accordion-down {
+  overflow: hidden;
+  animation: accordion-down var(--duration-macro) var(--ease-fluid);
+}
+.motion-accordion-up {
+  overflow: hidden;
+  animation: accordion-up var(--duration-macro) var(--ease-fluid);
+}
 
 /* Micro feedback — apply to any interactive element for consistent,
    instant hover/press response instead of each component hand-rolling

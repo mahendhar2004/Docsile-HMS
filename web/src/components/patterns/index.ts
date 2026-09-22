@@ -1,7 +1,5 @@
 // Tier 2 — composite, business-agnostic pattern components (barrel export)
-
-export { EmptyState } from "./EmptyState"
-export { ErrorState } from "./ErrorState"
+// NOTE: EmptyState/ErrorState moved to patterns/feedback/ — coordinator adds them here
 
 // Cards & stats
 export { StatCard } from "./cards"

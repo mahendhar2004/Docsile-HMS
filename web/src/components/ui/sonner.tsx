@@ -1,46 +1,88 @@
-"use client"
+/**
+ * ui/sonner.tsx
+ *
+ * Themed Toaster wrapper around the `sonner` library.
+ *
+ * Maps our design-token color variables onto sonner's CSS variable names so
+ * success/warning/error/info toasts use the same semantic soft-color palette
+ * as StatusPills and AlertBanners. Always `theme="light"` — we are light-mode
+ * only for this pass.
+ *
+ * Place once in the app root (e.g. App.tsx):
+ *   <Toaster />
+ *
+ * Trigger toasts anywhere via the re-exported `toast` helper:
+ *   import { toast } from "@/components/ui/sonner"
+ *   toast.success("Patient registered")
+ *   toast.error("Failed to save", { description: "Check your connection." })
+ */
 
+import * as React from "react"
+import { Toaster as SonnerToaster, toast } from "sonner"
 import {
   CircleCheck,
   Info,
-  LoaderCircle,
-  OctagonX,
   TriangleAlert,
+  OctagonX,
+  Loader2,
 } from "lucide-react"
-import { Toaster as Sonner } from "sonner"
+import { cn } from "@/lib/utils"
 
-// Adapted from the original Next.js version: removed `next-themes` dependency.
-// In this React SPA the theme is always "system" (CSS variables handle
-// dark/light via prefers-color-scheme). Pass `theme` as a prop to override.
+/* ─── Types ─────────────────────────────────────────────────────────────────── */
 
-type ToasterProps = React.ComponentProps<typeof Sonner>
+type ToasterProps = React.ComponentProps<typeof SonnerToaster>
 
-const Toaster = ({ theme = "system", ...props }: ToasterProps) => {
-  return (
-    <Sonner
-      theme={theme}
-      className="toaster group"
-      icons={{
-        success: <CircleCheck className="h-4 w-4" />,
-        info: <Info className="h-4 w-4" />,
-        warning: <TriangleAlert className="h-4 w-4" />,
-        error: <OctagonX className="h-4 w-4" />,
-        loading: <LoaderCircle className="h-4 w-4 animate-spin" />,
-      }}
-      toastOptions={{
-        classNames: {
-          toast:
-            "group toast group-[.toaster]:bg-background group-[.toaster]:text-foreground group-[.toaster]:border-border group-[.toaster]:shadow-lg",
-          description: "group-[.toast]:text-muted-foreground",
-          actionButton:
-            "group-[.toast]:bg-primary group-[.toast]:text-primary-foreground",
-          cancelButton:
-            "group-[.toast]:bg-muted group-[.toast]:text-muted-foreground",
-        },
-      }}
-      {...props}
-    />
-  )
-}
+/* ─── Toaster ───────────────────────────────────────────────────────────────── */
 
-export { Toaster }
+const Toaster = ({ className, ...props }: ToasterProps) => (
+  <SonnerToaster
+    theme="light"
+    richColors
+    position="bottom-right"
+    closeButton
+    className={cn("toaster", className)}
+    icons={{
+      success: <CircleCheck size={16} aria-hidden="true" />,
+      info: <Info size={16} aria-hidden="true" />,
+      warning: <TriangleAlert size={16} aria-hidden="true" />,
+      error: <OctagonX size={16} aria-hidden="true" />,
+      loading: <Loader2 size={16} className="animate-spin" aria-hidden="true" />,
+    }}
+    style={
+      {
+        // Map our CSS token names onto sonner's internal CSS variable names.
+        // These override sonner's default palette when richColors is active.
+        "--success-bg": "var(--color-success-soft)",
+        "--success-border": "var(--color-success)",
+        "--success-text": "var(--color-success-soft-foreground)",
+        "--error-bg": "var(--color-error-soft)",
+        "--error-border": "var(--color-error)",
+        "--error-text": "var(--color-error-soft-foreground)",
+        "--warning-bg": "var(--color-warning-soft)",
+        "--warning-border": "var(--color-warning)",
+        "--warning-text": "var(--color-warning-soft-foreground)",
+        "--info-bg": "var(--color-info-soft)",
+        "--info-border": "var(--color-info)",
+        "--info-text": "var(--color-info-soft-foreground)",
+        "--normal-bg": "var(--color-surface)",
+        "--normal-border": "var(--color-border)",
+        "--normal-text": "var(--color-foreground)",
+        "--border-radius": "var(--radius)",
+        "--font-family": "var(--font-sans)",
+        "--toast-shadow": "var(--shadow-md)",
+      } as React.CSSProperties
+    }
+    toastOptions={{
+      classNames: {
+        // Entrance animation uses our .motion-toast-in utility (toast-in keyframe
+        // + --ease-spring + --duration-macro) for an expressive spring pop-in.
+        toast: "motion-toast-in",
+        description: "opacity-80",
+      },
+    }}
+    {...props}
+  />
+)
+Toaster.displayName = "Toaster"
+
+export { Toaster, toast }

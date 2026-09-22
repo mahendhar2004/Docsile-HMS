@@ -191,19 +191,19 @@ no logic lives in an index file.
 
 | Component | Variants | Status |
 |---|---|---|
-| Toast | success, warning, error, info | ⬜ |
-| Alert/Banner | inline, page-level | ⬜ |
-| EmptyState | — | ⬜ |
-| Skeleton | text, card, table-row shapes | ⬜ |
+| Toast | success, warning, error, info | ✅ |
+| Alert/Banner | inline, page-level | ✅ |
+| EmptyState | — | ✅ |
+| Skeleton | text, card, table-row shapes | ✅ |
 
 ## Structured Content
 
 | Component | Variants | Status |
 |---|---|---|
-| Stepper | horizontal, with validation state per step | ⬜ |
-| Accordion | single-open, multi-open | ⬜ |
-| Timeline/ActivityLog | — | ⬜ |
-| FileUpload/Dropzone | single file, multi file | ⬜ |
+| Stepper | horizontal, with validation state per step | ✅ |
+| Accordion | single-open, multi-open | ✅ |
+| Timeline/ActivityLog | — | ✅ |
+| FileUpload/Dropzone | single file, multi file | ✅ |
 
 ## Charts
 
@@ -326,6 +326,60 @@ no logic lives in an index file.
   lucide-react. Loading state renders three Skeleton blocks instead of the real content
   (no spinner). `onClick` prop makes the card interactive via Card's `interactive` prop.
   `patterns/cards/index.ts` barrel-exports StatCard + types.
+
+- **2026-09-22 (Batch 8)** — Feedback + Structured Content built from scratch.
+  Deleted old pre-migration files `patterns/EmptyState.tsx`, `patterns/ErrorState.tsx`,
+  and `ui/sonner.tsx`. Added `@radix-ui/react-accordion` as a new dependency (not
+  previously installed; all other Radix packages were already present). Added
+  `accordion-down`/`accordion-up` keyframes + `.motion-accordion-down`/
+  `.motion-accordion-up` utility classes to `index.css` (height animation driven
+  by Radix's `--radix-accordion-content-height` CSS var).
+
+  New Tier 1: `ui/sonner.tsx` (fresh Toaster wrapper — `theme="light"`, `richColors`,
+  maps our soft status-color tokens onto sonner's CSS var names: `--success-bg`/
+  `--success-border`/`--success-text` etc. for all four intents; entrance uses
+  `.motion-toast-in` via `toastOptions.classNames.toast`; re-exports `toast` so
+  callers import from one place: `import { toast } from "@/components/ui/sonner"`).
+
+  New Tier 2: `patterns/feedback/` folder:
+  - `empty-state.tsx` — EmptyState: icon slot, title, description, optional action
+    button with `variant` ("primary" | "outline" | "secondary"); `role="status"`.
+  - `error-state.tsx` — ErrorState: OctagonX icon in error-soft badge, title,
+    auto-extracted message from `error: unknown`, optional "Try again" button;
+    `role="alert"` + `aria-live="assertive"`.
+  - `alert-banner.tsx` — AlertBanner (new): inline banner for page/section messages;
+    CVA variants: info/success/warning/error (soft tokens); default icons per variant
+    (Info/CircleCheck/TriangleAlert/OctagonX); optional `title` bold prefix; optional
+    `onDismiss` → × button; `role="alert"` + `aria-live="polite"`.
+
+  New Tier 2: `patterns/structured-content/` folder:
+  - `stepper.tsx` — Stepper: horizontal `<ol>` of step bubbles + connector lines;
+    StepState = "completed" | "active" | "upcoming" | "error"; completed steps show
+    Check icon, error steps show X, active uses primary ring, upcoming uses muted;
+    connector line fills with primary color once the preceding step is completed;
+    `aria-current="step"` on the active item.
+  - `accordion.tsx` — built on `@radix-ui/react-accordion`; exports low-level
+    primitives (AccordionRoot/Item/Trigger/Content) + high-level `AccordionList`
+    (takes `items` array, wraps in a bordered card surface); chevron rotates 180°
+    via Tailwind `data-[state=open]:rotate-180` + `transition-transform`; content
+    animates via `.motion-accordion-down`/`.motion-accordion-up`; supports both
+    `type="single"` and `type="multiple"`.
+  - `timeline.tsx` — Timeline: vertical `<ol>` with dot markers + connecting lines;
+    TimelineVariant = "default" | "success" | "warning" | "error" | "info" maps to
+    solid status color dots; timestamp formatted via `toLocaleString("en-IN")`;
+    shows `emptyText` fallback when events array is empty; `role="alert"` omitted
+    (not a live region — it's a historical log).
+  - `file-upload.tsx` — FileUpload: drag-and-drop + click-to-browse zone; UploadFile
+    type has `{ id, file: File, progress: number | null, errorMessage? }` where
+    `progress = null` = pending, `progress = -1` = failed, `0-100` = uploading/done;
+    per-file ProgressBar (role="progressbar") with smooth width transition; drag
+    active state swaps border to primary + accent background; failed files highlight
+    in error-soft; CheckCircle2 on complete, AlertCircle on failure; fully controlled
+    (no upload logic — caller wires real storage).
+
+  Removed broken `EmptyState`/`ErrorState` re-exports from `patterns/index.ts`
+  (coordinator adds new feedback/structured-content exports in their consolidation pass).
+  `npm run build` → zero TypeScript errors, 1824 modules, 995ms.
 
 - **2026-09-22 (Batch 4)** — Built tables + search from scratch.
   Deleted `ui/table.tsx` (old shadcn copy) and `patterns/PaginatedDataTable.tsx`
