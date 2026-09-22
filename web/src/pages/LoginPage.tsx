@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom"
 import { toast } from "sonner"
 import { Loader2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
+import { TextInput } from "@/components/patterns/forms/text-input"
 import { FormFieldRow } from "@/components/patterns/forms/form-section"
 import { apiClient } from "@/lib/api-client"
 import { queryClient } from "@/lib/query-client"
@@ -13,26 +13,27 @@ import type { SessionUser } from "@/store/session"
 /**
  * LoginPage — auth entry point.
  *
- * Phase 7 TODO: Integrate with POST /auth/login endpoint.
+ * POST /auth/login is email + password (see supabase/functions/auth/ —
+ * findUserByEmail is the only lookup path, there is no phone-based login).
  * Calls the Edge Function, stores the session in Zustand, and navigates to /dashboard.
  */
 export default function LoginPage() {
   const navigate = useNavigate()
   const setUser = useSessionStore((s) => s.setUser)
-  const [phone, setPhone] = useState("")
+  const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
   const [loading, setLoading] = useState(false)
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
-    if (!phone.trim() || !password) {
-      toast.error("Phone number and password are required")
+    if (!email.trim() || !password) {
+      toast.error("Email and password are required")
       return
     }
     setLoading(true)
     try {
       const envelope = await apiClient.post<SessionUser>("/auth/login", {
-        phone: phone.trim(),
+        email: email.trim(),
         password,
       })
       setUser(envelope.data)
@@ -65,14 +66,14 @@ export default function LoginPage() {
           aria-label="Login form"
           noValidate
         >
-          <FormFieldRow label="Phone number" htmlFor="phone" required>
-            <Input
-              id="phone"
-              type="tel"
-              value={phone}
-              onChange={(e) => setPhone(e.target.value)}
-              placeholder="Enter your phone number"
-              autoComplete="tel"
+          <FormFieldRow label="Email" htmlFor="email" required>
+            <TextInput
+              id="email"
+              inputType="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              placeholder="Enter your email address"
+              autoComplete="email"
               autoFocus
               disabled={loading}
               aria-required="true"
@@ -80,9 +81,9 @@ export default function LoginPage() {
           </FormFieldRow>
 
           <FormFieldRow label="Password" htmlFor="password" required>
-            <Input
+            <TextInput
               id="password"
-              type="password"
+              inputType="password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               placeholder="Enter your password"
