@@ -27,7 +27,7 @@ modules produce).
 | 10 | Insurance | `/insurance` | `insurance/*` (companies, claims, payments) | ✅ |
 | 11 | Staff | `/staff` | `staff/*` (members, roles, permissions) | ✅ |
 | 12 | Settings | `/settings` | `settings/*` (33 endpoints — hospital profile, templates, master data) | ⬜ |
-| 13 | Expenses | `/expenses` | `expenses/*` (categories, expenses by date range) | ⬜ |
+| 13 | Expenses | `/expenses` | `expenses/*` (categories, expenses by date range) | ✅ |
 | 14 | Dues & Follow-ups | `/dues-followups` | `dues-followups/*` (dues, followups, email templates) | ⬜ |
 | 15 | Call Logs | `/call-logs` | `call-logs/*` (list, stats, notes, patient link, sync) | ⬜ |
 | 16 | License Tracker | `/license-tracker` | `license-tracker/*` (CRUD + document) | ⬜ |
@@ -547,3 +547,56 @@ web/src/pages/staff/role-form.tsx            — Dialog: create/edit role metada
 - `modulePerms` from `ALL_PERMISSIONS as const` is a literal-union array; cast to `string[]` before calling `.includes()` to avoid TypeScript's strict overload
 
 **Build:** `npx tsc -b 2>&1 | grep -E "staff|StaffPage|permissions"` — zero errors in all Staff files.
+
+---
+
+### Page 13 — Expenses (`/expenses`) — 2026-09-22
+
+Replaced placeholder stub with a fully implemented ExpensesPage.
+
+**File structure:**
+```
+web/src/pages/ExpensesPage.tsx                    — thin composition root (permission gate + PageHeader + modal orchestration)
+web/src/pages/expenses/types.ts                   — all API types verified against OpenAPI + supabase/functions/expenses/types.ts + old app
+web/src/pages/expenses/hooks.ts                   — query + mutation hooks (10 endpoints) + getDateRange helper
+web/src/pages/expenses/category-manager.tsx       — Dialog: category CRUD with drag-to-reorder + seed defaults
+web/src/pages/expenses/expense-form.tsx           — Dialog: create/edit expense (CurrencyInput + SingleSelect)
+web/src/pages/expenses/expenses-section.tsx       — time filter bar + donut chart (left) + expense list with search/filter/sort (right)
+```
+
+**Endpoints consumed:**
+- `GET /expenses/categories` — expenses:view (staleTime 5min)
+- `POST /expenses/categories` — expenses:edit
+- `PATCH /expenses/categories/{id}` — expenses:edit
+- `DELETE /expenses/categories/{id}` — expenses:edit (409 if expenses linked)
+- `PATCH /expenses/categories/reorder` — expenses:edit (body: `{ order: [{ id, sortOrder }] }`)
+- `POST /expenses/categories/seed` — expenses:edit (idempotent, button in CategoryManagerDialog)
+- `GET /expenses?startDate=YYYY-MM-DD&endDate=YYYY-MM-DD` — expenses:view
+- `POST /expenses` — expenses:create
+- `PATCH /expenses/{id}` — expenses:edit
+- `DELETE /expenses/{id}` — expenses:delete
+
+**Permission keys used (cross-checked against OpenAPI x-permission — "manage" does NOT exist):**
+- `expenses:view` — page gate + GET categories + GET expenses
+- `expenses:create` — "Add Expense" button
+- `expenses:edit` — category CRUD/reorder/seed + edit expense rows
+- `expenses:delete` — delete expense rows
+
+**Key verified field names (from old app + supabase/functions/expenses/types.ts):**
+- `Expense`: `id, title, categoryId, amount, date (YYYY-MM-DD), reason, paymentMode, hospitalId, createdAt`
+- `ExpenseCategory`: `id, name, color, sortOrder, hospitalId`
+- `ExpenseWithCategory`: Expense + `category: ExpenseCategory`
+- Reorder body: `{ order: [{ id: string, sortOrder: number }] }` — sortOrder derived from array index
+
+**Reorder UI pattern (verified from old CategoryManager.tsx):**
+HTML5 drag-and-drop with `GripVertical` icon — NOT up/down buttons. `draggable` + `onDragStart/onDragOver/onDragEnd` handlers. Reorder committed via `PATCH /expenses/categories/reorder` on dragEnd.
+
+**Expense form fields (verified from old ExpenseForm.tsx — paymentMode NOT in form):**
+`title` (required), `amount/CurrencyInput` (required, >0), `categoryId/SingleSelect` (required), `date` (required, max=today), `reason/Textarea` (optional). No `paymentMode` field in form — matches old app exactly.
+
+**Layout (matches old app):**
+- Time filter button group (today/week/month/custom with native date inputs)
+- lg:col-span-1 left: `ThemedDonutChart` inside `ChartContainer` with short total (₹X.XK) as center label + category breakdown list + total card
+- lg:col-span-2 right: search input + category Select filter + sort Select + expense rows (inline edit/delete buttons appear on hover)
+
+**Build:** `npx tsc -b 2>&1 | grep -i expenses` — zero TypeScript errors in all expenses files. Remaining build errors are in `settings/` (concurrently built, out of scope).
