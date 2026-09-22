@@ -22,7 +22,7 @@ modules produce).
 | 5 | Doctor | `/doctor` | `doctor/*` (queue, consultation, prescriptions, AI assist, receipt) | ✅ |
 | 6 | Billing | `/billing` | `billing/*` (daily summary, prescriptions, payments) | ✅ |
 | 7 | Pharmacy | `/pharmacy` | `pharmacy/*` (medicines, stock, suppliers, purchase orders, bills) | ✅ |
-| 8 | Optical | `/optical` | `optical/*` (products, stock, bills, AR reading, settings) | ⬜ |
+| 8 | Optical | `/optical` | `optical/*` (products, stock, bills, AR reading, settings) | ✅ |
 | 9 | Labs | `/labs` | `labs/*` (labs, investigations, patient investigations, bills) | ⬜ |
 | 10 | Insurance | `/insurance` | `insurance/*` (companies, claims, payments) | ⬜ |
 | 11 | Staff | `/staff` | `staff/*` (members, roles, permissions) | ⬜ |
@@ -293,3 +293,72 @@ web/src/pages/doctor/ai-assist-panel.tsx           — collapsible Sitha AI pane
 - SingleSelect: `value: string` and `onChange: (v: string) => void` (no null)
 
 **Build:** `npx tsc -b --noEmit` — zero pharmacy-specific TypeScript errors.
+
+---
+
+### Page 8 — Optical (`/optical`) — 2026-09-22
+
+Replaced placeholder stub with a fully implemented OpticalPage (4-tab layout).
+
+**File structure:**
+```
+web/src/pages/OpticalPage.tsx                        — thin composition root (permission gate + 4-tab layout)
+web/src/pages/optical/types.ts                       — all API types, enum constants, SelectOption arrays
+web/src/pages/optical/hooks.ts                       — TanStack Query hooks for all optical endpoints
+web/src/pages/optical/products-tab.tsx               — product CRUD (DataTable + create/edit/delete)
+web/src/pages/optical/product-form.tsx               — Dialog-based create/edit form (category-dependent fields)
+web/src/pages/optical/stock-tab.tsx                  — stock + summary cards + add/edit stock forms
+web/src/pages/optical/optical-bill-form.tsx          — full bill creation: patient AR lookup, stock search, line items
+web/src/pages/optical/bills-tab.tsx                  — paginated bills list + status filter + status update + new bill Sheet
+web/src/pages/optical/settings-tab.tsx               — printHeaderKey setting (settings:view/edit gated)
+```
+
+**Endpoints consumed:**
+- `GET /optical/products` — optical:view
+- `POST /optical/products` — optical:edit
+- `PATCH /optical/products/{id}` — optical:edit
+- `DELETE /optical/products/{id}` — optical:edit
+- `GET /optical/stock` — optical:view
+- `GET /optical/stock/summary` — optical:view
+- `GET /optical/stock/search?q=...` — optical:view (enabled when q >= 2 chars)
+- `POST /optical/stock` — optical:edit
+- `PATCH /optical/stock/{id}` — optical:edit
+- `GET /optical/bills?page=N&pageSize=N&status=...&from=...&to=...` — optical:view (usePaginatedQuery)
+- `POST /optical/bills` — optical:create
+- `PATCH /optical/bills/{id}/status` — optical:edit
+- `GET /optical/patients/{id}/ar-reading` — optical:view (enabled when patientId present)
+- `GET /optical/settings` — settings:view
+- `PATCH /optical/settings` — settings:edit
+- `GET /optical/hospital-profile` — optical:view
+
+**Permission keys used:**
+`optical:view` (page gate + all reads), `optical:create` (new bill), `optical:edit` (product/stock/bill-status mutations, settings edit), `settings:view`, `settings:edit`
+
+**Key verified enum/field names (from old app src/app/(hospital)/optical/):**
+- Product categories: `Frame`, `Lens`, `Contact Lens`, `Accessory`, `Solution`, `Sunglasses`
+- Frame types: `Full Rim`, `Half Rim`, `Rimless`, `Wrap`
+- Frame materials: `Metal`, `Plastic`, `TR-90`, `Titanium`, `Acetate`, `Memory Metal`
+- Lens types: `Single Vision`, `Bifocal`, `Progressive`, `Photochromic`, `Tinted`
+- Lens materials: `CR-39`, `Polycarbonate`, `Glass`, `Trivex`, `Hi-Index`
+- Lens coatings: `Anti-Reflection`, `Blue Cut`, `Photochromic`, `Hardcoat`, `Mirror`
+- Lens indices: `1.5`, `1.56`, `1.6`, `1.67`, `1.74`
+- CL types: `Daily`, `Monthly`, `Yearly`, `Toric`, `Multifocal`
+- Optical payment modes: `CASH`, `UPI`, `Card`, `NEFT`, `Credit` (DIFFERENT from main billing: `Cash/UPI/Card/Cheque/Online/NEFT`)
+- Optical bill statuses: `COMPLETED`, `ORDERED`, `READY`, `CANCELLED`
+- Settings field: `printHeaderKey` (from OpticalConfigTab.tsx)
+
+**Review correction (2026-09-22):** Product-attribute enum constants corrected against `src/app/(hospital)/optical/components/InventoryTab.tsx` (ground truth). The initial implementation had invented plausible-but-wrong values: "Accessories"/"Others" instead of "Accessory"/"Solution"/"Sunglasses"; "Full Frame"/"Half Frame"/"Semi Rimless" instead of "Full Rim"/"Half Rim"/"Wrap"; "TR90"/"Mixed" instead of "TR-90"/"Memory Metal" (Plastic also missing); lens materials incorrectly included index values "1.67"/"1.74" as materials (correct 5th material is "Hi-Index"); coatings were entirely invented ("Anti-Reflective"/"Blue Light Block"/"UV400"/"Scratch Resistant"/"Hydrophobic" → "Anti-Reflection"/"Blue Cut"/"Photochromic"/"Hardcoat"/"Mirror"); indices had spurious trailing zeros ("1.50"/"1.60" → "1.5"/"1.6"); CL types included "Spherical"/"Colored"/"Annual" instead of "Yearly" (no Spherical/Colored in real list). Payment modes and bill-status enums were confirmed correct and untouched. `product-form.tsx` imports all constants from `types.ts` — no inline duplication. Category-dependent field visibility (Frame/Lens/Contact Lens show type+material, Lens additionally shows coating+index, Accessory/Solution/Sunglasses show no category-specific fields) matches old app logic.
+
+**AR reading:** Uses `PatientArReading` type with `autoRefractometer`, `presentPrescription`, `glassesReading` (all `unknown` from server JSON), rendered via `safeReading()` helper + `ReadingRow` component. Shape mirrors `ARSection` from `workup/types.ts`.
+
+**Key TypeScript fixes:**
+- `{patient && (...)}` → `{patient != null && (...)}` (PatientArReading is not ReactNode)
+- `hasReadings` typed as `boolean` explicitly (`!!(...))`) to avoid `unknown` propagation into JSX
+- `TextInput`/`NumberInput` onChange uses `e.target.value` (extends InputProps, not custom handler)
+- `CurrencyInput` onChange uses `(v: number) => void` (custom handler)
+- `ConfirmationModal` uses `onOpenChange: (v: boolean) => void` (not `onClose`)
+- `FormField` has no `description` prop — moved to `FormSection description`
+- `PaginatedDataTable` requires `mode="offset"` with `page, pageSize, total, onPageChange`
+- `ColumnDef` uses `cell:` (not `render:`) for cell renderers
+
+**Build:** `npx tsc -b 2>&1 | grep optical` — zero optical-specific TypeScript errors.
