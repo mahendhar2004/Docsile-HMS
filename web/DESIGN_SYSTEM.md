@@ -209,7 +209,12 @@ no logic lives in an index file.
 
 | Component | Variants | Status |
 |---|---|---|
-| Chart theme wrapper (recharts) | line, bar, pie/donut | ⬜ — apply `dataviz` skill's palette/design guidance when built |
+| ChartContainer | title, description, loading skeleton, empty state | ✅ |
+| ThemedLineChart | single or multi-series, themed axes/grid/tooltip/legend | ✅ |
+| ThemedBarChart | vertical (default) or horizontal orientation, grouped or stacked, themed | ✅ |
+| ThemedDonutChart | themed slices with center total label, status-color or palette colors | ✅ |
+| ThemedAreaChart | semi-transparent area fill, multi-series, same axis/grid/tooltip conventions | ✅ |
+| chart-theme.ts | CHART_PALETTE, CHART_STATUS_COLORS, shared axis/grid/tooltip/legend/cursor constants | ✅ |
 
 ---
 
@@ -379,6 +384,57 @@ no logic lives in an index file.
 
   Removed broken `EmptyState`/`ErrorState` re-exports from `patterns/index.ts`
   (coordinator adds new feedback/structured-content exports in their consolidation pass).
+  `npm run build` → zero TypeScript errors, 1824 modules, 995ms.
+
+- **2026-09-22 (Batch 9)** — Charts built from scratch. New folder:
+  `patterns/charts/` with 6 files + `index.ts`.
+
+  `chart-theme.ts` — shared constants: `CHART_PALETTE` (5-color array, colorblind-safe
+  order: blue → amber → slate → green → red, all CSS-var strings), `CHART_STATUS_COLORS`
+  (success/warning/error/info/neutral → matching status tokens), `CHART_TICK_STYLE` /
+  `CHART_AXIS_LINE_STYLE` (SVG tick + line styles via CSS vars), `CHART_GRID_PROPS`
+  (horizontal-only dashed gridlines, `--color-border`), `CHART_TOOLTIP_STYLE`
+  (contentStyle/labelStyle/itemStyle as inline CSS properties — CSS vars resolve
+  correctly in HTML inline styles), `CHART_LEGEND_WRAPPER_STYLE`, `CHART_LINE_CURSOR`
+  / `CHART_BAR_CURSOR`, `CHART_MARGIN`, `DEFAULT_CHART_HEIGHT`. ChartSeries type shared
+  across cartesian charts.
+
+  `chart-container.tsx` — `ChartContainer` (forwardRef, div root): title + description
+  header, loading skeleton (Skeleton blocks — title stub + chart-area placeholder sized
+  to the `height` prop), empty state (BarChart2 icon + message, `role="status"`).
+  Children rendered inside a fixed-height div.
+
+  `line-chart.tsx` — `ThemedLineChart`: ResponsiveContainer → LineChart → CartesianGrid
+  (horizontal-only) + XAxis + YAxis + Tooltip (themed) + Legend (when series > 1) +
+  Line per series. `type="monotone"` smooth curves. activeDot ring uses card background
+  for a clean "floating dot" effect. `tooltipLabelFormatter` / `xTickFormatter` /
+  `yTickFormatter` typed as `(value: unknown, index: number) => string` to satisfy
+  recharts' internal `any`/`ReactNode` parameter types correctly under strict mode.
+
+  `bar-chart.tsx` — `ThemedBarChart`: vertical (default, bars upward, recharts
+  `layout="horizontal"`) and horizontal (sideways bars, recharts `layout="vertical"`)
+  orientations. Stacked mode via shared `stackId`. Corner radius applied to top of each
+  bar (or only last series when stacked, so intermediate stacked bars have flat tops).
+  `maxBarSize={48}` prevents bars from getting excessively wide on sparse datasets.
+  Grid adapts direction per orientation.
+
+  `donut-chart.tsx` — `ThemedDonutChart` (donut over pie: center hole shows total count
+  or key summary; chosen because HMS dashboards — claim pipeline, patient distribution
+  — benefit from a summary number in the center). Center total is an absolutely-
+  positioned div over the chart (simpler and more maintainable than recharts' Label SVG
+  approach). `startAngle=90`/`endAngle=-270` makes the donut start at 12 o'clock.
+  `paddingAngle=3` adds gaps between slices (cleaner for proportional reading). Slices
+  use `CHART_PALETTE` by default or caller-supplied colors for semantic status mapping.
+  `DonutChartSlice` type alias exported for barrel consumers.
+
+  `area-chart.tsx` — `ThemedAreaChart`: identical to line chart but uses `Area` instead
+  of `Line`, with `fillOpacity={0.15}` (default, configurable) for the semi-transparent
+  fill beneath the line. Best for trend visualizations where magnitude over time matters.
+
+  Dataviz skill not listed in available agent types — applied solid fundamentals:
+  colorblind-safe palette ordering, horizontal-only gridlines, minimal axis lines,
+  card-surface tooltip with border + shadow, status semantic colors for breakdown charts.
+
   `npm run build` → zero TypeScript errors, 1824 modules, 995ms.
 
 - **2026-09-22 (Batch 4)** — Built tables + search from scratch.
