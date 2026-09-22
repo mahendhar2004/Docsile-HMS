@@ -19,7 +19,7 @@ modules produce).
 | 2 | Patient Care | `/patients` | `patient-care/*` (patients + inpatients CRUD, search, services, receipt) | ✅ |
 | 3 | Queue | `/queue` | `queue/*` (OPD/workup/inpatient boards, Realtime) | ✅ |
 | 4 | Workup | `/workup` | `workup/*` (queue, eye readings) | ✅ |
-| 5 | Doctor | `/doctor` | `doctor/*` (queue, consultation, prescriptions, AI assist, receipt) | ⬜ |
+| 5 | Doctor | `/doctor` | `doctor/*` (queue, consultation, prescriptions, AI assist, receipt) | ✅ |
 | 6 | Billing | `/billing` | `billing/*` (daily summary, prescriptions, payments) | ✅ |
 | 7 | Pharmacy | `/pharmacy` | `pharmacy/*` (medicines, stock, suppliers, purchase orders, bills) | ⬜ |
 | 8 | Optical | `/optical` | `optical/*` (products, stock, bills, AR reading, settings) | ⬜ |
@@ -220,3 +220,49 @@ The inner JSON structure (SPH/CYL/AXIS/ADD/IOP/VA) is inferred from standard opt
 **Build:** `tsc -b && vite build` — zero TypeScript errors, successful Vite production build. WorkupPage chunk: 12.86 kB / 3.80 kB gzip. Chunk size warnings are pre-existing (shared table/index chunks).
 
 **Review correction (2026-09-22):** Eye-reading field shapes were corrected against `src/app/(hospital)/workup/components/EyeReadingForm.tsx` (the real old-app form). The original types were invented (`right`/`left` keys, missing `pd`/`vacph`, flat prescription without distance/near split, invented `add` field, minimal CF). Fixed shapes: `ARSection { re/le: { sph,cyl,axis,va,vacph }, pd }`, `DNSection { re/le: { d,n: { sph,cyl,axis,va } } }`, `SRSection = DNSection & { sightType }`, `CFSection { re/le: { lids,sac,conjunctiva,cornea,ac,iris,pupil,lens,vitreous,iop,iopMethod,fundus,cdr } }`. Constrained-choice fields now use `SingleSelect` backed by the real option lists from `src/lib/workup-options.ts` (copied to `web/src/lib/workup-options.ts`). Form reorganized to AR / SR / PGP / CF tabs matching the old app's 4-section structure. `glassesReading` correctly omitted from form UI (set to `null` in save payload).
+
+### Page 5 — Doctor (`/doctor`) — 2026-09-22
+
+Replaced placeholder stub with a fully implemented DoctorPage (consultation module).
+
+**File structure:**
+```
+web/src/pages/DoctorPage.tsx                       — split-pane root (collapsible 272px queue sidebar + main)
+web/src/pages/doctor/types.ts                      — all API types verified against OpenAPI + old app
+web/src/pages/doctor/hooks.ts                      — query/mutation hooks (queue, consultation, referenceData, savePrescription, createMedicine, addDropdownOption, askSitha)
+web/src/pages/doctor/doctor-queue.tsx              — left panel: interactive patient list (not DataTable)
+web/src/pages/doctor/consultation-view.tsx         — patient header + eye reading summary + form + AI
+web/src/pages/doctor/prescription-form.tsx         — full RHF+Zod prescription form (5 sections + template picker + AddMedicineDialog)
+web/src/pages/doctor/ai-assist-panel.tsx           — collapsible Sitha AI panel (conversation history, Ctrl+Enter, accept/dismiss)
+```
+
+**Endpoints consumed:**
+- `GET /doctor/queue` → `DoctorQueuePatient[]` (refetchInterval 30s; nested eyeReadings + prescriptions for indicators)
+- `GET /doctor/patients/{id}/consultation` → `ConsultationPatient` (patient info + todayPrescription + eyeReadings)
+- `POST /doctor/patients/{id}/prescriptions` → `PrescriptionRecord` (upsert; patientId = sequential P-XXXX, not UUID)
+- `GET /doctor/reference-data` → `ReferenceData` (medicines, investigations, templates, dropdowns; staleTime 10min)
+- `POST /doctor/medicines` → `MedicineMasterRecord` (create new medicine inline)
+- `POST /doctor/dropdown-options` → void (add custom option to a dropdown group)
+- `GET /doctor/patients/{id}/receipt` → opened in new tab via `window.open` (billing:view gated)
+- `POST /doctor/ai/ask` → `{ answer: string }` (Sitha AI; conversation history in component state, capped at 6 turns)
+
+**Permission keys used:**
+`doctor:view` (page gate + all reads), `doctor:consult` (save, create medicine, add option, AI assist), `doctor:edit` (fallback write permission), `billing:view` (print receipt)
+
+**Key verified field names / constants (from old app `src/app/(hospital)/doctor/`):**
+- `MEDICINE_TIMINGS`: 16 entries — "1-1-1", "1-1-1-1", "1-0-1", "1-0-0", "0-0-1", "0-1-0", "1-1-0", "0-1-1", "SOS", "BD", "TDS", "QID", "OD", "Tapering", "Weekly", "Monthly"
+- `MEDICINE_DAYS`: "1", "3", "5", "7", "10", "14", "21", "28", "30", "45", "60", "90", "Continuous"
+- `MEDICINE_CATEGORIES`: "Eye Drop", "Tablet", "Ointment", "Capsule", "Injection", "Syrup", "Other"
+- `PredefinedTemplate` extra fields (not in OpenAPI): `presentComplaint`, `previousHistory`, `provisionalDiagnosis`, `followUpDays: number | null`, `additionalNotes`
+- Template `applyTemplate`: `provisionalDiagnosis` → form `diagnosis`; `additionalNotes` → form `notes`; `followUpDays` → computed `followUpDate` (today + N days, IST)
+- Save payload: `patientId` (sequential e.g. "P-0005"), `medicines` as JSON-stringified array with `timing`/`days` always strings
+- AI: `AskSithaBody { patientId: string, question: string, history: SithaHistoryTurn[] }`, `AskSithaResponse { answer: string }`, history capped at 6 turns per server constraint
+
+**Key architectural decisions:**
+- **Split pane (not Sheet):** Queue stays visible while consulting — clinician needs to track queue state while writing a prescription. Sheet would obscure it.
+- **Template picker at top of form:** `SingleSelect` value resets to `""` after applying (stateless) — matches old app pattern.
+- **zodResolver + no `.default()` on timing/days:** Zod 4 `.default("")` makes the field optionally-undefined in the input type, causing zodResolver type mismatch with `FormValues`. Fix: plain `z.string()` with defaults from `buildDefaultValues`.
+- **`NumberInput.onChange` is `ChangeEventHandler<HTMLInputElement>`** (not `(value: number) => void`) — parses `e.target.value` manually.
+- **`SingleSelect.value` is `string` (not `string | null`)** — all picker states use `?? ""` fallback.
+
+**Build:** `tsc -b && vite build` — zero TypeScript errors in all doctor/* files. Remaining build errors are in concurrently-built `pharmacy/` files (separate agent, out of scope).
