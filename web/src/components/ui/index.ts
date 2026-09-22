@@ -148,3 +148,5 @@ export type { ScrollAreaProps, ScrollBarProps } from "./scroll-area"
 
 export { Skeleton } from "./skeleton"
 export type { SkeletonProps } from "./skeleton"
+
+export { Toaster, toast } from "./sonner"

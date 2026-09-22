@@ -1,5 +1,23 @@
 // Tier 2 — composite, business-agnostic pattern components (barrel export)
-// NOTE: EmptyState/ErrorState moved to patterns/feedback/ — coordinator adds them here
+
+// Feedback
+export { EmptyState, ErrorState, AlertBanner } from "./feedback"
+export type { EmptyStateProps, EmptyStateAction, ErrorStateProps, AlertBannerProps } from "./feedback"
+
+// Structured content
+export { Stepper, AccordionRoot, AccordionItem, AccordionTrigger, AccordionContent, AccordionList, Timeline, FileUpload } from "./structured-content"
+export type {
+  StepState,
+  StepperStep,
+  StepperProps,
+  AccordionListItem,
+  AccordionListProps,
+  TimelineVariant,
+  TimelineEvent,
+  TimelineProps,
+  UploadFile,
+  FileUploadProps,
+} from "./structured-content"
 
 // Cards & stats
 export { StatCard } from "./cards"
