@@ -6,7 +6,7 @@
  */
 
 import { IndianRupee, Users, FileText, TrendingUp, AlertCircle, Tag } from "lucide-react"
-import { StatCard, DatePicker, ErrorState } from "@/components/patterns"
+import { StatCard, DatePicker, ErrorState, PageToolbar } from "@/components/patterns"
 import { useDailySummary } from "./hooks"
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -61,7 +61,7 @@ export function DailySummarySection({
   return (
     <section aria-label="Daily billing summary">
       {/* Date picker toolbar */}
-      <div className="flex items-center gap-3 mb-4">
+      <PageToolbar className="mb-4">
         <label
           className="text-sm font-medium text-[var(--color-muted-foreground)] shrink-0"
           htmlFor="billing-date-picker"
@@ -77,7 +77,7 @@ export function DailySummarySection({
             aria-label="Select billing date"
           />
         </div>
-      </div>
+      </PageToolbar>
 
       {/* Error state */}
       {isError && !isLoading && (

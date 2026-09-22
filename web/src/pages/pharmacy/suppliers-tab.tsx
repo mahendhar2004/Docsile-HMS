@@ -6,9 +6,9 @@
  */
 
 import { useState } from "react"
-import { Plus, Search, Building2, Phone, Mail, MapPin } from "lucide-react"
+import { Plus, Building2, Phone, Mail, MapPin } from "lucide-react"
 import { toast } from "sonner"
-import { EmptyState, ErrorState, ConfirmationModal } from "@/components/patterns"
+import { EmptyState, ErrorState, ConfirmationModal, PageToolbar, SearchBar } from "@/components/patterns"
 import {
   Dialog,
   DialogContent,
@@ -158,24 +158,22 @@ export function SuppliersTab() {
   return (
     <div className="space-y-5">
       {/* Toolbar */}
-      <div className="flex items-center gap-3">
-        <div className="relative flex-1 max-w-sm">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" aria-hidden="true" />
-          <Input
-            placeholder="Search suppliers..."
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            className="pl-9"
-            aria-label="Search suppliers"
-          />
-        </div>
+      <PageToolbar>
+        <SearchBar
+          variant="standalone"
+          value={search}
+          onChange={setSearch}
+          placeholder="Search suppliers..."
+          aria-label="Search suppliers"
+          className="flex-1 max-w-sm"
+        />
         {canManage && (
           <Button size="sm" className="ml-auto" onClick={openNew}>
             <Plus className="h-4 w-4 mr-1.5" aria-hidden="true" />
             Add Supplier
           </Button>
         )}
-      </div>
+      </PageToolbar>
 
       {/* Supplier cards */}
       {filtered.length === 0 ? (

@@ -6,18 +6,20 @@
  */
 
 import { useState } from "react"
-import { Plus, Search, Filter } from "lucide-react"
+import { Plus } from "lucide-react"
 import { toast } from "sonner"
 import {
   StatCard,
   DataTable,
   EmptyState,
   ErrorState,
+  PageToolbar,
+  SearchBar,
+  SegmentedControl,
 } from "@/components/patterns"
 import type { ColumnDef } from "@/components/patterns"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
-import { Input } from "@/components/ui/input"
 import { Skeleton } from "@/components/ui/skeleton"
 import { usePermissions } from "@/hooks/usePermissions"
 import {
@@ -33,6 +35,12 @@ import { StockForm } from "./stock-form"
 import { Package, AlertTriangle, Calendar, IndianRupee } from "lucide-react"
 
 type StockFilter = "all" | "lowStock" | "nearExpiry"
+
+const STOCK_FILTER_OPTIONS = [
+  { value: "all" as const, label: "All" },
+  { value: "lowStock" as const, label: "Low Stock" },
+  { value: "nearExpiry" as const, label: "Near Expiry" },
+]
 
 function formatINR(amount: number): string {
   return new Intl.NumberFormat("en-IN", {
@@ -267,46 +275,23 @@ export function StockTab() {
       </div>
 
       {/* Toolbar */}
-      <div className="flex flex-wrap items-center gap-3">
-        <div className="relative flex-1 max-w-sm">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" aria-hidden="true" />
-          <Input
-            placeholder="Search medicine, batch, manufacturer..."
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            className="pl-9"
-            aria-label="Search stock"
-          />
-        </div>
+      <PageToolbar>
+        <SearchBar
+          variant="standalone"
+          value={search}
+          onChange={setSearch}
+          placeholder="Search medicine, batch, manufacturer..."
+          aria-label="Search stock"
+          className="flex-1 max-w-sm"
+        />
 
-        {/* Filter chips */}
-        <div
-          className="flex items-center gap-1.5 border rounded-lg px-1 py-0.5 bg-muted/30"
-          role="group"
+        <SegmentedControl
+          options={STOCK_FILTER_OPTIONS}
+          value={filter}
+          onValueChange={setFilter}
+          size="sm"
           aria-label="Stock filter"
-        >
-          <Filter className="h-3.5 w-3.5 text-muted-foreground ml-1.5" aria-hidden="true" />
-          {(
-            [
-              { key: "all", label: "All" },
-              { key: "lowStock", label: "Low Stock" },
-              { key: "nearExpiry", label: "Near Expiry" },
-            ] as { key: StockFilter; label: string }[]
-          ).map(({ key, label }) => (
-            <button
-              key={key}
-              onClick={() => setFilter(key)}
-              className={`px-2.5 py-1 text-xs rounded-md font-medium transition-colors ${
-                filter === key
-                  ? "bg-white shadow-sm text-foreground"
-                  : "text-muted-foreground hover:text-foreground"
-              }`}
-              aria-pressed={filter === key}
-            >
-              {label}
-            </button>
-          ))}
-        </div>
+        />
 
         {canManage && (
           <Button
@@ -318,7 +303,7 @@ export function StockTab() {
             Add Stock
           </Button>
         )}
-      </div>
+      </PageToolbar>
 
       {/* Table */}
       {stockLoading ? (

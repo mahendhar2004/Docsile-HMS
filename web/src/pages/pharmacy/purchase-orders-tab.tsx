@@ -11,7 +11,7 @@
 import { useState } from "react"
 import { Plus, Package, ChevronDown, ChevronUp, Check } from "lucide-react"
 import { toast } from "sonner"
-import { EmptyState, ErrorState, FormSection, FormField, SingleSelect } from "@/components/patterns"
+import { EmptyState, ErrorState, FormSection, FormField, SingleSelect, PageToolbar, SegmentedControl } from "@/components/patterns"
 import {
   Dialog,
   DialogContent,
@@ -49,8 +49,9 @@ const STATUS_COLORS: Record<string, string> = {
   CANCELLED: "bg-red-100 text-red-700",
 }
 
-const STATUS_FILTER_OPTIONS = [
-  { value: "", label: "All" },
+// Segmented control options — "ALL" sentinel maps to empty string for the API
+const PO_STATUS_SEGMENTS = [
+  { value: "ALL", label: "All" },
   { value: "ORDERED", label: "Ordered" },
   { value: "PARTIALLY_RECEIVED", label: "Partially Received" },
   { value: "RECEIVED", label: "Received" },
@@ -285,27 +286,14 @@ export function PurchaseOrdersTab() {
   return (
     <div className="space-y-5">
       {/* Toolbar */}
-      <div className="flex items-center gap-3">
-        <div
-          className="flex items-center gap-1.5 border rounded-lg px-1 py-0.5 bg-muted/30"
-          role="group"
+      <PageToolbar>
+        <SegmentedControl
+          options={PO_STATUS_SEGMENTS}
+          value={statusFilter || "ALL"}
+          onValueChange={(v) => setStatusFilter(v === "ALL" ? "" : v)}
+          size="sm"
           aria-label="Status filter"
-        >
-          {STATUS_FILTER_OPTIONS.map(({ value, label }) => (
-            <button
-              key={value}
-              onClick={() => setStatusFilter(value)}
-              className={`px-2.5 py-1 text-xs rounded-md font-medium transition-colors ${
-                statusFilter === value
-                  ? "bg-white shadow-sm text-foreground"
-                  : "text-muted-foreground hover:text-foreground"
-              }`}
-              aria-pressed={statusFilter === value}
-            >
-              {label}
-            </button>
-          ))}
-        </div>
+        />
         <Button
           size="sm"
           className="ml-auto"
@@ -318,7 +306,7 @@ export function PurchaseOrdersTab() {
           <Plus className="h-4 w-4 mr-1.5" aria-hidden="true" />
           New Purchase Order
         </Button>
-      </div>
+      </PageToolbar>
 
       {/* Orders list */}
       {(orders ?? []).length === 0 ? (

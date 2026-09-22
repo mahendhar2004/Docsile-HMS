@@ -4,18 +4,19 @@
  */
 
 import { useState } from "react"
-import { Plus, Search } from "lucide-react"
+import { Plus } from "lucide-react"
 import { toast } from "sonner"
 import {
   DataTable,
   EmptyState,
   ErrorState,
   ConfirmationModal,
+  PageToolbar,
+  SearchBar,
 } from "@/components/patterns"
 import type { ColumnDef } from "@/components/patterns"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
-import { Input } from "@/components/ui/input"
 import { Skeleton } from "@/components/ui/skeleton"
 import { usePermissions } from "@/hooks/usePermissions"
 import {
@@ -186,17 +187,15 @@ export function MedicinesTab() {
   return (
     <div className="space-y-4">
       {/* Toolbar */}
-      <div className="flex items-center gap-3">
-        <div className="relative flex-1 max-w-sm">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" aria-hidden="true" />
-          <Input
-            placeholder="Search by name, generic, manufacturer..."
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            className="pl-9"
-            aria-label="Search medicines"
-          />
-        </div>
+      <PageToolbar>
+        <SearchBar
+          variant="standalone"
+          value={search}
+          onChange={setSearch}
+          placeholder="Search by name, generic, manufacturer..."
+          aria-label="Search medicines"
+          className="flex-1 max-w-sm"
+        />
         {canManage && (
           <Button
             size="sm"
@@ -210,7 +209,7 @@ export function MedicinesTab() {
             Add Medicine
           </Button>
         )}
-      </div>
+      </PageToolbar>
 
       {/* Table */}
       {filtered.length === 0 ? (

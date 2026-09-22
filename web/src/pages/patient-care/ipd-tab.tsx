@@ -39,6 +39,7 @@ import {
   DatePicker,
   ConfirmationModal,
   EmptyState,
+  PageToolbar,
 } from "@/components/patterns"
 import {
   useIpdInPatients,
@@ -343,7 +344,7 @@ export function IpdTab({ canCreate, canEdit, canDelete, canDischarge }: IpdTabPr
   return (
     <div className="space-y-4">
       {/* ── Toolbar ──────────────────────────────────────────────────────── */}
-      <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3">
+      <PageToolbar className="items-start sm:items-center">
         {/* Status filter */}
         <div className="w-48">
           <SingleSelect
@@ -380,7 +381,7 @@ export function IpdTab({ canCreate, canEdit, canDelete, canDischarge }: IpdTabPr
             Admit Patient
           </Button>
         )}
-      </div>
+      </PageToolbar>
 
       {/* ── Inpatient table ───────────────────────────────────────────────── */}
       <PaginatedDataTable<InPatient>
