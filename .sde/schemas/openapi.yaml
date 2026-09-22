@@ -5959,13 +5959,18 @@ paths:
                 $ref: '#/components/schemas/ApiResponse'
     delete:
       tags: [license-tracker]
-      summary: Remove license document reference
+      summary: Remove license document (Storage object + DB reference)
+      description: >-
+        Deletes the file from the license-documents Storage bucket (path derived
+        server-side from the license's current documentUrl — the client does not
+        need to know or send the storage path) and clears documentUrl to null.
+        Matches the old Next.js removeLicenseDocument's Storage-then-DB order.
       x-permission: licenses:edit
       parameters:
         - $ref: '#/components/parameters/pathId'
       responses:
         '200':
-          description: Document URL cleared from license record.
+          description: Document deleted from Storage and cleared from license record.
           content:
             application/json:
               schema:

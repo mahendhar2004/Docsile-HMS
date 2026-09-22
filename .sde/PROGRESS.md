@@ -47,7 +47,7 @@ corresponding old `src/app/(...)/<module>` code has 🗑️.
 | 16 | expenses | 10 | ⬜ | ⬜ | ⬜ | ⬜ |
 | 17 | dues-followups | 8 | ⬜ | ⬜ | ⬜ | ⬜ |
 | 18 | call-logs | 8 | ⬜ | ⬜ | ⬜ | ⬜ |
-| 19 | license-tracker | 6 | ⬜ | ⬜ | ⬜ | ⬜ |
+| 19 | license-tracker | 6 | ✅ | ⬜ | ⬜ | ⬜ |
 | 20 | dashboard | 2 | ⬜ | ⬜ | ⬜ | ⬜ |
 | | **Total** | **233** | | | | |
 
@@ -389,12 +389,12 @@ work progresses, not appended to.
 ### license-tracker (6)
 | Status | Method | Path | Permission | Source |
 |---|---|---|---|---|
-| ⬜ | GET | /license-tracker | `licenses:view` | `getLicenses` |
-| ⬜ | POST | /license-tracker | `licenses:create` | `createLicense` |
-| ⬜ | PATCH | /license-tracker/{id} | `licenses:edit` | `updateLicense` |
-| ⬜ | DELETE | /license-tracker/{id} | `licenses:delete` | `deleteLicense` |
-| ⬜ | PATCH | /license-tracker/{id}/document | `licenses:edit` | `saveLicenseDocumentUrl` |
-| ⬜ | DELETE | /license-tracker/{id}/document | `licenses:edit` | `removeLicenseDocument` |
+| ✅ | GET | /license-tracker | `licenses:view` | `getLicenses` |
+| ✅ | POST | /license-tracker | `licenses:create` | `createLicense` |
+| ✅ | PATCH | /license-tracker/{id} | `licenses:edit` | `updateLicense` |
+| ✅ | DELETE | /license-tracker/{id} | `licenses:delete` | `deleteLicense` |
+| ✅ | PATCH | /license-tracker/{id}/document | `licenses:edit` | `saveLicenseDocumentUrl` |
+| ✅ | DELETE | /license-tracker/{id}/document | `licenses:edit` | `removeLicenseDocument` |
 
 ### dashboard (2)
 | Status | Method | Path | Permission | Source |
@@ -429,6 +429,34 @@ captured in the phase docs.
   `deno.json` updated: `bcryptjs@2.4.3` added to import map. `index.ts` and `types.ts`
   required no changes. `deno check` not run — Deno not installed in this environment (same
   constraint as Phase 6 scaffold). Auth module Status Summary Backend column: ⬜ → ✅.
+- **2026-09-22** — Phase 7 Wave 1: `license-tracker` module backend complete. `types.ts`
+  corrected to match DB column names (`issuingBody`/`issueDate` instead of scaffold's
+  `issuedBy`/`issuedDate`); `category`, `reminderDays`, `status` fields added to match the
+  actual License table. `repository.ts` implements `findAll` (hospitalId-scoped, expiryDate
+  ASC), `findById`, `insert` (hospital_id injected), `update`, `delete` (hard), `saveDocumentUrl`,
+  `clearDocumentUrl`. `service.ts` implements all 6 functions: `listLicenses`, `createLicense`
+  (expiryDate presence guard, defaults for reminderDays/status), `updateLicense` (findById
+  existence check + selective patch), `deleteLicense` (existence check + hard delete),
+  `saveDocumentUrl` (existence check, persists URL string only — no Storage interaction),
+  `removeDocument` (existence check, clears documentUrl to null). `index.ts` required
+  no changes. `deno check` not run — Deno not installed in this environment.
+  license-tracker Module Status Summary Backend column: ⬜ → ✅.
+- **2026-09-22** — Caught and fixed a real regression in the above before committing:
+  the subagent's `removeDocument` only cleared `documentUrl` in the DB and explicitly
+  left Storage cleanup as "the caller's responsibility" — but the old
+  `removeLicenseDocument` in `src/app/(hospital)/license-tracker/actions.ts` DELETED
+  the file from the `license-documents` Storage bucket first (fail-closed: if that
+  delete failed, the DB field was never cleared). The openapi.yaml contract for
+  `DELETE /license-tracker/{id}/document` never carried a `filePath`, so as scaffolded
+  this would have silently leaked an orphaned Storage object every time someone
+  removed a license document — a real "hole" relative to old behavior, not just a
+  missing nice-to-have. Fixed server-side (no client/contract change needed): the
+  file path is now derived from the license's own `documentUrl` (same
+  `/object/public/license-documents/` marker-parsing logic the old frontend's
+  `src/lib/storage.ts getFilePathFromUrl()` used), the Storage object is deleted
+  before the DB field is cleared, and the whole operation fails (DB untouched) if
+  that delete fails — matching the old fail-closed order exactly. openapi.yaml's
+  description for this endpoint updated to match; re-linted clean.
 - **2026-09-22** — Phase 6 scaffold complete on both surfaces, independently
   verified (not just trusted from the agent reports):
   - Frontend (`web/`): 19 routes confirmed matching the 18-module list
