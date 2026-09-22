@@ -872,8 +872,42 @@ components:
         employeeId:
           type: string
           nullable: true
+        phone:
+          type: string
+          nullable: true
+        department:
+          type: string
+          nullable: true
+        designation:
+          type: string
+          nullable: true
+        qualifications:
+          type: string
+          nullable: true
+        joiningDate:
+          type: string
+          nullable: true
+        address:
+          type: string
+          nullable: true
+        emergencyContact:
+          type: string
+          nullable: true
+        bloodGroup:
+          type: string
+          nullable: true
+        salary:
+          type: number
+          nullable: true
+        salaryType:
+          type: string
+          nullable: true
         isActive:
           type: boolean
+        lastLogin:
+          type: string
+          format: date-time
+          nullable: true
         preferences:
           type: string
           nullable: true
@@ -3755,10 +3789,41 @@ paths:
                 password:
                   type: string
                   format: password
+                  minLength: 6
                 role:
                   type: string
                 employeeId:
                   type: string
+                phone:
+                  type: string
+                  nullable: true
+                department:
+                  type: string
+                  nullable: true
+                designation:
+                  type: string
+                  nullable: true
+                qualifications:
+                  type: string
+                  nullable: true
+                joiningDate:
+                  type: string
+                  nullable: true
+                address:
+                  type: string
+                  nullable: true
+                emergencyContact:
+                  type: string
+                  nullable: true
+                bloodGroup:
+                  type: string
+                  nullable: true
+                salary:
+                  type: number
+                  nullable: true
+                salaryType:
+                  type: string
+                  nullable: true
       responses:
         '201':
           description: Staff member created.
