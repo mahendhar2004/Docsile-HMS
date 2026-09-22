@@ -38,7 +38,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
-import { ConfirmationModal, ErrorState, EmptyState } from "@/components/patterns"
+import { ConfirmationModal, ErrorState, EmptyState, PageToolbar } from "@/components/patterns"
 import {
   useInpatientTemplates,
   useCreateInpatientTemplate,
@@ -98,7 +98,7 @@ export function InpatientTemplatesSection({ canEdit }: InpatientTemplatesSection
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center gap-3 flex-wrap">
+      <PageToolbar>
         <Input
           placeholder="Search by code, name or operation..."
           value={search}
@@ -121,7 +121,7 @@ export function InpatientTemplatesSection({ canEdit }: InpatientTemplatesSection
             Add Template
           </Button>
         )}
-      </div>
+      </PageToolbar>
 
       <div className="rounded-xl border border-border bg-white overflow-hidden">
         <Table>

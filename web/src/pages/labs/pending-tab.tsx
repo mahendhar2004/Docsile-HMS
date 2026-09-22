@@ -14,7 +14,9 @@
 import { useState } from "react"
 import { RefreshCw, FlaskConical, ClipboardList } from "lucide-react"
 import { Skeleton } from "@/components/ui/skeleton"
-import { EmptyState, ErrorState } from "@/components/patterns"
+import { Input } from "@/components/ui/input"
+import { IconButton } from "@/components/ui/icon-button"
+import { EmptyState, ErrorState, PageToolbar } from "@/components/patterns"
 import { usePendingInvestigations } from "./hooks"
 import { cn } from "@/lib/utils"
 
@@ -57,27 +59,27 @@ export function PendingTab() {
           )}
         </div>
 
-        <div className="flex items-center gap-2">
-          <input
+        <PageToolbar>
+          <Input
             type="date"
             value={date}
             onChange={(e) => setDate(e.target.value)}
-            className="h-8 rounded-md border border-input bg-white px-2 text-xs focus:outline-none focus:ring-1 focus:ring-ring"
+            className="h-8 text-xs"
             aria-label="Filter date"
           />
-          <button
-            type="button"
+          <IconButton
+            aria-label="Refresh pending investigations"
+            size="sm"
+            variant="outline"
             onClick={() => void refetch()}
             disabled={isLoading}
-            className="h-8 w-8 flex items-center justify-center rounded-md text-muted-foreground hover:text-foreground hover:bg-muted/60 transition-colors disabled:opacity-50"
-            aria-label="Refresh pending investigations"
           >
             <RefreshCw
               className={cn("h-3.5 w-3.5", isLoading && "animate-spin")}
               aria-hidden="true"
             />
-          </button>
-        </div>
+          </IconButton>
+        </PageToolbar>
       </div>
 
       {/* Loading state */}

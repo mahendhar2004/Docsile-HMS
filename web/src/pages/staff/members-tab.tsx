@@ -40,6 +40,7 @@ import { DataTable, type ColumnDef } from "@/components/patterns/tables"
 import { EmptyState, ErrorState } from "@/components/patterns/feedback"
 import { ConfirmationModal } from "@/components/patterns/modals"
 import { SingleSelect } from "@/components/patterns/selection"
+import { PageToolbar } from "@/components/patterns"
 import { usePermissions } from "@/hooks/usePermissions"
 import { useStaffMembers, useToggleActive, useResetPassword } from "./hooks"
 import { MemberForm } from "./member-form"
@@ -216,7 +217,7 @@ export function MembersTab({ roles }: MembersTabProps) {
   return (
     <div className="space-y-4">
       {/* Filter bar */}
-      <div className="flex flex-col sm:flex-row gap-3">
+      <PageToolbar>
         <div className="relative flex-1">
           <Search
             className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none"
@@ -231,24 +232,22 @@ export function MembersTab({ roles }: MembersTabProps) {
           />
         </div>
 
-        <div className="flex gap-2">
-          <SingleSelect
-            options={availableRoles}
-            value={roleFilter}
-            onChange={setRoleFilter}
-            placeholder="All Roles"
-            aria-label="Filter by role"
-            className="min-w-[140px]"
-          />
-          <SingleSelect
-            options={STATUS_OPTIONS}
-            value={statusFilter}
-            onChange={setStatusFilter}
-            placeholder="All Status"
-            aria-label="Filter by status"
-            className="min-w-[130px]"
-          />
-        </div>
+        <SingleSelect
+          options={availableRoles}
+          value={roleFilter}
+          onChange={setRoleFilter}
+          placeholder="All Roles"
+          aria-label="Filter by role"
+          className="min-w-[140px]"
+        />
+        <SingleSelect
+          options={STATUS_OPTIONS}
+          value={statusFilter}
+          onChange={setStatusFilter}
+          placeholder="All Status"
+          aria-label="Filter by status"
+          className="min-w-[130px]"
+        />
 
         {can("staff:create") && (
           <Button
@@ -256,14 +255,14 @@ export function MembersTab({ roles }: MembersTabProps) {
               setMemberToEdit(null)
               setShowForm(true)
             }}
-            className="gap-2 shrink-0"
+            className="gap-2 shrink-0 ml-auto"
             aria-label="Add new staff member"
           >
             <Plus className="h-4 w-4" aria-hidden="true" />
             Add Member
           </Button>
         )}
-      </div>
+      </PageToolbar>
 
       {/* Loading state */}
       {isLoading && (

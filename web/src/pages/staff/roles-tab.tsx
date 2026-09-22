@@ -22,6 +22,7 @@ import { Switch } from "@/components/ui/switch"
 import { Skeleton } from "@/components/ui/skeleton"
 import { ErrorState } from "@/components/patterns/feedback"
 import { ConfirmationModal } from "@/components/patterns/modals"
+import { PageToolbar } from "@/components/patterns"
 import { usePermissions } from "@/hooks/usePermissions"
 import { ALL_PERMISSIONS } from "@/lib/permissions"
 import { useStaffRoles, useDeleteRole, useUpdateRolePerms, useSeedSystemRoles } from "./hooks"
@@ -173,7 +174,7 @@ export function RolesTab() {
   return (
     <div className="space-y-4">
       {/* Permission search + actions row */}
-      <div className="flex items-center gap-3 flex-wrap">
+      <PageToolbar>
         <div className="relative max-w-xs flex-1">
           <Search
             className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none"
@@ -202,7 +203,7 @@ export function RolesTab() {
             New Role
           </Button>
         )}
-      </div>
+      </PageToolbar>
 
       <div className="flex gap-5 min-h-[500px]">
         {/* ── Role Sidebar ──────────────────────────────────────────────── */}

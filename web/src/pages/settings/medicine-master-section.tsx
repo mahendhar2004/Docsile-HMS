@@ -37,7 +37,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
-import { ConfirmationModal, ErrorState, EmptyState } from "@/components/patterns"
+import { ConfirmationModal, ErrorState, EmptyState, PageToolbar } from "@/components/patterns"
 import {
   useMedicineMaster,
   useCreateMedicineMaster,
@@ -96,7 +96,7 @@ export function MedicineMasterSection({ canEdit }: MedicineMasterSectionProps) {
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center gap-3 flex-wrap">
+      <PageToolbar>
         <Input
           placeholder="Search medicines..."
           value={search}
@@ -132,7 +132,7 @@ export function MedicineMasterSection({ canEdit }: MedicineMasterSectionProps) {
             Add Medicine
           </Button>
         )}
-      </div>
+      </PageToolbar>
 
       <div className="rounded-xl border border-border bg-white overflow-hidden">
         <Table>

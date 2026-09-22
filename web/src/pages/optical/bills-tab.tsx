@@ -22,6 +22,8 @@ import {
   PaginatedDataTable,
   EmptyState,
   StatusPill,
+  PageToolbar,
+  SingleSelect,
 } from "@/components/patterns"
 import type { ColumnDef } from "@/components/patterns"
 import { OpticalBillForm } from "./optical-bill-form"
@@ -176,7 +178,7 @@ export function BillsTab({ canCreate, canEdit }: BillsTabProps) {
   return (
     <div className="space-y-4">
       {/* Filter bar */}
-      <div className="flex flex-wrap items-center gap-3">
+      <PageToolbar>
         <div className="flex items-center gap-2">
           <Input
             type="date"
@@ -197,41 +199,31 @@ export function BillsTab({ canCreate, canEdit }: BillsTabProps) {
           )}
         </div>
 
-        <div className="flex items-center gap-2">
-          <select
-            value={statusFilter}
-            onChange={(e) => setStatusFilter(e.target.value)}
-            className="h-8 text-sm border border-border rounded px-2 bg-background"
-            aria-label="Filter by status"
+        <SingleSelect
+          options={OPTICAL_BILL_STATUSES.map((s) => ({ value: s, label: s }))}
+          value={statusFilter}
+          onChange={(v) => setStatusFilter(v ?? "")}
+          placeholder="All statuses"
+          aria-label="Filter by status"
+        />
+        {statusFilter && (
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => setStatusFilter("")}
+            aria-label="Clear status filter"
           >
-            <option value="">All statuses</option>
-            {OPTICAL_BILL_STATUSES.map((s) => (
-              <option key={s} value={s}>
-                {s}
-              </option>
-            ))}
-          </select>
-          {statusFilter && (
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => setStatusFilter("")}
-              aria-label="Clear status filter"
-            >
-              Clear
-            </Button>
-          )}
-        </div>
+            Clear
+          </Button>
+        )}
 
-        <div className="ml-auto">
-          {canCreate && (
-            <Button size="sm" onClick={() => setShowCreate(true)}>
-              <Plus className="h-4 w-4 mr-1.5" aria-hidden="true" />
-              New Bill
-            </Button>
-          )}
-        </div>
-      </div>
+        {canCreate && (
+          <Button size="sm" onClick={() => setShowCreate(true)} className="ml-auto">
+            <Plus className="h-4 w-4 mr-1.5" aria-hidden="true" />
+            New Bill
+          </Button>
+        )}
+      </PageToolbar>
 
       {/* Paginated table */}
       <PaginatedDataTable

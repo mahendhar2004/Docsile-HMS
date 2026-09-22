@@ -31,7 +31,7 @@ import { Badge } from "@/components/ui/badge"
 import { Label } from "@/components/ui/label"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Skeleton } from "@/components/ui/skeleton"
-import { ConfirmationModal, ErrorState, EmptyState } from "@/components/patterns"
+import { ConfirmationModal, ErrorState, EmptyState, PageToolbar } from "@/components/patterns"
 import {
   useDischarges,
   useCreateDischarge,
@@ -73,7 +73,7 @@ export function DischargesSection({ canEdit }: DischargesSectionProps) {
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center gap-3 flex-wrap">
+      <PageToolbar>
         <Input
           placeholder="Search discharge templates..."
           value={search}
@@ -96,7 +96,7 @@ export function DischargesSection({ canEdit }: DischargesSectionProps) {
             Add Discharge Template
           </Button>
         )}
-      </div>
+      </PageToolbar>
 
       <div className="rounded-xl border border-border bg-white overflow-hidden">
         <Table>

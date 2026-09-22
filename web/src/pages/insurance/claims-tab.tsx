@@ -20,6 +20,7 @@ import {
   StatusPill,
   EmptyState,
   SingleSelect,
+  PageToolbar,
 } from "@/components/patterns"
 import type { ColumnDef } from "@/components/patterns"
 import { usePermissions } from "@/hooks/usePermissions"
@@ -140,7 +141,7 @@ export function ClaimsTab() {
   return (
     <div className="space-y-4">
       {/* ── Toolbar ──────────────────────────────────────────────────────────── */}
-      <div className="flex items-center gap-3 flex-wrap">
+      <PageToolbar>
         {/* Status filter */}
         <div className="w-52">
           <SingleSelect
@@ -154,16 +155,14 @@ export function ClaimsTab() {
           />
         </div>
 
-        <div className="flex-1" />
-
         {/* New claim button */}
         {canCreate && (
-          <Button size="sm" onClick={() => setShowCreate(true)}>
+          <Button size="sm" onClick={() => setShowCreate(true)} className="ml-auto">
             <Plus className="h-3.5 w-3.5 mr-1" aria-hidden="true" />
             New Claim
           </Button>
         )}
-      </div>
+      </PageToolbar>
 
       {/* ── Claims table ─────────────────────────────────────────────────────── */}
       <PaginatedDataTable
