@@ -144,6 +144,33 @@ components:
         type: string
         format: date
       description: End date (YYYY-MM-DD). Required when filter=custom.
+    exportSearch:
+      name: search
+      in: query
+      schema:
+        type: string
+      description: >-
+        Full-text search across key fields, applied on top of the date range.
+        Added post-Phase-5 to match the original data/actions.ts export
+        contract, which every /reports/exports/* endpoint's implementation
+        already accepts (this was undocumented in the spec until found
+        during Wave 4 review).
+    exportPatientType:
+      name: patientType
+      in: query
+      schema:
+        type: string
+        enum: [OPD, IPD, ALL]
+      description: Filters by patient type. Applies only to /reports/exports/patients.
+    exportStatus:
+      name: status
+      in: query
+      schema:
+        type: string
+      description: >-
+        Filters by entity status (e.g. PENDING, COMPLETED). Applies to
+        /reports/exports/prescriptions, /inpatients, /insurance-claims, and
+        /lab-bills.
     pathId:
       name: id
       in: path
@@ -5251,6 +5278,8 @@ paths:
         - $ref: '#/components/parameters/analyticsFilter'
         - $ref: '#/components/parameters/customStart'
         - $ref: '#/components/parameters/customEnd'
+        - $ref: '#/components/parameters/exportSearch'
+        - $ref: '#/components/parameters/exportPatientType'
       responses:
         '200':
           description: Patient export dataset.
@@ -5269,6 +5298,8 @@ paths:
         - $ref: '#/components/parameters/analyticsFilter'
         - $ref: '#/components/parameters/customStart'
         - $ref: '#/components/parameters/customEnd'
+        - $ref: '#/components/parameters/exportSearch'
+        - $ref: '#/components/parameters/exportStatus'
       responses:
         '200':
           description: Prescription export dataset.
@@ -5287,6 +5318,7 @@ paths:
         - $ref: '#/components/parameters/analyticsFilter'
         - $ref: '#/components/parameters/customStart'
         - $ref: '#/components/parameters/customEnd'
+        - $ref: '#/components/parameters/exportSearch'
       responses:
         '200':
           description: Eye reading export dataset.
@@ -5305,6 +5337,8 @@ paths:
         - $ref: '#/components/parameters/analyticsFilter'
         - $ref: '#/components/parameters/customStart'
         - $ref: '#/components/parameters/customEnd'
+        - $ref: '#/components/parameters/exportSearch'
+        - $ref: '#/components/parameters/exportStatus'
       responses:
         '200':
           description: Inpatient export dataset.
@@ -5323,6 +5357,8 @@ paths:
         - $ref: '#/components/parameters/analyticsFilter'
         - $ref: '#/components/parameters/customStart'
         - $ref: '#/components/parameters/customEnd'
+        - $ref: '#/components/parameters/exportSearch'
+        - $ref: '#/components/parameters/exportStatus'
       responses:
         '200':
           description: Insurance claims export dataset.
@@ -5341,6 +5377,8 @@ paths:
         - $ref: '#/components/parameters/analyticsFilter'
         - $ref: '#/components/parameters/customStart'
         - $ref: '#/components/parameters/customEnd'
+        - $ref: '#/components/parameters/exportSearch'
+        - $ref: '#/components/parameters/exportStatus'
       responses:
         '200':
           description: Lab bills export dataset.
@@ -5359,6 +5397,7 @@ paths:
         - $ref: '#/components/parameters/analyticsFilter'
         - $ref: '#/components/parameters/customStart'
         - $ref: '#/components/parameters/customEnd'
+        - $ref: '#/components/parameters/exportSearch'
       responses:
         '200':
           description: Pharmacy bills export dataset.
@@ -5377,6 +5416,7 @@ paths:
         - $ref: '#/components/parameters/analyticsFilter'
         - $ref: '#/components/parameters/customStart'
         - $ref: '#/components/parameters/customEnd'
+        - $ref: '#/components/parameters/exportSearch'
       responses:
         '200':
           description: Optical bills export dataset.
@@ -5395,6 +5435,7 @@ paths:
         - $ref: '#/components/parameters/analyticsFilter'
         - $ref: '#/components/parameters/customStart'
         - $ref: '#/components/parameters/customEnd'
+        - $ref: '#/components/parameters/exportSearch'
       responses:
         '200':
           description: Expenses export dataset.
