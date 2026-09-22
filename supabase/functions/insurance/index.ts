@@ -31,6 +31,7 @@ import {
   AddClaimPaymentSchema,
   CompanyListQuerySchema,
   ClaimListQuerySchema,
+  type UpdateClaimStatus,
 } from './types.ts';
 import * as service from './service.ts';
 
@@ -84,7 +85,10 @@ app.patch('/claims/:id/status', requirePermission('insurance:edit'), async (c) =
   const s = c.get('session') as Session;
   const b = UpdateClaimStatusSchema.safeParse(await c.req.json());
   if (!b.success) return errorResponse(c, `Invalid status: ${b.error.errors[0].message}`, 400);
-  await service.updateClaimStatus(s, c.req.param('id'), b.data.status);
+  // Bug fix: pass full b.data (not just b.data.status) so the service can use
+  // optional financial fields (amount, notes, rejectionReason, settlementReference,
+  // deductions) needed for SETTLED/PREAUTH_APPROVED/rejection status transitions.
+  await service.updateClaimStatus(s, c.req.param('id'), b.data as UpdateClaimStatus);
   return ok(c, null, 'Claim status updated');
 });
 app.patch('/claims/:id/details', requirePermission('insurance:edit'), async (c) => {
