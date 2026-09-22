@@ -47,7 +47,7 @@ const RemovableChip = React.forwardRef<HTMLSpanElement, RemovableChipProps>(
           // Surface — uses secondary/muted palette so chips don't compete
           // with primary content; the × button is the only interaction affordance
           "bg-[--color-secondary] text-[--color-secondary-foreground]",
-          "border border-[--color-border]",
+          "shadow-[--shadow-border]",
           // Typography
           "font-medium leading-none whitespace-nowrap select-none",
           // Disabled

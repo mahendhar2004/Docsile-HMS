@@ -250,7 +250,7 @@ const MultiSelect = React.forwardRef<HTMLDivElement, MultiSelectProps>(
             </div>
           </ComboboxTrigger>
 
-          <ComboboxContent className="w-[var(--radix-popover-trigger-width)]">
+          <ComboboxContent className="w-[var(--radix-popover-trigger-width)] shadow-[--shadow-popover] rounded-[--radius-md]">
             <Command>
               <CommandInput placeholder={searchPlaceholder} />
               <CommandList>

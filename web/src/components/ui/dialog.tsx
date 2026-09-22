@@ -28,8 +28,8 @@ const DIALOG_ANIMATION_CSS = `
 const dialogContentVariants = cva(
   [
     'fixed left-1/2 top-1/2 z-50 -translate-x-1/2 -translate-y-1/2',
-    'w-full bg-[var(--color-surface)] rounded-[var(--radius-xl)]',
-    'shadow-[var(--shadow-lg)] p-6 outline-none',
+    'w-full bg-[var(--color-surface)] rounded-[--radius-lg]',
+    'shadow-[--shadow-overlay] p-6 outline-none',
   ],
   {
     variants: {

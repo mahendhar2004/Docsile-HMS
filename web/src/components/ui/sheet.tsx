@@ -33,7 +33,7 @@ const SHEET_ANIMATION_CSS = `
 const sheetContentVariants = cva(
   [
     'fixed z-50 h-full bg-[var(--color-surface)]',
-    'shadow-[var(--shadow-lg)] outline-none flex flex-col',
+    'shadow-[--shadow-overlay] outline-none flex flex-col',
   ],
   {
     variants: {

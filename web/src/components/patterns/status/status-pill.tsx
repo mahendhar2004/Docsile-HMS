@@ -34,11 +34,11 @@ const pillVariants = cva(
   {
     variants: {
       bucket: {
-        success: "bg-[--color-success-soft] text-[--color-success-soft-foreground]",
-        warning: "bg-[--color-warning-soft] text-[--color-warning-soft-foreground]",
-        error:   "bg-[--color-error-soft]   text-[--color-error-soft-foreground]",
-        info:    "bg-[--color-info-soft]    text-[--color-info-soft-foreground]",
-        neutral: "bg-[--color-neutral-soft] text-[--color-neutral-soft-foreground]",
+        success: "bg-[--color-success-soft] text-[--color-success-soft-foreground] border border-[--color-success]/30",
+        warning: "bg-[--color-warning-soft] text-[--color-warning-soft-foreground] border border-[--color-warning]/30",
+        error:   "bg-[--color-error-soft]   text-[--color-error-soft-foreground]   border border-[--color-error]/30",
+        info:    "bg-[--color-info-soft]    text-[--color-info-soft-foreground]    border border-[--color-info]/30",
+        neutral: "bg-[--color-neutral-soft] text-[--color-neutral-soft-foreground] border border-[--color-neutral]/30",
       } satisfies Record<SemanticBucket, string>,
       size: {
         sm: "h-5 px-2 text-[10px]",

@@ -200,7 +200,10 @@ const SingleSelect = React.forwardRef<HTMLButtonElement, SingleSelectProps>(
         </ComboboxTrigger>
 
         <ComboboxContent
-          className={cn(contentWidth === "match" && "w-[var(--radix-popover-trigger-width)]")}
+          className={cn(
+            contentWidth === "match" && "w-[var(--radix-popover-trigger-width)]",
+            "shadow-[--shadow-popover] rounded-[--radius-md]"
+          )}
         >
           <Command>
             <CommandInput placeholder={searchPlaceholder} />

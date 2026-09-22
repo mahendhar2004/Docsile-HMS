@@ -54,10 +54,9 @@ const DropdownMenuContent = React.forwardRef<
       data-dropdown-content
       sideOffset={sideOffset}
       className={cn(
-        'z-50 min-w-[9rem] overflow-hidden rounded-[var(--radius-lg)]',
+        'z-50 min-w-[9rem] overflow-hidden rounded-[--radius-md]',
         'bg-[var(--color-popover)] text-[var(--color-popover-foreground)]',
-        'border border-[var(--color-border)]',
-        'shadow-[var(--shadow-md)] p-1 outline-none',
+        'shadow-[--shadow-popover] p-1 outline-none',
         className,
       )}
       {...props}
@@ -187,10 +186,9 @@ const DropdownMenuSubContent = React.forwardRef<
     ref={ref}
     data-dropdown-subcontent
     className={cn(
-      'z-50 min-w-[9rem] overflow-hidden rounded-[var(--radius-lg)]',
+      'z-50 min-w-[9rem] overflow-hidden rounded-[--radius-md]',
       'bg-[var(--color-popover)] text-[var(--color-popover-foreground)]',
-      'border border-[var(--color-border)]',
-      'shadow-[var(--shadow-md)] p-1 outline-none',
+      'shadow-[--shadow-popover] p-1 outline-none',
       className,
     )}
     {...props}

@@ -42,12 +42,12 @@ function FormField({
       )}
       <div aria-describedby={describedBy}>{children}</div>
       {helpText && !hasError && (
-        <p id={descId} className="text-xs text-muted-foreground">
+        <p id={descId} className="text-[length:var(--text-caption)] text-muted-foreground">
           {helpText}
         </p>
       )}
       {hasError && (
-        <p id={errId} role="alert" className="text-xs text-error">
+        <p id={errId} role="alert" className="text-[length:var(--text-caption)] text-error">
           {error}
         </p>
       )}
@@ -79,10 +79,10 @@ function FormSection({ title, description, className, children }: FormSectionPro
       {(title || description) && (
         <div className="space-y-0.5 pb-3 border-b border-border">
           {title && (
-            <h3 className="text-sm font-semibold text-foreground">{title}</h3>
+            <h3 className="text-[length:var(--text-subtitle)] font-semibold text-foreground">{title}</h3>
           )}
           {description && (
-            <p className="text-xs text-muted-foreground">{description}</p>
+            <p className="text-[length:var(--text-caption)] text-muted-foreground">{description}</p>
           )}
         </div>
       )}

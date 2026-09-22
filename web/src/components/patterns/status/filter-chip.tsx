@@ -60,7 +60,7 @@ const FilterChip = React.forwardRef<HTMLButtonElement, FilterChipProps>(
           ],
           // Selected state — primary-tinted
           selected && [
-            "border border-transparent",
+            "border border-[--color-primary]/20",
             "bg-[--color-accent] text-[--color-accent-foreground]",
             "font-semibold",
           ],
