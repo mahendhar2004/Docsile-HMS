@@ -102,7 +102,7 @@ export function HospitalProfileSection({ canEdit }: HospitalProfileSectionProps)
 
   return (
     <div className="max-w-xl">
-      <div className="rounded-xl border border-border bg-white p-6 space-y-5">
+      <div className="rounded-[var(--radius-lg)] bg-[var(--color-card)] shadow-[var(--shadow-card)] p-6 space-y-5">
         {/* Basic info */}
         <div className="grid grid-cols-2 gap-4">
           <div className="col-span-2">

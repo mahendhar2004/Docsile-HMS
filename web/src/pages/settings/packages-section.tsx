@@ -92,7 +92,7 @@ export function PackagesSection({ canEdit }: PackagesSectionProps) {
         )}
       </div>
 
-      <div className="rounded-xl border border-border bg-white overflow-hidden">
+      <div className="rounded-[var(--radius-lg)] bg-[var(--color-card)] shadow-[var(--shadow-card)] overflow-hidden">
         <Table>
           <TableHeader>
             <TableRow className="bg-muted/40 hover:bg-muted/40">

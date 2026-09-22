@@ -199,7 +199,7 @@ export function ExpensesSection({
           {/* Left column: chart + total */}
           <div className="lg:col-span-1 space-y-5">
             {/* Chart card */}
-            <div className="rounded-xl border border-border/60 bg-white shadow-sm overflow-hidden">
+            <div className="rounded-[var(--radius-lg)] bg-[var(--color-card)] shadow-[var(--shadow-card)] overflow-hidden">
               <div className="px-5 py-3.5 border-b border-border/40">
                 <h2 className="text-sm font-semibold text-foreground">Expense Summary</h2>
                 <p className="text-xs text-muted-foreground mt-0.5">{timeFilterLabel}</p>
@@ -256,7 +256,7 @@ export function ExpensesSection({
             </div>
 
             {/* Total card */}
-            <div className="rounded-xl border border-border/60 bg-white shadow-sm overflow-hidden">
+            <div className="rounded-[var(--radius-lg)] bg-[var(--color-card)] shadow-[var(--shadow-card)] overflow-hidden">
               <div className="px-5 py-3.5 border-b border-border/40">
                 <h2 className="text-sm font-semibold text-foreground">Total Expenses</h2>
               </div>
@@ -275,7 +275,7 @@ export function ExpensesSection({
 
           {/* Right column: expense list */}
           <div className="lg:col-span-2">
-            <div className="rounded-xl border border-border/60 bg-white shadow-sm overflow-hidden">
+            <div className="rounded-[var(--radius-lg)] bg-[var(--color-card)] shadow-[var(--shadow-card)] overflow-hidden">
               {/* List header with filters */}
               <div className="px-5 py-3.5 border-b border-border/40 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                 <h2 className="text-sm font-semibold text-foreground">Expense List</h2>
