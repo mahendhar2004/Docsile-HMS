@@ -1,5 +1,5 @@
 /**
- * doctor Edge Function — 11 endpoints
+ * doctor Edge Function — 12 endpoints
  *
  * Routes (openapi.yaml §doctor):
  *   GET  /doctor/queue                                doctor:view
@@ -13,6 +13,7 @@
  *   POST /doctor/dropdown-options                     doctor:consult
  *   POST /doctor/medicines                            doctor:consult
  *   GET  /doctor/patients/:patientId/receipt          billing:view
+ *   POST /doctor/ai/ask                               doctor:consult
  */
 
 import { Hono } from 'hono';
@@ -20,7 +21,7 @@ import { requireAuth } from '../_shared/auth.ts';
 import { requirePermission } from '../_shared/permission-guard.ts';
 import { handleError, ok, created, errorResponse } from '../_shared/response.ts';
 import type { Session } from '../_shared/auth.ts';
-import { PrescriptionSchema, MedicineMasterSchema, DropdownOptionSchema } from './types.ts';
+import { PrescriptionSchema, MedicineMasterSchema, DropdownOptionSchema, AskSithaSchema } from './types.ts';
 import * as service from './service.ts';
 
 const app = new Hono().basePath('/doctor');
@@ -48,6 +49,14 @@ app.post('/medicines', requirePermission('doctor:consult'), async (c) => {
   if (!b.success) return errorResponse(c, `Invalid medicine: ${b.error.errors[0].message}`, 400);
   await service.createMedicine(s, b.data);
   return created(c, null, 'Medicine created');
+});
+
+// ---- AI assistant ----
+app.post('/ai/ask', requirePermission('doctor:consult'), async (c) => {
+  const s = c.get('session') as Session;
+  const b = AskSithaSchema.safeParse(await c.req.json());
+  if (!b.success) return errorResponse(c, `Invalid request: ${b.error.errors[0].message}`, 400);
+  return ok(c, await service.askSithaAI(s, b.data));
 });
 
 // ---- Patient-scoped routes ----

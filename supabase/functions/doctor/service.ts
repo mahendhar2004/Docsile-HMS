@@ -1,5 +1,5 @@
 /**
- * Business layer for the doctor module (11 endpoints).
+ * Business layer for the doctor module (12 endpoints).
  *
  * Responsibilities:
  *   - IST date-range computation (inline — no Next.js dependency)
@@ -8,22 +8,25 @@
  *   - savePrescription upsert: find today's existing Prescription for the patient
  *     (any status) by prescriptionDate in today's IST range, update it; if none
  *     exists, insert a new one. Status is always set to "COMPLETED".
- *   - AI-assist (askSithaAI): exists in the OLD src/app/(hospital)/doctor/ai-actions.ts
- *     and is a Gemini-backed feature that builds patient and analytics context briefs
- *     for a conversational AI assistant. It is NOT in scope for this module — no
- *     endpoint in the openapi.yaml doctor tag covers it. It is deferred; when the
- *     doctor module's frontend is built, the AI-assist feature will need its own
- *     dedicated endpoint (e.g. POST /doctor/ai/ask) and a separate evaluation of
- *     whether the Gemini integration can run in a Deno/Edge Function context.
+ *   - askSithaAI (POST /doctor/ai/ask): Gemini-backed clinical/analytics assistant.
+ *     Two modes: patient-clinical (builds a patient brief from the DB) and analytics
+ *     (builds a hospital-level analytics brief). Calls Gemini REST via gemini-client.ts
+ *     (M-5 fix: API key is sent as x-goog-api-key header, never as a URL param).
  *
  * No framework/transport concerns — no Request, no Response, no Hono imports.
  */
 
 import type { Session } from '../_shared/auth.ts';
-import type { Prescription, MedicineMaster } from './types.ts';
+import type { Prescription, MedicineMaster, AskSitha } from './types.ts';
 import { DoctorRepository } from './repository.ts';
 import { getSupabaseClient } from '../_shared/supabase-client.ts';
 import { NotFoundError } from '../_shared/errors.ts';
+import { callGemini } from './gemini-client.ts';
+import {
+  buildAnalyticsContext,
+  resolvePatientContext,
+  MAX_HISTORY_TURNS,
+} from './ai-context.ts';
 
 // ── IST utilities (inline — no Next.js src/ imports allowed) ─────────────────
 
@@ -340,6 +343,148 @@ export async function createMedicine(session: Session, body: MedicineMaster): Pr
     createdAt: now,
     updatedAt: now,
   });
+}
+
+// ── 12. POST /doctor/ai/ask ───────────────────────────────────────────────────
+
+// System prompt — patient-clinical mode.
+const SYSTEM_PROMPT = `You are Sitha, an AI assistant for ophthalmology clinicians at this hospital.
+
+The first user message in this conversation contains a "PATIENT BRIEF". One of three things will be true:
+1. A patient is locked in — the brief begins with "=== PATIENT ===" and contains real data. Use it.
+2. No patient identifier was provided yet — the brief is a short note starting with "(NO PATIENT)". In this case, ask the user politely for the patient's UID (e.g. P-0005) or 10-digit phone number, then they can re-send the question.
+3. The user's identifier matched no record — the brief starts with "(NOT FOUND)". Tell the user no patient matches and ask them to recheck the ID or phone.
+
+Output format (IMPORTANT — your reply is rendered as markdown):
+- Default to short paragraphs or compact bullet lists ("- item"). Avoid walls of text.
+- For multi-fact answers, use bullets — one fact per line.
+- For grouped answers (e.g. "dues by source"), use a short bold label then the value: "**Cash:** ₹2,500".
+- Use "## Section" headings only when the answer naturally splits into two or more topics.
+- Quote numbers, dates, names and IDs EXACTLY as they appear in the brief.
+- Currency is ₹ (Indian Rupees). Dates are YYYY-MM-DD.
+- Keep replies tight — 3–6 bullets or 2–3 short paragraphs is usually right. No filler.
+
+Accuracy rules:
+- Answer from the brief whenever the data is there. Be specific (amounts, dates, doctor names).
+- If the brief does NOT contain the answer, say so plainly. Do NOT invent visits, bills, surgeries, medications or amounts.
+- For clinical advice (dosing, differentials, drug interactions), be cautious and recommend the clinician verify. You are decision support, not authority.
+- Skip filler disclaimers; one short caveat per session is enough.`;
+
+// System prompt — analytics mode.
+const ANALYTICS_SYSTEM_PROMPT = `You are Sitha, an AI analytics advisor for a hospital's management team.
+
+The first user message contains a "HOSPITAL ANALYTICS BRIEF" with real, live data pulled from the hospital's database — patients, revenue, collections, dues, expenses, doctor performance, services, and more.
+
+Your role:
+- Answer any question about hospital performance, revenue, operations, or patient trends using ONLY the data in the brief.
+- Calculate rates, ratios, and comparisons on-the-fly (e.g. "collection rate = collected / billed × 100").
+- Give concrete, data-driven recommendations when asked how to improve (e.g. "your collection rate is 61% — here are three ways to close the gap").
+- Flag anomalies you notice even if not asked — high dues, low-performing days, expense spikes.
+
+When asked for a FINANCIAL HEALTH REPORT or FINANCIAL SUMMARY, always cover ALL of the following in order, using the exact section structure the user requested:
+1. Revenue & Collections — total billed, collected, collection rate %, net cash flow; category breakdown (Consultations/Labs/Pharmacy/Optical/IPD) with ₹ and % of total.
+2. Outstanding Dues — by module (OPD/IPD/Lab/Optical/Pharmacy) and grand total; flag the module with highest outstanding.
+3. Expense Health — total expenses, top categories, expense-to-revenue ratio (expenses ÷ billed × 100); assess if healthy (<30% is good, 30–50% needs attention, >50% is concerning).
+4. Performance Highlights — top doctor (patients + revenue), top service (revenue + count), weakest category.
+5. Financial Health Score & Improvement Plan — score the overall health as Good / Needs Attention / Critical based on: collection rate (>85% = good, 70–85% = attention, <70% = critical), expense ratio, and dues-to-revenue ratio. Then give 4–6 specific, actionable improvement steps tied directly to the numbers — name exact figures, exact modules, exact gaps.
+
+Output format (your reply is rendered as markdown):
+- Use **bold labels** for financial figures: "**Consultations:** ₹1,20,000 (45%)"
+- Use "## Heading" for each major section of a financial report.
+- Use compact bullet lists inside sections; avoid walls of text.
+- Quote numbers EXACTLY from the brief. Currency is ₹. Dates are YYYY-MM-DD.
+- For improvement advice, anchor every point to actual data — never give generic advice.
+- If a metric is not in the brief, say so plainly. Never invent numbers.`;
+
+/**
+ * POST /doctor/ai/ask — Sitha AI assistant (Gemini-backed).
+ *
+ * Two modes:
+ *   - Patient-clinical (default): builds a structured brief for the patient
+ *     identified by patientId or inferred from the question/history text.
+ *   - Analytics (module === "analytics"): builds a hospital-level analytics brief.
+ *
+ * Permission: doctor:consult unconditionally (matches old code exactly — see
+ * openapi.yaml description for the intentional-parity note).
+ *
+ * Logging: only metadata is logged (action, questionLength, module, isAnalytics).
+ * The question text, answer text, and patient identifiers are NEVER logged.
+ */
+export async function askSithaAI(
+  session: Session,
+  input: AskSitha,
+): Promise<{ answer: string }> {
+  const supabase = getSupabaseClient();
+  const isAnalytics = input.module === 'analytics';
+
+  // Log metadata only — never the question text or patient identifiers.
+  console.log(JSON.stringify({
+    level: 'info',
+    action: 'doctor.ai.ask',
+    hospitalId: session.hospitalId,
+    userId: session.id,
+    isAnalytics,
+    questionLength: input.question.length,
+    hasPatientId: !!input.patientId,
+    historyTurns: (input.history ?? []).length,
+  }));
+
+  // Cap history to the most recent MAX_HISTORY_TURNS turns.
+  const trimmedHistory = (input.history ?? []).slice(-MAX_HISTORY_TURNS);
+
+  if (isAnalytics) {
+    const brief = await buildAnalyticsContext(supabase, session.hospitalId);
+
+    const messages = [
+      { role: 'user' as const,  text: `HOSPITAL ANALYTICS BRIEF (do not echo verbatim):\n${brief}` },
+      { role: 'model' as const, text: 'Analytics brief loaded. Ask anything about hospital performance.' },
+      ...trimmedHistory,
+      { role: 'user' as const,  text: input.question },
+    ];
+
+    const result = await callGemini({
+      system: ANALYTICS_SYSTEM_PROMPT,
+      messages,
+      maxOutputTokens: 2500,
+      temperature: 0.3,
+    });
+
+    if (!result.ok) {
+      // Return error as a structured 200 response matching the openapi.yaml contract
+      // (the spec says 200 with answer OR a structured error — errors are not 4xx here
+      // because the client needs to distinguish "Gemini not configured" from auth errors).
+      return { answer: `Sorry, I couldn't get a response: ${result.error}` };
+    }
+
+    return { answer: result.text };
+  }
+
+  // Patient-clinical mode.
+  const context = await resolvePatientContext(supabase, session.hospitalId, {
+    patientId: input.patientId ?? null,
+    question:  input.question,
+    history:   trimmedHistory,
+  });
+
+  const messages = [
+    { role: 'user' as const,  text: `PATIENT BRIEF (do not echo verbatim):\n${context}` },
+    { role: 'model' as const, text: 'Patient brief read. Ask anything about this patient.' },
+    ...trimmedHistory,
+    { role: 'user' as const,  text: input.question },
+  ];
+
+  const result = await callGemini({
+    system: SYSTEM_PROMPT,
+    messages,
+    maxOutputTokens: 1024,
+    temperature: 0.4,
+  });
+
+  if (!result.ok) {
+    return { answer: `Sorry, I couldn't get a response: ${result.error}` };
+  }
+
+  return { answer: result.text };
 }
 
 // ── 11. GET /doctor/patients/:patientId/receipt (billing:view) ────────────────

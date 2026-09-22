@@ -38,7 +38,7 @@ corresponding old `src/app/(...)/<module>` code has 🗑️.
 | 7 | optical | 16 | ⬜ | ⬜ | ⬜ | ⬜ |
 | 8 | insurance | 11 | ⬜ | ⬜ | ⬜ | ⬜ |
 | 9 | queue | 3 | ✅ | ⬜ | ⬜ | ⬜ |
-| 10 | doctor | 12 | 🔨 | ⬜ | ⬜ | ⬜ |
+| 10 | doctor | 12 | ✅ | ⬜ | ⬜ | ⬜ |
 | 11 | staff | 12 | ✅ | ⬜ | ⬜ | ⬜ |
 | 12 | settings | 33 | ✅ | ⬜ | ⬜ | ⬜ |
 | 13 | analytics | 19 | ✅ | ⬜ | ⬜ | ⬜ |
@@ -242,7 +242,7 @@ work progresses, not appended to.
 | ✅ | POST | /doctor/dropdown-options | `doctor:consult` | `addDropdownOption` |
 | ✅ | POST | /doctor/medicines | `doctor:consult` | `createMedicine` |
 | ✅ | GET | /doctor/patients/{patientId}/receipt | `billing:view` | `getReceiptData` |
-| 🔨 | POST | /doctor/ai/ask | `doctor:consult` | `askSithaAI` (`ai-actions.ts`) — added post-Phase-5 per owner decision 2026-09-22, see Known Deferred Items; also fixes M-5 (Gemini API key was passed as a URL query param in the old code — move to an Authorization header when porting) |
+| ✅ | POST | /doctor/ai/ask | `doctor:consult` | `askSithaAI` (`ai-actions.ts`) — added post-Phase-5 per owner decision 2026-09-22, see Known Deferred Items; M-5 fixed (key now sent as `x-goog-api-key` header, never in URL) |
 
 *(No separate Doctor-entity CRUD here — deferred by design, see Known Deferred Items.)*
 
@@ -647,3 +647,16 @@ captured in the phase docs.
     `queue:view`) in `src/lib/permissions.ts` — already flagged in
     Known Deferred Items above, repeating here since it's now blocking
     Phase 7 start, not just a future concern.
+- **2026-09-22** — Phase 7 Wave 2: `doctor` module 12th endpoint (`POST /doctor/ai/ask`)
+  implemented. Four new files added to the doctor Edge Function:
+  `gemini-client.ts` (Gemini REST wrapper — M-5 fixed: API key sent as `x-goog-api-key`
+  header, never as a URL `?key=` param, never logged), `ai-context.ts` (patient context
+  builder + analytics context builder + resolvePatientContext + extractPatientToken —
+  all Supabase queries hospital_id-scoped per ADR-007; analytics context uses lean direct
+  queries rather than cross-module imports from the analytics Edge Function per ADR-006),
+  `types.ts` extended with `AskSithaSchema`/`AskSitha`, `service.ts` extended with
+  `askSithaAI` (two modes: patient-clinical and analytics; metadata-only logging — question
+  text/answer/patient identifiers never logged), `index.ts` updated to 12 endpoints.
+  GEMINI_API_KEY and GEMINI_MODEL are read from `Deno.env` (Edge Function secrets) — never
+  exposed to clients. `deno check` not run — Deno not installed in this environment.
+  doctor module Status Summary Backend column: 🔨 → ✅ (all 12 endpoints done).

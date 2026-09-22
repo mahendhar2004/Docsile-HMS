@@ -58,3 +58,24 @@ export const DropdownOptionSchema = z.object({
   value: z.string().min(1),
 });
 export type DropdownOption = z.infer<typeof DropdownOptionSchema>;
+
+// ── AskSitha body (POST /doctor/ai/ask) ──────────────────────────────────────
+// Matches the openapi.yaml requestBody schema exactly.
+// history is capped server-side to the last 6 turns (MAX_HISTORY_TURNS).
+
+const AskSithaMessageSchema = z.object({
+  role: z.enum(['user', 'model']),
+  text: z.string(),
+});
+
+export const AskSithaSchema = z.object({
+  /** Optional — when set the brief is built for this patient directly. */
+  patientId: z.string().nullable().optional(),
+  /** The question to ask. Must be non-empty and at most 4000 characters. */
+  question: z.string().min(1, 'Question cannot be empty.').max(4000, 'Question is too long (max 4000 characters).'),
+  /** Prior turns. Server caps to last 6 before forwarding to Gemini. */
+  history: z.array(AskSithaMessageSchema).optional(),
+  /** Which page/module the question originates from. "analytics" switches context mode. */
+  module: z.string().optional(),
+});
+export type AskSitha = z.infer<typeof AskSithaSchema>;
