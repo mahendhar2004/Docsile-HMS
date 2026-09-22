@@ -29,7 +29,7 @@ modules produce).
 | 12 | Settings | `/settings` | `settings/*` (33 endpoints — hospital profile, templates, master data) | ✅ |
 | 13 | Expenses | `/expenses` | `expenses/*` (categories, expenses by date range) | ✅ |
 | 14 | Dues & Follow-ups | `/dues-followups` | `dues-followups/*` (dues, followups, email templates) | ✅ |
-| 15 | Call Logs | `/call-logs` | `call-logs/*` (list, stats, notes, patient link, sync) | ⬜ |
+| 15 | Call Logs | `/call-logs` | `call-logs/*` (list, stats, notes, patient link, sync) | ✅ |
 | 16 | License Tracker | `/license-tracker` | `license-tracker/*` (CRUD + document) | ⬜ |
 | 17 | Analytics | `/analytics` | `analytics/*` (19 endpoints) | ⬜ |
 | 18 | Reports | `/reports` | `reports/*` (17 endpoints — patient search, summaries, bulk exports) | ⬜ |
@@ -715,3 +715,71 @@ SendEmailBody (from `supabase/functions/dues-followups/types.ts` SendEmailSchema
 - **No summary stat cards:** The API returns `{ data, meta.total }` but no summary aggregates (totalOutstanding, opdCount, etc.). The old app computed these in the server action but the new Edge Function `getDues/getFollowups` services do not. Total record count shown as a text line above the table.
 
 **Build:** `npx tsc -b 2>&1 | grep -i dues` — zero TypeScript errors. Full `npx tsc -b` exit code 0 (no errors project-wide).
+
+---
+
+### Page 15 — Call Logs (`/call-logs`) — 2026-09-22
+
+Replaced placeholder stub with a fully implemented CallLogsPage (2-tab layout: Calls / Analytics).
+
+**File structure:**
+```
+web/src/pages/CallLogsPage.tsx                       — thin composition root (permission gate + sync button + Tabs)
+web/src/pages/call-logs/types.ts                     — CallLog, CallStats, CallAnalyticsData, PatientSearchResult, SyncResponse, CALL_STATUS_CONFIG
+web/src/pages/call-logs/hooks.ts                     — query + mutation hooks (7 endpoints)
+web/src/pages/call-logs/logs-tab.tsx                 — paginated table + date/status/direction/search filters + CallDetailSheet trigger
+web/src/pages/call-logs/call-detail-sheet.tsx        — Sheet: call metadata + recording player + notes (PATCH) + patient link (PATCH)
+web/src/pages/call-logs/analytics-tab.tsx            — filter selector + today's StatCard tiles + charts (area, donut, bar) + top callers table
+```
+
+**Endpoints consumed:**
+- `GET /call-logs?page=N&pageSize=N&date=YYYY-MM-DD` → `CallLog[]` — call_logs:view
+- `GET /call-logs/stats` → `CallStats` (today's counts always) — call_logs:view
+- `GET /call-logs/analytics?filter=today|week|month|year` → `CallAnalyticsData` — call_logs:view
+- `GET /call-logs/patients/search?q=...` → `PatientSearchResult[]` — call_logs:view (enabled ≥ 2 chars)
+- `PATCH /call-logs/{id}/notes` → `{ notes }` body — call_logs:edit
+- `PATCH /call-logs/{id}/patient` → `{ patientId }` body — call_logs:edit
+- `POST /call-logs/sync` → `SyncResponse` — call_logs:sync
+
+**Permission keys (cross-checked against OpenAPI x-permission):**
+- `call_logs:view` — page gate + all reads
+- `call_logs:edit` — update notes, link patient (both gated in CallDetailSheet)
+- `call_logs:sync` — Sync button in PageHeader
+
+**Exact CallLog field names (from repository.ts CallLogRow):**
+`id, exotelCallSid, callFrom, callTo, direction, status, startTime, endTime, duration, recordingUrl, callerName, patientId, notes, createdAt, updatedAt`
+Note: `rawResponse` is excluded (multi-KB Exotel JSON, never rendered in UI).
+
+**Exact status values (from service.ts mapLeg2Status + resolveStatusFallback):**
+`"completed"` (shown as "Answered"), `"missed"`, `"busy"`, `"failed"`, `"ringing"`
+
+**Direction values:** `"inbound"` | `"outbound"`
+
+**Stats response shape (from service.ts getStats()):**
+`{ total, completed, missed, busy, failed, inbound, outbound, totalDuration, avgDuration }`
+
+**Analytics response shape (from service.ts getAnalytics() + actions.ts CallAnalyticsData):**
+KPIs: `totalCalls, answeredCalls, missedCalls, busyCalls, failedCalls, answerRate, missedRate, avgDuration, totalTalkTime, inboundCalls, outboundCalls, linkedCalls`
+Changes: `totalChange, answeredChange, missedChange`
+Arrays: `hourlyDistribution[24]: { hour, answered, missed, busy, total }`, `dailyTrend: { date, total, answered, missed, avgDuration }`, `topCallers: { phone, name, calls, answered, totalDuration }`, `durationBuckets: { label, count }`
+Scalars: `peakHour, quietHour`
+
+**Patient search response (from repository.ts PatientSearchRow):** `{ id, fullName, phone, patientId }`
+
+**Sync response (from service.ts syncExotel()):** `{ success, synced?, message?, error? }`
+
+**Chart type selection (rationale):**
+- `ThemedAreaChart` for daily call trend (answered vs missed series over time — canonical area chart use case: continuous time axis + two overlapping magnitude series; only shown when ≥ 2 data points)
+- `ThemedDonutChart` for inbound vs outbound direction split (two-slice proportional breakdown — canonical donut use case)
+- `ThemedBarChart` for call duration distribution (discrete labeled histogram buckets — canonical bar chart use case)
+
+**Analytics filter:** `SegmentedControl` with options Today / 7 Days / 30 Days / Year, maps to `?filter=today|week|month|year` on the analytics endpoint.
+
+**Key design decisions:**
+- Stats tiles (today's StatCard section) always fetch from `/call-logs/stats` regardless of analytics period filter.
+- List API only supports single `date` filter; status/direction/search filters applied client-side on the loaded page.
+- Sync button shows `animate-spin` + "Syncing..." during the mutation (external Exotel API call, may be slow). Toast on success shows synced count.
+- Patient link flow: input ≥ 2 chars triggers patient search, result list rendered inline in the sheet (no separate Dialog).
+- Notes: save button disabled when notes unchanged or empty (backend requires `notes.min(1)`).
+
+**Build:** `tsc -b && vite build` — zero TypeScript errors (exit code 0), successful Vite production build. CallLogsPage chunk: 31.59 kB / 8.36 kB gzip.
