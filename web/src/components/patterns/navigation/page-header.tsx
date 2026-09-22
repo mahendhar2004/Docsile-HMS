@@ -1,6 +1,52 @@
 import type { ReactNode } from "react"
 import { Breadcrumbs, type BreadcrumbItem } from "./breadcrumbs"
 
+// ─── PageToolbar ────────────────────────────────────────────────────────────────
+
+export interface PageToolbarProps {
+  children: ReactNode
+  className?: string
+}
+
+/**
+ * Standalone layout wrapper for a page's filter/control bar — spacing and
+ * alignment only, deliberately NO background/border/shadow of its own.
+ *
+ * Every filter control in this design system (Button, IconButton, DatePicker,
+ * SearchBar, SingleSelect, etc.) already carries its own --shadow-border/
+ * --shadow-card definition. Giving the row a second, outer box around
+ * already-boxed controls reads as "boxes inside a box" rather than a clean
+ * toolbar — so this stays chrome-less and just arranges children with
+ * consistent gap/wrap/alignment. A hand-rolled control with no visual
+ * definition of its own (e.g. plain unstyled `<button>` pills) should be
+ * replaced with a real component that has one (e.g. `SegmentedControl`)
+ * rather than reached for by wrapping it in an outer box here.
+ *
+ * Exported standalone (not only via `PageHeader`'s `toolbar` prop) because
+ * filter state usually lives in a page's child tab/section component, not
+ * the top-level page file where `PageHeader` renders — forcing every page
+ * to lift that state up just to pass it into `PageHeader` would be a much
+ * bigger change than a layout one. Drop `<PageToolbar>` in directly wherever
+ * the filter controls already live.
+ *
+ * Usage:
+ * ```tsx
+ * <PageToolbar>
+ *   <DatePicker value={date} onChange={setDate} />
+ *   <SearchBar variant="with-autocomplete" {...searchProps} />
+ * </PageToolbar>
+ * ```
+ */
+export function PageToolbar({ children, className = "" }: PageToolbarProps) {
+  return (
+    <div
+      className={["flex flex-wrap items-center gap-3", className].join(" ")}
+    >
+      {children}
+    </div>
+  )
+}
+
 // ─── Types ────────────────────────────────────────────────────────────────────
 
 export interface PageHeaderProps {
@@ -73,7 +119,7 @@ export function PageHeader({
   const hasBreadcrumbs = breadcrumbs && breadcrumbs.length > 0
 
   return (
-    <header className={`pb-6 ${className}`}>
+    <header className={className}>
       <div className="flex items-start justify-between gap-4">
         {/* Left: breadcrumbs + title + description */}
         <div className="min-w-0 flex-1">
@@ -106,18 +152,10 @@ export function PageHeader({
         )}
       </div>
 
-      {/* Toolbar: page-level filters/controls, own bordered+shadowed strip */}
-      {toolbar && (
-        <div
-          className={[
-            "mt-4 flex flex-col sm:flex-row sm:items-center gap-3",
-            "rounded-[var(--radius-lg)] bg-[var(--color-card)]",
-            "shadow-[var(--shadow-card)] px-4 py-3",
-          ].join(" ")}
-        >
-          {toolbar}
-        </div>
-      )}
+      {/* Toolbar: page-level filters/controls — only when the state naturally
+          lives at this same page level; otherwise use <PageToolbar> directly
+          inside whichever tab/section component owns the filter state. */}
+      {toolbar && <PageToolbar className="mt-4">{toolbar}</PageToolbar>}
     </header>
   )
 }

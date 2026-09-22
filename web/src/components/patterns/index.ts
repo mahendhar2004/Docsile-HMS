@@ -63,8 +63,8 @@ export type { SegmentedControlProps, SegmentOption } from "./toggles"
 export * from "./date-time"
 
 // Navigation
-export { Sidebar, Breadcrumbs, PageHeader } from "./navigation"
-export type { SidebarProps, BreadcrumbsProps, BreadcrumbItem, PageHeaderProps } from "./navigation"
+export { Sidebar, Breadcrumbs, PageHeader, PageToolbar } from "./navigation"
+export type { SidebarProps, BreadcrumbsProps, BreadcrumbItem, PageHeaderProps, PageToolbarProps } from "./navigation"
 
 // Tables
 export { DataTable, PaginatedDataTable } from "./tables"

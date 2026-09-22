@@ -31,6 +31,8 @@ import {
   ThemedDonutChart,
   ErrorState,
   EmptyState,
+  PageToolbar,
+  SegmentedControl,
 } from "@/components/patterns"
 import type { DonutChartSlice } from "@/components/patterns"
 import { formatCurrency } from "@/lib/utils"
@@ -153,22 +155,13 @@ export function ExpensesSection({
   return (
     <div className="space-y-5">
       {/* Time filter bar */}
-      <div className="rounded-xl border border-border/60 bg-white shadow-sm px-4 py-3 flex flex-wrap gap-2 items-center">
-        {TIME_FILTER_OPTIONS.map(({ value, label }) => (
-          <button
-            key={value}
-            type="button"
-            onClick={() => setTimeFilter(value)}
-            className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
-              timeFilter === value
-                ? "bg-primary text-primary-foreground"
-                : "text-muted-foreground hover:text-foreground hover:bg-muted/50"
-            }`}
-            aria-pressed={timeFilter === value}
-          >
-            {label}
-          </button>
-        ))}
+      <PageToolbar>
+        <SegmentedControl
+          options={TIME_FILTER_OPTIONS}
+          value={timeFilter}
+          onValueChange={setTimeFilter}
+          aria-label="Time period filter"
+        />
 
         {timeFilter === "custom" && (
           <div className="flex gap-2 items-center ml-1">
@@ -179,7 +172,7 @@ export function ExpensesSection({
               className="w-[145px] h-8 text-sm"
               aria-label="Start date"
             />
-            <span className="text-xs text-muted-foreground">to</span>
+            <span className="text-[length:var(--text-caption)] text-[var(--color-muted-foreground)]">to</span>
             <Input
               type="date"
               value={customEnd}
@@ -189,7 +182,7 @@ export function ExpensesSection({
             />
           </div>
         )}
-      </div>
+      </PageToolbar>
 
       {/* Error state */}
       {error && !isLoading && (

@@ -48,6 +48,7 @@ import {
   SingleSelect,
   ConfirmationModal,
   EmptyState,
+  PageToolbar,
 } from "@/components/patterns"
 import type { Suggestion } from "@/components/patterns"
 import {
@@ -330,7 +331,7 @@ export function OpdTab({
   return (
     <div className="space-y-4">
       {/* ── Toolbar ──────────────────────────────────────────────────────── */}
-      <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3">
+      <PageToolbar className="items-start sm:items-center">
         {/* Date navigator */}
         <div className="flex items-center gap-1" role="group" aria-label="Appointment date navigation">
           <IconButton
@@ -388,7 +389,7 @@ export function OpdTab({
             Register Patient
           </Button>
         )}
-      </div>
+      </PageToolbar>
 
       {/* ── Patient table ─────────────────────────────────────────────────── */}
       <PaginatedDataTable<Patient>
