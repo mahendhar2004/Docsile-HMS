@@ -1,27 +1,106 @@
 /**
- * PatientCarePage — placeholder.
+ * PatientCarePage — thin composition root for the patient-care module.
  *
- * Phase 7 TODO: Implement full patient-care module UI:
- * - OPD/IPD tabbed view (replaces src/app/(hospital)/patients + inpatients)
- * - Patient registration stepper (POST /patient-care/patients)
- * - In-patient admission form (POST /patient-care/inpatients)
- * - Date navigator, search, patient table (GET /patient-care/patients)
- * - Patient detail panel (GET /patient-care/patients/{id})
- * - Existing patient search (GET /patient-care/patients/search — cursor-based)
- * - Add services modal (POST /patient-care/patients/{id}/services)
- * - Print receipt (GET /patient-care/patients/{id}/receipt)
- * - Edit/delete patients + inpatients
- * - Status update, date move
- * Permissions: patients:*, inpatients:*
+ * Renders an OPD/IPD tabbed view. Each tab is a self-contained module with
+ * its own state, data fetching, and action dialogs.
+ *
+ * Permissions:
+ *   patients:view    — gate for the OPD tab
+ *   inpatients:view  — gate for the IPD tab
+ *   patients:create  — register new patients
+ *   patients:edit    — edit, status update, date move
+ *   patients:delete  — delete patients
+ *   inpatients:create   — admit patients
+ *   inpatients:edit     — edit inpatients, status update
+ *   inpatients:delete   — delete inpatient records
+ *   inpatients:discharge — discharge action
+ *   billing:create  — add services
+ *   billing:view    — print receipt
  */
+
+import {
+  Tabs,
+  TabsList,
+  TabsTrigger,
+  TabsContent,
+} from "@/components/ui/tabs"
+import { PageHeader } from "@/components/patterns"
+import { ErrorState } from "@/components/patterns"
+import { usePermissions } from "@/hooks/usePermissions"
+import { OpdTab } from "./patient-care/opd-tab"
+import { IpdTab } from "./patient-care/ipd-tab"
+
 export default function PatientCarePage() {
+  const { can } = usePermissions()
+
+  // Resolve all permissions up front (all hooks called unconditionally).
+  const canViewOPD = can("patients:view")
+  const canViewIPD = can("inpatients:view")
+  const canCreatePatient = can("patients:create")
+  const canEditPatient = can("patients:edit")
+  const canDeletePatient = can("patients:delete")
+  const canCreateInPatient = can("inpatients:create")
+  const canEditInPatient = can("inpatients:edit")
+  const canDeleteInPatient = can("inpatients:delete")
+  const canDischargeInPatient = can("inpatients:discharge")
+  const canAddServices = can("billing:create")
+  const canViewReceipt = can("billing:view")
+
+  // Neither OPD nor IPD is accessible — show access denied.
+  if (!canViewOPD && !canViewIPD) {
+    return (
+      <main className="p-6">
+        <ErrorState
+          title="Access denied"
+          description="You need patients:view or inpatients:view permission to access this module. Contact your administrator."
+        />
+      </main>
+    )
+  }
+
+  // If only one tab is visible, default to that tab.
+  const defaultTab = canViewOPD ? "opd" : "ipd"
+
   return (
-    <main className="p-6">
-      <h1 className="text-xl font-semibold text-foreground">Patients</h1>
-      <p className="text-sm text-muted-foreground mt-1">
-        Phase 7 TODO: OPD + IPD patient management — registration, admission,
-        discharge, billing, prescriptions, and receipts.
-      </p>
+    <main className="p-6 space-y-5">
+      <PageHeader
+        title="Patient Care"
+        description="OPD registrations and in-patient admissions."
+      />
+
+      <Tabs defaultValue={defaultTab} variant="underline">
+        <TabsList>
+          {canViewOPD && (
+            <TabsTrigger value="opd">OPD Patients</TabsTrigger>
+          )}
+          {canViewIPD && (
+            <TabsTrigger value="ipd">In-Patients</TabsTrigger>
+          )}
+        </TabsList>
+
+        {canViewOPD && (
+          <TabsContent value="opd">
+            <OpdTab
+              canCreate={canCreatePatient}
+              canEdit={canEditPatient}
+              canDelete={canDeletePatient}
+              canAddServices={canAddServices}
+              canViewReceipt={canViewReceipt}
+            />
+          </TabsContent>
+        )}
+
+        {canViewIPD && (
+          <TabsContent value="ipd">
+            <IpdTab
+              canCreate={canCreateInPatient}
+              canEdit={canEditInPatient}
+              canDelete={canDeleteInPatient}
+              canDischarge={canDischargeInPatient}
+            />
+          </TabsContent>
+        )}
+      </Tabs>
     </main>
   )
 }
