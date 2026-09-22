@@ -21,7 +21,7 @@ modules produce).
 | 4 | Workup | `/workup` | `workup/*` (queue, eye readings) | ✅ |
 | 5 | Doctor | `/doctor` | `doctor/*` (queue, consultation, prescriptions, AI assist, receipt) | ✅ |
 | 6 | Billing | `/billing` | `billing/*` (daily summary, prescriptions, payments) | ✅ |
-| 7 | Pharmacy | `/pharmacy` | `pharmacy/*` (medicines, stock, suppliers, purchase orders, bills) | ⬜ |
+| 7 | Pharmacy | `/pharmacy` | `pharmacy/*` (medicines, stock, suppliers, purchase orders, bills) | ✅ |
 | 8 | Optical | `/optical` | `optical/*` (products, stock, bills, AR reading, settings) | ⬜ |
 | 9 | Labs | `/labs` | `labs/*` (labs, investigations, patient investigations, bills) | ⬜ |
 | 10 | Insurance | `/insurance` | `insurance/*` (companies, claims, payments) | ⬜ |
@@ -266,3 +266,30 @@ web/src/pages/doctor/ai-assist-panel.tsx           — collapsible Sitha AI pane
 - **`SingleSelect.value` is `string` (not `string | null`)** — all picker states use `?? ""` fallback.
 
 **Build:** `tsc -b && vite build` — zero TypeScript errors in all doctor/* files. Remaining build errors are in concurrently-built `pharmacy/` files (separate agent, out of scope).
+
+---
+
+### Session: PharmacyPage (page 7/18) — 2026-09-22
+
+**Files created/updated:**
+- `web/src/pages/PharmacyPage.tsx` — page shell, permission gate (pharmacy:view), 5-tab layout
+- `web/src/pages/pharmacy/types.ts` — all pharmacy interfaces, verified enums/field names
+- `web/src/pages/pharmacy/hooks.ts` — TanStack Query hooks for all pharmacy endpoints
+- `web/src/pages/pharmacy/medicines-tab.tsx` — medicine master CRUD, DataTable with `key` (not `accessorKey`), ConfirmationModal with `isLoading`/`onOpenChange`
+- `web/src/pages/pharmacy/medicine-form.tsx` — Dialog-based create/edit form, SingleSelect with `value: string`
+- `web/src/pages/pharmacy/stock-tab.tsx` — stock list with summary cards, filter chips, Badge `variant="error"` for low-stock/expired
+- `web/src/pages/pharmacy/stock-form.tsx` — Dialog-based add/edit stock with packs×packSize quantity calculation
+- `web/src/pages/pharmacy/suppliers-tab.tsx` — card-grid CRUD with Dialog form, ConfirmationModal (`isLoading`/`onOpenChange`, no `onCancel`)
+- `web/src/pages/pharmacy/purchase-orders-tab.tsx` — PO list (expandable cards), Dialog-based create PO + receive items forms, status filter bar
+- `web/src/pages/pharmacy/bills-tab.tsx` — full billing: pending medicines, patient/prescription lookup, medicine stock search, bill builder, history table
+
+**Key corrections vs. OpenAPI spec:**
+- Stock fields: `mrp`/`costPrice` (not `purchasePrice`/`sellingPrice`)
+- PO status: `DRAFT`/`ORDERED`/`PARTIALLY_RECEIVED`/`RECEIVED`/`CANCELLED` (uppercase, not lowercase)
+- Billing payment modes: `CASH`/`CARD`/`UPI`/`CREDIT` (uppercase, distinct from main billing module)
+- ColumnDef uses `key` (not `accessorKey`); Badge variant `"error"` not `"destructive"`
+- ConfirmationModal uses `isLoading` (not `isPending`) and `onOpenChange` (no `onCancel`)
+- DataModal is a data-fetching modal only — forms use Dialog/DialogContent/DialogHeader/DialogTitle/DialogFooter
+- SingleSelect: `value: string` and `onChange: (v: string) => void` (no null)
+
+**Build:** `npx tsc -b --noEmit` — zero pharmacy-specific TypeScript errors.
