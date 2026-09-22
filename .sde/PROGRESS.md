@@ -31,16 +31,16 @@ corresponding old `src/app/(...)/<module>` code has 🗑️.
 |---|---|---|---|---|---|---|
 | 1 | auth | 3 | ✅ | ⬜ | ⬜ | ⬜ |
 | 2 | health | 2 | ⬜ | n/a | ⬜ | n/a |
-| 3 | patient-care | 28 | ⬜ | ⬜ | ⬜ | ⬜ |
+| 3 | patient-care | 28 | ✅ | ⬜ | ⬜ | ⬜ |
 | 4 | billing | 5 | ⬜ | ⬜ | ⬜ | ⬜ |
 | 5 | pharmacy | 21 | ⬜ | ⬜ | ⬜ | ⬜ |
 | 6 | labs | 14 | ⬜ | ⬜ | ⬜ | ⬜ |
 | 7 | optical | 16 | ⬜ | ⬜ | ⬜ | ⬜ |
 | 8 | insurance | 11 | ⬜ | ⬜ | ⬜ | ⬜ |
-| 9 | queue | 3 | ⬜ | ⬜ | ⬜ | ⬜ |
-| 10 | doctor | 11 | ⬜ | ⬜ | ⬜ | ⬜ |
-| 11 | staff | 12 | ⬜ | ⬜ | ⬜ | ⬜ |
-| 12 | settings | 33 | ⬜ | ⬜ | ⬜ | ⬜ |
+| 9 | queue | 3 | ✅ | ⬜ | ⬜ | ⬜ |
+| 10 | doctor | 11 | ✅ | ⬜ | ⬜ | ⬜ |
+| 11 | staff | 12 | ✅ | ⬜ | ⬜ | ⬜ |
+| 12 | settings | 33 | ✅ | ⬜ | ⬜ | ⬜ |
 | 13 | analytics | 19 | ✅ | ⬜ | ⬜ | ⬜ |
 | 14 | reports | 17 | ⬜ | ⬜ | ⬜ | ⬜ |
 | 15 | workup | 4 | ⬜ | ⬜ | ⬜ | ⬜ |
@@ -73,6 +73,9 @@ From `.sde/phases/5-api-design.md` §8 and the OpenAPI spec's tag descriptions:
 | `StaffAttendance` / `SocialPost` live-DB status uncertain | Needs owner confirmation in the Supabase dashboard | 4-datamodel.md open questions 1-2 |
 | Supabase project region (India-DPDP) | Needs owner confirmation in the Supabase dashboard | 2-architecture.md §1.1, 4-datamodel.md open question 3 |
 | Exotel webhook hospitalId resolution is single-tenant only | `POST /call-logs/webhook/exotel` falls back to a single-row `HospitalProfile` lookup when Exotel's request carries no `X-Hospital-Id` header — correct for the current one-hospital deployment, but will misattribute calls (or need to error) once a second hospital tenant is onboarded. Needs real per-hospital webhook routing (e.g. a hospital-specific webhook URL/token, or requiring the header) before that happens. | `call-logs` module implementation notes, 2026-09-22 |
+| **"Ask Sitha AI" — an entire feature has NO endpoint in the API design** | `src/app/(hospital)/doctor/ai-actions.ts` (968 lines, `askSithaAI`) is a Gemini-backed AI consultation assistant built into the current app's doctor UI (`AskSithaAI` component, referenced from `patients/PatientsPage.tsx` too). Phase 5's API design never accounted for it — there is no `/doctor/ai/*` endpoint anywhere in openapi.yaml. This was NOT a deliberate deferral like Doctor CRUD/lab-results/PDF-export (those are noted in tag descriptions); it was simply missed. **This needs an explicit decision from the project owner**: port it (needs its own endpoint design + an ADR on whether Gemini calls happen from an Edge Function or stay client-side) or consciously drop it from this migration. Until decided, this is a real "hole," not a documented deferral. | Found during `doctor` module Phase 7 implementation, 2026-09-22 — **UNRESOLVED, needs owner decision** |
+| Staff profile fields were write-path-only missing (fixed) | The `staff` module's Phase 7 implementation initially only accepted `{name, email, password, role, employeeId}` on create/update, silently dropping `phone/department/designation/qualifications/joiningDate/address/emergencyContact/bloodGroup/salary/salaryType` even though all 10 are real `User` columns already returned correctly on reads. Caught and fixed before commit (openapi.yaml `User` schema + create/update request bodies, types.ts, service.ts, repository.ts all widened). Also fixed: password minimum length had drifted to 8 chars (a generic default) instead of the old app's actual 6-char minimum. | `staff` module implementation notes, 2026-09-22 — **fixed, not just flagged** |
+| **Realtime broadcast doesn't actually do column-level PII filtering — ADR-003 assumed a mechanism that doesn't exist as described** | ADR-003 says "Realtime channels broadcast only non-PII status fields... Supabase column broadcast filtering enforces this." The `queue` module's new migration (`20260922010000_enable_realtime_queue_tables.sql`) does `ALTER PUBLICATION supabase_realtime ADD TABLE "Patient"` etc. — this is the standard, correct way to enable Realtime, but it broadcasts the FULL row (name, phone, diagnosis included) to every subscriber, filtered only by RLS (which table rows a user can see), not by which COLUMNS are included in the payload. Standard Supabase `postgres_changes` has no native column-level payload filtering — achieving that would require Supabase's separate "Broadcast" feature with a custom DB trigger function that hand-picks fields, which is real additional work, not a config toggle. **Practical read**: since only authenticated hospital staff (who already have full Patient-table read access via the regular endpoints) can subscribe to their own hospital's channel, this may be an acceptable gap rather than a real exposure — but that's a product/compliance judgment call, not a technical one, and it contradicts what ADR-003 literally said would happen. Needs an explicit decision: accept full-row-broadcast-scoped-by-RLS as good enough, or invest in trigger-based column-filtered broadcasts. | Found during `queue` module Phase 7 implementation, 2026-09-22 — **UNRESOLVED, needs owner/product decision** |
 
 ---
 
@@ -98,34 +101,34 @@ work progresses, not appended to.
 ### patient-care (28)
 | Status | Method | Path | Permission | Source |
 |---|---|---|---|---|
-| ⬜ | GET | /patient-care/patients | `patients:view` | `getPatients` |
-| ⬜ | GET | /patient-care/patients/search | `patients:view` | `searchExistingPatients` |
-| ⬜ | GET | /patient-care/patients/next-id | `patients:create` | `getNextPatientId` |
-| ⬜ | GET | /patient-care/patients/registration-form | `patients:create` | `getPatientRegistrationFormData` |
-| ⬜ | POST | /patient-care/patients | `patients:create` | `createPatient` |
-| ⬜ | GET | /patient-care/patients/{id} | `patients:view` | `getPatientById` |
-| ⬜ | PATCH | /patient-care/patients/{id} | `patients:edit` | `updatePatientInfo` |
-| ⬜ | DELETE | /patient-care/patients/{id} | `patients:delete` | `deletePatient` |
-| ⬜ | PATCH | /patient-care/patients/{id}/status | `patients:edit` | `updatePatientStatus` |
-| ⬜ | PATCH | /patient-care/patients/{id}/date | `patients:edit` | `movePatientToDate` |
-| ⬜ | GET | /patient-care/patients/{id}/last-visit | `patients:view` | `getPatientWithLastVisit` |
-| ⬜ | GET | /patient-care/patients/{id}/receipt | `billing:view` (new) | `getPatientReceiptData` |
-| ⬜ | POST | /patient-care/patients/{id}/services | `billing:create` (new) | `addServiceToPatient` |
-| ⬜ | POST | /patient-care/patients/{id}/prescriptions | `billing:create` (new) | `createPrescriptionWithBilling` |
-| ⬜ | GET | /patient-care/inpatients | `inpatients:view` | `getInPatients` |
-| ⬜ | GET | /patient-care/inpatients/next-id | `inpatients:create` | `getNextInPatientId` |
-| ⬜ | GET | /patient-care/inpatients/admission-form | `inpatients:create` | `getInPatientAdmissionFormData` |
-| ⬜ | POST | /patient-care/inpatients | `inpatients:create` | `createInPatient` |
-| ⬜ | GET | /patient-care/inpatients/{id} | `inpatients:view` | `getInPatientById` |
-| ⬜ | PATCH | /patient-care/inpatients/{id} | `inpatients:edit` | `updateInPatient` |
-| ⬜ | PATCH | /patient-care/inpatients/{id}/basic-info | `inpatients:edit` | `updateInPatientBasicInfo` |
-| ⬜ | PATCH | /patient-care/inpatients/{id}/details | `inpatients:edit` | `updateInPatientDetails` |
-| ⬜ | PATCH | /patient-care/inpatients/{id}/status | `inpatients:edit` | `updateInPatientStatus` |
-| ⬜ | POST | /patient-care/inpatients/{id}/payments | `inpatients:edit` | `addInPatientPayment` |
-| ⬜ | POST | /patient-care/inpatients/{id}/discharge | `inpatients:discharge` | `dischargeInPatient` |
-| ⬜ | DELETE | /patient-care/inpatients/{id} | `inpatients:delete` | `deleteInPatient` |
-| ⬜ | GET | /patient-care/dropdown-options | `patients:view` | `getDropdownOptions` |
-| ⬜ | POST | /patient-care/dropdown-options | `patients:edit` | `addDropdownOption` |
+| ✅ | GET | /patient-care/patients | `patients:view` | `getPatients` |
+| ✅ | GET | /patient-care/patients/search | `patients:view` | `searchExistingPatients` |
+| ✅ | GET | /patient-care/patients/next-id | `patients:create` | `getNextPatientId` |
+| ✅ | GET | /patient-care/patients/registration-form | `patients:create` | `getPatientRegistrationFormData` |
+| ✅ | POST | /patient-care/patients | `patients:create` | `createPatient` |
+| ✅ | GET | /patient-care/patients/{id} | `patients:view` | `getPatientById` |
+| ✅ | PATCH | /patient-care/patients/{id} | `patients:edit` | `updatePatientInfo` |
+| ✅ | DELETE | /patient-care/patients/{id} | `patients:delete` | `deletePatient` |
+| ✅ | PATCH | /patient-care/patients/{id}/status | `patients:edit` | `updatePatientStatus` |
+| ✅ | PATCH | /patient-care/patients/{id}/date | `patients:edit` | `movePatientToDate` |
+| ✅ | GET | /patient-care/patients/{id}/last-visit | `patients:view` | `getPatientWithLastVisit` |
+| ✅ | GET | /patient-care/patients/{id}/receipt | `billing:view` (new) | `getPatientReceiptData` |
+| ✅ | POST | /patient-care/patients/{id}/services | `billing:create` (new) | `addServiceToPatient` |
+| ✅ | POST | /patient-care/patients/{id}/prescriptions | `billing:create` (new) | `createPrescriptionWithBilling` |
+| ✅ | GET | /patient-care/inpatients | `inpatients:view` | `getInPatients` |
+| ✅ | GET | /patient-care/inpatients/next-id | `inpatients:create` | `getNextInPatientId` |
+| ✅ | GET | /patient-care/inpatients/admission-form | `inpatients:create` | `getInPatientAdmissionFormData` |
+| ✅ | POST | /patient-care/inpatients | `inpatients:create` | `createInPatient` |
+| ✅ | GET | /patient-care/inpatients/{id} | `inpatients:view` | `getInPatientById` |
+| ✅ | PATCH | /patient-care/inpatients/{id} | `inpatients:edit` | `updateInPatient` |
+| ✅ | PATCH | /patient-care/inpatients/{id}/basic-info | `inpatients:edit` | `updateInPatientBasicInfo` |
+| ✅ | PATCH | /patient-care/inpatients/{id}/details | `inpatients:edit` | `updateInPatientDetails` |
+| ✅ | PATCH | /patient-care/inpatients/{id}/status | `inpatients:edit` | `updateInPatientStatus` |
+| ✅ | POST | /patient-care/inpatients/{id}/payments | `inpatients:edit` | `addInPatientPayment` |
+| ✅ | POST | /patient-care/inpatients/{id}/discharge | `inpatients:discharge` | `dischargeInPatient` |
+| ✅ | DELETE | /patient-care/inpatients/{id} | `inpatients:delete` | `deleteInPatient` |
+| ✅ | GET | /patient-care/dropdown-options | `patients:view` | `getDropdownOptions` |
+| ✅ | POST | /patient-care/dropdown-options | `patients:edit` | `addDropdownOption` |
 
 ### billing (5) — new module, permissions not yet in permissions.ts
 | Status | Method | Path | Permission | Source |
@@ -221,79 +224,79 @@ work progresses, not appended to.
 ### queue (3) — new module, permission not yet in permissions.ts
 | Status | Method | Path | Permission | Source |
 |---|---|---|---|---|
-| ⬜ | GET | /queue/opd | `queue:view` (new) | `getDoctorQueue` (doctor/actions.ts) |
-| ⬜ | GET | /queue/workup | `queue:view` (new) | `getWorkupQueue` (workup/actions.ts) |
-| ⬜ | GET | /queue/inpatients | `queue:view` (new) | Reads InPatient table for bed/status board |
+| ✅ | GET | /queue/opd | `queue:view` (new) | `getDoctorQueue` (doctor/actions.ts) |
+| ✅ | GET | /queue/workup | `queue:view` (new) | `getWorkupQueue` (workup/actions.ts) |
+| ✅ | GET | /queue/inpatients | `queue:view` (new) | Reads InPatient table for bed/status board |
 
 ### doctor (11)
 | Status | Method | Path | Permission | Source |
 |---|---|---|---|---|
-| ⬜ | GET | /doctor/queue | `doctor:view` | `getDoctorQueue` |
-| ⬜ | GET | /doctor/patients/{patientId}/consultation | `doctor:view` | `getPatientForConsultation` |
-| ⬜ | POST | /doctor/patients/{patientId}/prescriptions | `doctor:consult` | `savePrescription` (upsert) |
-| ⬜ | GET | /doctor/reference-data | `doctor:view` | `getPrescriptionReferenceData` |
-| ⬜ | GET | /doctor/medicine-master | `doctor:view` | `getMedicineMaster` |
-| ⬜ | GET | /doctor/investigation-master | `doctor:view` | `getInvestigationMaster` |
-| ⬜ | GET | /doctor/prescription-templates | `doctor:view` | `getPredefinedTemplates` |
-| ⬜ | GET | /doctor/dropdown-options | `doctor:view` | `getDropdownOptions` |
-| ⬜ | POST | /doctor/dropdown-options | `doctor:consult` | `addDropdownOption` |
-| ⬜ | POST | /doctor/medicines | `doctor:consult` | `createMedicine` |
-| ⬜ | GET | /doctor/patients/{patientId}/receipt | `billing:view` (new) | `getReceiptData` |
+| ✅ | GET | /doctor/queue | `doctor:view` | `getDoctorQueue` |
+| ✅ | GET | /doctor/patients/{patientId}/consultation | `doctor:view` | `getPatientForConsultation` |
+| ✅ | POST | /doctor/patients/{patientId}/prescriptions | `doctor:consult` | `savePrescription` (upsert) |
+| ✅ | GET | /doctor/reference-data | `doctor:view` | `getPrescriptionReferenceData` |
+| ✅ | GET | /doctor/medicine-master | `doctor:view` | `getMedicineMaster` |
+| ✅ | GET | /doctor/investigation-master | `doctor:view` | `getInvestigationMaster` |
+| ✅ | GET | /doctor/prescription-templates | `doctor:view` | `getPredefinedTemplates` |
+| ✅ | GET | /doctor/dropdown-options | `doctor:view` | `getDropdownOptions` |
+| ✅ | POST | /doctor/dropdown-options | `doctor:consult` | `addDropdownOption` |
+| ✅ | POST | /doctor/medicines | `doctor:consult` | `createMedicine` |
+| ✅ | GET | /doctor/patients/{patientId}/receipt | `billing:view` (new) | `getReceiptData` |
 
 *(No separate Doctor-entity CRUD here — deferred by design, see Known Deferred Items.)*
 
 ### staff (12)
 | Status | Method | Path | Permission | Source |
 |---|---|---|---|---|
-| ⬜ | GET | /staff/members | `staff:view` | `getStaffMembers` |
-| ⬜ | POST | /staff/members | `staff:create` | `createStaffMember` |
-| ⬜ | GET | /staff/members/{id} | `staff:view` | `getStaffMember` |
-| ⬜ | PATCH | /staff/members/{id} | `staff:edit` | `updateStaffMember` |
-| ⬜ | PATCH | /staff/members/{id}/active | `staff:deactivate` | `toggleStaffActive` |
-| ⬜ | POST | /staff/members/{id}/reset-password | `staff:edit` | `resetStaffPassword` |
-| ⬜ | GET | /staff/roles | `staff:view` | `getRoles` |
-| ⬜ | POST | /staff/roles | `staff:manage_roles` | `createRole` |
-| ⬜ | PATCH | /staff/roles/{id} | `staff:manage_roles` | `updateRole` |
-| ⬜ | PATCH | /staff/roles/{id}/permissions | `staff:manage_roles` | `updateRolePermissions` |
-| ⬜ | DELETE | /staff/roles/{id} | `staff:manage_roles` | `deleteRole` |
-| ⬜ | POST | /staff/roles/seed | `staff:manage_roles` | `seedSystemRoles` |
+| ✅ | GET | /staff/members | `staff:view` | `getStaffMembers` |
+| ✅ | POST | /staff/members | `staff:create` | `createStaffMember` |
+| ✅ | GET | /staff/members/{id} | `staff:view` | `getStaffMember` |
+| ✅ | PATCH | /staff/members/{id} | `staff:edit` | `updateStaffMember` |
+| ✅ | PATCH | /staff/members/{id}/active | `staff:deactivate` | `toggleStaffActive` |
+| ✅ | POST | /staff/members/{id}/reset-password | `staff:edit` | `resetStaffPassword` |
+| ✅ | GET | /staff/roles | `staff:view` | `getRoles` |
+| ✅ | POST | /staff/roles | `staff:manage_roles` | `createRole` |
+| ✅ | PATCH | /staff/roles/{id} | `staff:manage_roles` | `updateRole` |
+| ✅ | PATCH | /staff/roles/{id}/permissions | `staff:manage_roles` | `updateRolePermissions` |
+| ✅ | DELETE | /staff/roles/{id} | `staff:manage_roles` | `deleteRole` |
+| ✅ | POST | /staff/roles/seed | `staff:manage_roles` | `seedSystemRoles` |
 
 ### settings (33)
 | Status | Method | Path | Permission | Source |
 |---|---|---|---|---|
-| ⬜ | GET | /settings/service-templates | `settings:view` | `getServiceTemplates` |
-| ⬜ | POST | /settings/service-templates | `settings:edit` | `createServiceTemplate` |
-| ⬜ | PATCH | /settings/service-templates/{id} | `settings:edit` | `updateServiceTemplate` |
-| ⬜ | DELETE | /settings/service-templates/{id} | `settings:edit` | `deleteServiceTemplate` |
-| ⬜ | GET | /settings/hospital-profile | `settings:view` | `getHospitalProfile` |
-| ⬜ | PATCH | /settings/hospital-profile | `settings:edit` | `updateHospitalProfile` |
-| ⬜ | GET | /settings/print-config | `settings:view` | `getDefaultPrintConfig` |
-| ⬜ | PATCH | /settings/print-config | `settings:edit` | `saveDefaultPrintConfig` |
-| ⬜ | PATCH | /settings/nav-style | `settings:edit` | `updateNavStyle` |
-| ⬜ | GET | /settings/prescription-templates | `settings:view` | `getPrescriptionTemplates` |
-| ⬜ | POST | /settings/prescription-templates | `settings:edit` | `createPrescriptionTemplate` |
-| ⬜ | PATCH | /settings/prescription-templates/{id} | `settings:edit` | `updatePrescriptionTemplate` |
-| ⬜ | DELETE | /settings/prescription-templates/{id} | `settings:edit` | `deletePrescriptionTemplate` |
-| ⬜ | GET | /settings/inpatient-templates | `settings:view` | `getInpatientTemplates` |
-| ⬜ | POST | /settings/inpatient-templates | `settings:edit` | `createInpatientTemplate` |
-| ⬜ | PATCH | /settings/inpatient-templates/{id} | `settings:edit` | `updateInpatientTemplate` |
-| ⬜ | DELETE | /settings/inpatient-templates/{id} | `settings:edit` | `deleteInpatientTemplate` |
-| ⬜ | GET | /settings/packages | `settings:view` | `getPredefinedPackages` |
-| ⬜ | POST | /settings/packages | `settings:edit` | `createPredefinedPackage` |
-| ⬜ | PATCH | /settings/packages/{id} | `settings:edit` | `updatePredefinedPackage` |
-| ⬜ | DELETE | /settings/packages/{id} | `settings:edit` | `deletePredefinedPackage` |
-| ⬜ | GET | /settings/surgeries | `settings:view` | `getPredefinedSurgeries` |
-| ⬜ | POST | /settings/surgeries | `settings:edit` | `createPredefinedSurgery` |
-| ⬜ | PATCH | /settings/surgeries/{id} | `settings:edit` | `updatePredefinedSurgery` |
-| ⬜ | DELETE | /settings/surgeries/{id} | `settings:edit` | `deletePredefinedSurgery` (soft) |
-| ⬜ | GET | /settings/discharges | `settings:view` | `getPredefinedDischarges` |
-| ⬜ | POST | /settings/discharges | `settings:edit` | `createPredefinedDischarge` |
-| ⬜ | PATCH | /settings/discharges/{id} | `settings:edit` | `updatePredefinedDischarge` |
-| ⬜ | DELETE | /settings/discharges/{id} | `settings:edit` | `deletePredefinedDischarge` (soft) |
-| ⬜ | GET | /settings/medicine-master | `settings:view` | `getMedicineMasterList` |
-| ⬜ | POST | /settings/medicine-master | `settings:edit` | `createMedicineMaster` |
-| ⬜ | PATCH | /settings/medicine-master/{id} | `settings:edit` | `updateMedicineMaster` |
-| ⬜ | DELETE | /settings/medicine-master/{id} | `settings:edit` | `deleteMedicineMaster` |
+| ✅ | GET | /settings/service-templates | `settings:view` | `getServiceTemplates` |
+| ✅ | POST | /settings/service-templates | `settings:edit` | `createServiceTemplate` |
+| ✅ | PATCH | /settings/service-templates/{id} | `settings:edit` | `updateServiceTemplate` |
+| ✅ | DELETE | /settings/service-templates/{id} | `settings:edit` | `deleteServiceTemplate` |
+| ✅ | GET | /settings/hospital-profile | `settings:view` | `getHospitalProfile` |
+| ✅ | PATCH | /settings/hospital-profile | `settings:edit` | `updateHospitalProfile` |
+| ✅ | GET | /settings/print-config | `settings:view` | `getDefaultPrintConfig` |
+| ✅ | PATCH | /settings/print-config | `settings:edit` | `saveDefaultPrintConfig` |
+| ✅ | PATCH | /settings/nav-style | `settings:edit` | `updateNavStyle` |
+| ✅ | GET | /settings/prescription-templates | `settings:view` | `getPrescriptionTemplates` |
+| ✅ | POST | /settings/prescription-templates | `settings:edit` | `createPrescriptionTemplate` |
+| ✅ | PATCH | /settings/prescription-templates/{id} | `settings:edit` | `updatePrescriptionTemplate` |
+| ✅ | DELETE | /settings/prescription-templates/{id} | `settings:edit` | `deletePrescriptionTemplate` |
+| ✅ | GET | /settings/inpatient-templates | `settings:view` | `getInpatientTemplates` |
+| ✅ | POST | /settings/inpatient-templates | `settings:edit` | `createInpatientTemplate` |
+| ✅ | PATCH | /settings/inpatient-templates/{id} | `settings:edit` | `updateInpatientTemplate` |
+| ✅ | DELETE | /settings/inpatient-templates/{id} | `settings:edit` | `deleteInpatientTemplate` |
+| ✅ | GET | /settings/packages | `settings:view` | `getPredefinedPackages` |
+| ✅ | POST | /settings/packages | `settings:edit` | `createPredefinedPackage` |
+| ✅ | PATCH | /settings/packages/{id} | `settings:edit` | `updatePredefinedPackage` |
+| ✅ | DELETE | /settings/packages/{id} | `settings:edit` | `deletePredefinedPackage` |
+| ✅ | GET | /settings/surgeries | `settings:view` | `getPredefinedSurgeries` |
+| ✅ | POST | /settings/surgeries | `settings:edit` | `createPredefinedSurgery` |
+| ✅ | PATCH | /settings/surgeries/{id} | `settings:edit` | `updatePredefinedSurgery` |
+| ✅ | DELETE | /settings/surgeries/{id} | `settings:edit` | `deletePredefinedSurgery` (soft) |
+| ✅ | GET | /settings/discharges | `settings:view` | `getPredefinedDischarges` |
+| ✅ | POST | /settings/discharges | `settings:edit` | `createPredefinedDischarge` |
+| ✅ | PATCH | /settings/discharges/{id} | `settings:edit` | `updatePredefinedDischarge` |
+| ✅ | DELETE | /settings/discharges/{id} | `settings:edit` | `deletePredefinedDischarge` (soft) |
+| ✅ | GET | /settings/medicine-master | `settings:view` | `getMedicineMasterList` |
+| ✅ | POST | /settings/medicine-master | `settings:edit` | `createMedicineMaster` |
+| ✅ | PATCH | /settings/medicine-master/{id} | `settings:edit` | `updateMedicineMaster` |
+| ✅ | DELETE | /settings/medicine-master/{id} | `settings:edit` | `deleteMedicineMaster` |
 
 ### analytics (19) — all share `?filter=today|week|month|year|custom&customStart&customEnd`
 | Status | Method | Path | Permission | Source |
@@ -494,6 +497,123 @@ captured in the phase docs.
   PII (callerName, callFrom, callTo) never logged. `deno check` not run — Deno not
   installed in this environment (same constraint as auth module Wave 1). Status
   Summary Backend column for call-logs: ⬜ → ✅.
+- **2026-09-22** — Phase 7 Wave 2: `queue` module backend complete (3 endpoints).
+  `types.ts` extended with `OpdQueueEntry`, `WorkupQueueEntry`, `InpatientBoardEntry`
+  type aliases (wide `Record<string, unknown>` — shapes come from PostgREST nested joins).
+  `repository.ts` implements `QueueRepository` with three methods: `getOpdQueue` (ports
+  `getDoctorQueue` — three parallel Patient queries on appointment/prescription/eye-reading
+  date ranges, merge by patientId, in-process IST date filter on nested relations, status
+  computed via module-local `computeStatus`), `getWorkupQueue` (ports `getWorkupQueue` —
+  same three-query pattern with lighter prescription select: id/status/prescriptionDate/
+  doctorName/createdAt, no InvoiceItem/LabBill expansion), `getInpatientBoard` (new — reads
+  InPatient table, filters status != DISCHARGED, orders admissionDate ascending). Three
+  module-local private helpers: `toISTDateISO` (IST date string), `getISTDayBounds`
+  (IST midnight–23:59:59.999 boundaries as UTC Date objects, both porting old utils.ts
+  behavior exactly), `computeStatus` (ports old `computePatientStatus` — MOVED/CANCELLED/
+  NO_SHOW/VISITED override, else COMPLETED/WORKUP_DONE/MEDICAL_ONLY/REGISTERED).
+  Every query scoped by `.eq('hospital_id', this.hospitalId)` per ADR-007.
+  `service.ts` implements three thin orchestrators: `getOpdQueue`, `getWorkupQueue`,
+  `getInpatientBoard` — each instantiates `QueueRepository` with `session.hospitalId`
+  and delegates to the repository. `index.ts` and `types.ts`'s `QueueQuerySchema`
+  required no changes.
+  Realtime gap fixed: new migration `20260922010000_enable_realtime_queue_tables.sql`
+  adds `Patient`, `Prescription`, `EyeReading`, and `InPatient` to the
+  `supabase_realtime` publication. Rationale: without this, Supabase Realtime CDC
+  events for these tables are never broadcast, so the frontend's
+  `hospital:{hospitalId}:queue` and `hospital:{hospitalId}:beds` channel subscriptions
+  silently receive nothing. `Patient` covers both the queue and appointments channels
+  (there is no separate Appointment table — appointments live on `Patient.appointmentDate`).
+  `deno check` not run — Deno not installed in this environment.
+  queue module Status Summary Backend column: ⬜ → ✅.
+- **2026-09-22** — Phase 7 Wave 2: `doctor` module backend complete (11 endpoints).
+  `types.ts` corrected: `PrescriptionSchema` updated from stub (id/doctorId/diagnosis
+  only) to the full real schema (patientId, doctorName, department, vitals, complaint,
+  history, diagnosis, additionalNotes, medicines array, investigations array, followUpDate,
+  notes). `MedicineMasterSchema` updated from stub (genericName/dosageForm) to real DB
+  columns (name, category, defaultTiming, defaultDays, note). `repository.ts` implements
+  `DoctorRepository` with hospital_id scoping on every query (ADR-007): `getQueue`
+  (three parallel Supabase queries + Map de-dup by patientId), `findPatient`,
+  `findTodayPrescription`, `insertPrescription`, `updatePrescription`, `getMedicineMaster`,
+  `insertMedicine`, `getInvestigationMaster`, `getPredefinedTemplates`, `getDropdownOptions`
+  (bucketed by fieldName for the 4 doctor fields), `dropdownOptionExists`, `insertDropdownOption`,
+  `findPatientWithReceipt`, `getHospitalProfile` (no hospital_id — singleton table).
+  `service.ts` implements all 11 functions: IST day-bound helpers and `computePatientStatus`
+  inlined (no Next.js import). `getDoctorQueue`: three-query merge + nested-relation filter
+  to today + status computation. `getPatientConsultation`: single fetch + today/past split
+  + todayPrescription/pastPrescriptions fields. `savePrescription` upsert: finds today's
+  existing Prescription by (patientId, prescriptionDate in IST range) → UPDATE if found,
+  INSERT if not; medicines/investigations JSON-stringified; followUpDate converted to IST
+  midnight UTC; status always "COMPLETED". `getReferenceData`: parallel fetch of all 4
+  reference types, maps investigations to name-only array. `getDropdownOptions`: returns
+  grouped object. `addDropdownOption`: idempotent (no-op if exists). `createMedicine`:
+  inserts with hospital_id + createdBy. `getPatientReceipt` (billing:view): parallel
+  patient+hospital fetch, filters to today's prescription and eye reading, returns
+  { patient, hospital, prescription, eyeReading }. AI-assist feature (`askSithaAI` in
+  src/app/(hospital)/doctor/ai-actions.ts) confirmed present but deferred — no doctor-tag
+  endpoint in openapi.yaml covers it; needs its own endpoint design when frontend is built.
+  `index.ts` required no changes (all 11 routes already wired correctly in Phase 6 scaffold).
+  `deno check` not run — Deno not installed in this environment.
+  doctor module Status Summary Backend column: ⬜ → ✅.
+- **2026-09-22** — Phase 7 Wave 2: `settings` module backend complete (33 endpoints). `types.ts`
+  corrected to match actual DB columns: `ServiceTemplateSchema` field `price` renamed to `amount`
+  (DB column name) with `description`/`discount`/`sortOrder`/`isActive` added; `HospitalProfileSchema`
+  expanded with all known DB fields (`displayName`, `website`, `registrationNo`, `gstin`,
+  `registrationFeeEnabled/Amount/DefaultChecked`, `tone`, `departments`, `settings`);
+  `PredefinedTemplateSchema` rebuilt with `code`, `medicines`/`investigations` as TEXT strings,
+  and all optional clinical fields; `InpatientTemplateSchema` rebuilt with `code` and clinical
+  fields; `PredefinedPackageSchema` renamed `price`→`totalAmount`, `items`→`inclusions` (TEXT);
+  `PredefinedSurgerySchema` rebuilt with all surgical fields; `PredefinedDischargeSchema` rebuilt
+  with all discharge fields; `MedicineMasterSchema` corrected from non-existent `genericName`/
+  `dosageForm` to actual DB fields `defaultTiming`, `defaultDays`, `note`, `sortOrder`.
+  Named type aliases added for service.ts import. `repository.ts` implements all data-access
+  methods: 5 for ServiceTemplate (list, findById, insert, update, hard-delete), 2 for
+  HospitalProfile (get, upsert), 6 for PredefinedTemplate (+ findByCode), 6 for
+  InpatientTemplate (+ findByCode), 5 for PredefinedPackage (+ findByName), 5 for
+  PredefinedSurgery (+ softDelete), 5 for PredefinedDischarge (+ softDelete), 5 for
+  MedicineMaster (+ findByName) — 39 repository methods total, every query scoped by
+  `hospital_id` per ADR-007. `service.ts` implements all 33 service functions: hard-deletes
+  for ServiceTemplate, PredefinedTemplate, InpatientTemplate, PredefinedPackage, MedicineMaster;
+  soft-deletes (isActive=false) for PredefinedSurgery and PredefinedDischarge (matching old
+  actions.ts exactly); HospitalProfile upsert pattern; PrintConfig and NavStyle stored inside
+  HospitalProfile.settings JSON blob (same pattern as old saveDefaultPrintConfig/updateNavStyle).
+  Uniqueness guards: PredefinedTemplate by code, InpatientTemplate by code, PredefinedPackage
+  by name, MedicineMaster by name — all scoped to hospitalId (multi-tenant correct; old code
+  was unscoped single-tenant). `index.ts` required no changes (route wiring was correct).
+  Service-templates divergence note: `patients/actions.ts` uses `amount` (same as DB) and
+  includes `isActive`/`discount` in select — settings module now matches this exactly, no
+  divergence from the DB column perspective. `deno check` not run — Deno not installed in
+  this environment (same constraint as all prior Wave 1 modules).
+  settings Module Status Summary Backend column: ⬜ → ✅.
+- **2026-09-22** — Phase 7 Wave 2: `patient-care` module backend complete (28 endpoints).
+  `repository.ts` implements all data-access methods in two logical sections (Patient +
+  InPatient) plus billing-adjacent helpers and dropdown options, all in one class per
+  ADR-006 (single deployable). Tenant isolation enforced on every query via
+  `.eq('hospital_id', this.hospitalId)` (ADR-007). **H-3 fix confirmed**: three RPC
+  calls replace the old race-prone "SELECT MAX + 1" pattern —
+  `supabase.rpc('next_patient_number')` for Patient.patientId,
+  `supabase.rpc('next_ip_number')` for InPatient.ipNumber, and
+  `supabase.rpc('next_prescription_number', { p_year })` for Prescription.prescriptionNumber;
+  no MAX+1 pattern anywhere in the new code. `service.ts` implements all 28 functions:
+  `listPatients` (paginated, computes derived status via `computePatientStatus()` helper),
+  `searchPatients` (cursor-based, enriches with fullName/lastVisitDate),
+  `getNextPatientId`/`getNextInPatientId` (call RPCs — gaps accepted by design),
+  `getPatientRegistrationFormData`/`getAdmissionFormData` (parallel bundle fetches, do NOT
+  call sequence RPCs to avoid wasting slots on form opens), `createPatient`/`createInPatient`
+  (call RPCs for definitive ID at write time), full CRUD + status/date/discharge actions for
+  both Patient and InPatient, and the three billing-adjacent endpoints
+  (`getPatientReceiptData`, `addServiceToPatient`, `createPrescriptionWithBilling`) kept in
+  this module per spec — they are NOT moved to the billing module, and no cross-module calls
+  are made (the shared prescription-upsert logic is duplicated with comment per the
+  architecture rule). `addDropdownOption` uses upsert semantics (existence check + insert,
+  no DB UNIQUE violation on duplicate). Billing-adjacent prescription-upsert logic: checks
+  for today's prescription before creating, appending to it if found (same behavior as old
+  `addServiceToPatient`/`createPrescriptionWithBilling`). `dischargeInPatient` stores
+  discharge summary as JSON in `dischargeNotes`; `addInPatientPayment` appends to
+  `paymentRecords` JSON array and recalculates totals. `deletePatient` cascades in FK-safe
+  order (payments → invoice items → eye readings → prescriptions → insurance claims →
+  inpatient → patient). No PII in log calls. `index.ts` not modified. `deno check` not run
+  — Deno not installed in this environment. patient-care Module Status Summary Backend
+  column: ⬜ → ✅.
 - **2026-09-22** — Phase 6 scaffold complete on both surfaces, independently
   verified (not just trusted from the agent reports):
   - Frontend (`web/`): 19 routes confirmed matching the 18-module list
@@ -518,6 +638,7 @@ captured in the phase docs.
     stays ⬜ until Phase 7 replaces stubs with real logic module by
     module; scaffold completion is tracked here in prose, not by
     flipping those checkboxes early.
+- **2026-09-22** — Phase 7 Wave 2: `staff` module backend complete (12 endpoints). `types.ts` extended with `StaffMemberResponse` and `RoleResponse` output interfaces (passwordHash never included in responses). `repository.ts` implements `StaffRepository` with full hospital_id scoping on every User query (ADR-007) and no hospital_id on Role queries (Role is a global table, confirmed by auth/repository.ts). Methods: `findMembers`, `findMemberById`, `findMemberByEmail`, `findMemberByEmployeeId`, `insertMember`, `updateMember`, `updatePasswordHash`, `findRoles`, `findRoleById`, `findRoleByName`, `countUsersByRoleName`, `insertRole`, `updateRole`, `deleteRole`, `upsertSystemRole`. `service.ts` implements all 12 functions. Password hashing: `bcryptjs.hash(password, 10)` — cost factor 10 matches old `actions.ts`; plaintext never logged. `createMember` provisions a Supabase Auth identity via `supabase.auth.admin.createUser()` (service_role key) then inserts the User row with the resulting UUID. `resetPassword` hashes first, writes DB (source of truth), then best-effort syncs to Supabase Auth (logs a warn on failure, does not fail the request). `toggleActive` guards against a user modifying their own active flag. `deleteRole` guards against deleting system roles and roles still assigned to users. `updateRolePermissions` performs no key validation (matching old actions.ts which also validated nothing — just wrote the array verbatim). `seedSystemRoles` upserts all 5 system roles (ADMIN, DOCTOR, RECEPTIONIST, OPTOMETRIST, NURSE) from a hardcoded `SYSTEM_ROLES` constant that matches the CURRENT `DEFAULT_ROLE_PERMISSIONS` in `src/lib/permissions.ts` including the 3 new permission groups (billing:*, queue:view, call_logs:*) — idempotent upsert (check-then-insert/update per role), never a blind overwrite that would clobber the migration's per-key append work. `index.ts` not modified (no bugs found). `deno check` not run — Deno not installed in this environment. staff module Status Summary Backend column: ⬜ → ✅.
   - Phase 7 handoff notes from the backend scaffold (not yet done):
     finalize `auth/repository.ts`'s logout token_revocation insert
     (currently a stub even though the read-side jti check is real),
