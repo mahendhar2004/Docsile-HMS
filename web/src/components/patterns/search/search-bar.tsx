@@ -250,7 +250,7 @@ function InputCore({
     <div className="relative flex items-center">
       {/* Search icon */}
       <Search
-        className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-[var(--color-muted-foreground)] pointer-events-none"
+        className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground/60 pointer-events-none"
         aria-hidden
       />
 
@@ -271,14 +271,15 @@ function InputCore({
         autoComplete="off"
         spellCheck={false}
         className={cn(
-          "w-full h-9",
-          "pl-9 pr-8 py-2",
-          "rounded-[var(--radius-sm)]",
-          "border border-[var(--color-border)]",
-          "bg-[var(--color-surface)] text-sm text-[var(--color-foreground)]",
-          "placeholder:text-[var(--color-muted-foreground)]",
-          "transition-colors duration-[var(--duration-micro)] ease-[var(--ease-micro)]",
-          "focus:outline-none focus:ring-2 focus:ring-[var(--color-ring)] focus:border-[var(--color-ring)]",
+          // Matches main's SearchInput exactly (src/components/layout/header.tsx)
+          "w-full h-8",
+          "pl-9 pr-8",
+          "rounded-lg",
+          "border border-border/60",
+          "bg-white text-sm text-foreground",
+          "placeholder:text-muted-foreground/50",
+          "transition-all duration-150",
+          "focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary/40",
           "disabled:opacity-50 disabled:cursor-not-allowed",
           // Hide browser's native clear button (we render our own)
           "[&::-webkit-search-cancel-button]:hidden [&::-webkit-search-decoration]:hidden",
@@ -298,12 +299,13 @@ function InputCore({
             "absolute right-2.5 top-1/2 -translate-y-1/2",
             "flex items-center justify-center",
             "h-4 w-4 rounded-full",
-            "text-[var(--color-muted-foreground)] hover:text-[var(--color-foreground)]",
-            "transition-colors duration-[var(--duration-micro)]",
+            "bg-muted-foreground/15 hover:bg-muted-foreground/25",
+            "text-muted-foreground",
+            "transition-colors",
             "focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-[var(--color-ring)]",
           )}
         >
-          <X className="h-3 w-3" aria-hidden />
+          <X className="h-2.5 w-2.5" strokeWidth={3} aria-hidden />
         </button>
       )}
     </div>
