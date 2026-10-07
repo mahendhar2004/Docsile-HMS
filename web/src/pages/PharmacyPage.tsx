@@ -1,11 +1,15 @@
 /**
- * PharmacyPage — pharmacy module root (page 7/18).
+ * PharmacyPage — pharmacy module root (page 7/18), matching main's 4-tab
+ * structure (src/app/(hospital)/pharmacy/components/PharmacyPage.tsx):
+ * Billing, Inventory, Suppliers, Purchase Orders — default Billing.
+ * Main's single "Inventory" tab combines medicine master + stock/batch
+ * entry as two stacked tables (see pharmacy/inventory-tab.tsx).
  *
  * Endpoints covered:
  *   - GET/POST /pharmacy/medicines            (pharmacy:view / pharmacy:manage_stock)
  *   - PATCH/DELETE /pharmacy/medicines/{id}   (pharmacy:manage_stock)
  *   - GET/POST /pharmacy/stock               (pharmacy:view / pharmacy:manage_stock)
- *   - GET /pharmacy/stock/summary            (pharmacy:view)
+ *   - GET /pharmacy/stock/summary            (pharmacy:view) — header stat badges
  *   - GET /pharmacy/stock/search             (pharmacy:view)
  *   - PATCH /pharmacy/stock/{id}             (pharmacy:manage_stock)
  *   - GET/POST /pharmacy/suppliers           (pharmacy:view / pharmacy:manage_stock)
@@ -21,17 +25,19 @@
  */
 
 import { usePermissions } from "@/hooks/usePermissions"
-import { PageHeader, ErrorState } from "@/components/patterns"
+import { PageHeader, StatBadge, ErrorState } from "@/components/patterns"
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs"
-import { MedicinesTab } from "./pharmacy/medicines-tab"
-import { StockTab } from "./pharmacy/stock-tab"
+import { InventoryTab } from "./pharmacy/inventory-tab"
 import { SuppliersTab } from "./pharmacy/suppliers-tab"
 import { PurchaseOrdersTab } from "./pharmacy/purchase-orders-tab"
 import { BillsTab } from "./pharmacy/bills-tab"
+import { useStockSummary } from "./pharmacy/hooks"
 
 export default function PharmacyPage() {
   const { can } = usePermissions()
   const hasAccess = can("pharmacy:view")
+
+  const { data: summary } = useStockSummary(hasAccess)
 
   if (!hasAccess) {
     return (
@@ -48,36 +54,40 @@ export default function PharmacyPage() {
     <main className="space-y-6">
       <PageHeader
         title="Pharmacy"
-        description="Medicine master, stock management, suppliers, purchase orders, and billing."
+        description="Billing, inventory & suppliers."
+        toolbar={
+          summary ? (
+            <>
+              <StatBadge value={summary.lowStock} label="Low Stock" variant="warning" />
+              <StatBadge value={summary.nearExpiry} label="Near Expiry" variant="warning" />
+              <StatBadge value={summary.totalItems} label="Items in Stock" variant="info" />
+            </>
+          ) : undefined
+        }
       />
 
-      <Tabs defaultValue="stock">
+      <Tabs defaultValue="billing">
         <TabsList>
-          <TabsTrigger value="stock">Stock</TabsTrigger>
-          <TabsTrigger value="medicines">Medicines</TabsTrigger>
           <TabsTrigger value="billing">Billing</TabsTrigger>
-          <TabsTrigger value="purchase-orders">Purchase Orders</TabsTrigger>
+          <TabsTrigger value="inventory">Inventory</TabsTrigger>
           <TabsTrigger value="suppliers">Suppliers</TabsTrigger>
+          <TabsTrigger value="purchase-orders">Purchase Orders</TabsTrigger>
         </TabsList>
-
-        <TabsContent value="stock">
-          <StockTab />
-        </TabsContent>
-
-        <TabsContent value="medicines">
-          <MedicinesTab />
-        </TabsContent>
 
         <TabsContent value="billing">
           <BillsTab />
         </TabsContent>
 
-        <TabsContent value="purchase-orders">
-          <PurchaseOrdersTab />
+        <TabsContent value="inventory">
+          <InventoryTab />
         </TabsContent>
 
         <TabsContent value="suppliers">
           <SuppliersTab />
+        </TabsContent>
+
+        <TabsContent value="purchase-orders">
+          <PurchaseOrdersTab />
         </TabsContent>
       </Tabs>
     </main>

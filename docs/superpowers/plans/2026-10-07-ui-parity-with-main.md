@@ -24,8 +24,8 @@
 | 6 | Delete standalone Queue page | ✅ done |
 | 7 | Rework Doctor page (queue-table-takeover) | ⚠️ done (partial scope, see ledger) |
 | 8 | Rework Workup page (Refraction) | ⚠️ done (partial stat badges, see ledger) |
-| 9 | Pharmacy — consolidate to 4 tabs + stat badges | 🔄 in progress |
-| 10 | Optical — consolidate to 3 tabs + stat badges | ⬜ not started |
+| 9 | Pharmacy — consolidate to 4 tabs + stat badges | ✅ done |
+| 10 | Optical — consolidate to 3 tabs + stat badges | 🔄 in progress |
 | 11 | Labs — consolidate to 2 tabs + stat badge | ⬜ not started |
 | 12 | Insurance — remove invented tab structure | ⬜ not started |
 | 13 | Dues & Follow-Ups — label fixes | ⬜ not started |
