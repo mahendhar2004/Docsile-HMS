@@ -20,7 +20,7 @@
  */
 
 import { useState } from "react"
-import { ChevronDown, Plus } from "lucide-react"
+import { ChevronDown, Plus, Printer } from "lucide-react"
 import {
   Sheet,
   SheetContent,
@@ -43,6 +43,7 @@ import { usePermissions } from "@/hooks/usePermissions"
 import { useInsuranceClaim, useInsuranceCompaniesAll, useUpdateClaimDetails } from "./hooks"
 import { ClaimStatusForm } from "./claim-status-form"
 import { PaymentForm } from "./payment-form"
+import { BillPreview, type BillType } from "./bill-preview"
 import {
   INS_STATUS_LABELS,
   INS_STATUS_TRANSITIONS,
@@ -209,6 +210,10 @@ function ClaimDetailContent({ claim, onRefresh }: { claim: InsuranceClaim; onRef
   // Edit details
   const [editingDetails, setEditingDetails] = useState(false)
 
+  // Bill preview — swaps this entire view for the editable bill-preview
+  // screen, matching main's onBack takeover pattern (InsuranceBillPreview).
+  const [billType, setBillType] = useState<BillType | null>(null)
+
   const history = parseStatusHistory(claim.statusHistory)
   const packageInclusions = parsePackageInclusions(claim.packageInclusions)
   const doctors = parseDoctors(claim.doctorNames)
@@ -245,6 +250,10 @@ function ClaimDetailContent({ claim, onRefresh }: { claim: InsuranceClaim; onRef
     ["Settlement Date", claim.settlementDate ? formatDate(claim.settlementDate) : "—"],
   ]
 
+  if (billType) {
+    return <BillPreview claim={claim} billType={billType} onBack={() => setBillType(null)} />
+  }
+
   return (
     <div className="space-y-6">
       {/* ── Claim header ────────────────────────────────────────────────────── */}
@@ -269,26 +278,26 @@ function ClaimDetailContent({ claim, onRefresh }: { claim: InsuranceClaim; onRef
           </div>
         </div>
 
-        {canEdit && (
-          <div className="flex flex-wrap items-center gap-2">
-            {allowedTransitions.length > 0 && (
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button size="sm" variant="outline">
-                    Change Status
-                    <ChevronDown className="h-3.5 w-3.5 ml-1" aria-hidden="true" />
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end">
-                  {allowedTransitions.map((s) => (
-                    <DropdownMenuItem key={s} onSelect={() => setStatusTarget(s)}>
-                      {INS_STATUS_LABELS[s]}
-                    </DropdownMenuItem>
-                  ))}
-                </DropdownMenuContent>
-              </DropdownMenu>
-            )}
+        <div className="flex flex-wrap items-center gap-2">
+          {canEdit && allowedTransitions.length > 0 && (
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button size="sm" variant="outline">
+                  Change Status
+                  <ChevronDown className="h-3.5 w-3.5 ml-1" aria-hidden="true" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                {allowedTransitions.map((s) => (
+                  <DropdownMenuItem key={s} onSelect={() => setStatusTarget(s)}>
+                    {INS_STATUS_LABELS[s]}
+                  </DropdownMenuItem>
+                ))}
+              </DropdownMenuContent>
+            </DropdownMenu>
+          )}
 
+          {canEdit && (
             <Button
               size="sm"
               variant="outline"
@@ -297,8 +306,27 @@ function ClaimDetailContent({ claim, onRefresh }: { claim: InsuranceClaim; onRef
               <Plus className="h-3.5 w-3.5 mr-1" aria-hidden="true" />
               Patient Payment
             </Button>
+          )}
+
+          {/* Direct one-click bill buttons — not gated on insurance:edit,
+              matching main exactly (printing a bill is a view action, the
+              panel itself already requires insurance:view to be open). */}
+          <div className="flex items-center gap-1.5 rounded-lg border border-border bg-muted/30 p-1">
+            <span className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground px-1.5">
+              <Printer className="h-3 w-3 inline-block mr-1 -mt-0.5" aria-hidden="true" />
+              Print
+            </span>
+            <Button size="sm" variant="ghost" className="h-7 px-2.5 text-xs" onClick={() => setBillType("final")}>
+              Final Bill
+            </Button>
+            <Button size="sm" variant="ghost" className="h-7 px-2.5 text-xs" onClick={() => setBillType("enhancement")}>
+              Enhancement
+            </Button>
+            <Button size="sm" variant="ghost" className="h-7 px-2.5 text-xs" onClick={() => setBillType("cash")}>
+              Cash Receipt
+            </Button>
           </div>
-        )}
+        </div>
       </div>
 
       {/* ── Financial summary ────────────────────────────────────────────────── */}
