@@ -1,10 +1,14 @@
 /**
- * OpticalPage — Optical module: product CRUD, stock management, bills, and settings.
+ * OpticalPage — Optical module, matching main's 3-tab structure
+ * (src/app/(hospital)/optical/components/OpticalPage.tsx): Billing,
+ * Inventory, Configuration — default Billing. Main's single Inventory tab
+ * combines products + stock as two stacked sections (see
+ * optical/inventory-tab.tsx).
  *
  * Endpoints:
  *   Products:       GET/POST /optical/products, PATCH/DELETE /optical/products/{id}
  *   Stock:          GET /optical/stock, POST /optical/stock, PATCH /optical/stock/{id}
- *   Stock summary:  GET /optical/stock/summary
+ *   Stock summary:  GET /optical/stock/summary — header stat badges
  *   Stock search:   GET /optical/stock/search?q=...
  *   Bills:          GET/POST /optical/bills, PATCH /optical/bills/{id}/status
  *   AR reading:     GET /optical/patients/{id}/ar-reading
@@ -19,13 +23,13 @@
  *   settings:edit   — PATCH /optical/settings
  */
 
-import { PageHeader, ErrorState } from "@/components/patterns"
+import { PageHeader, StatBadge, ErrorState } from "@/components/patterns"
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs"
 import { usePermissions } from "@/hooks/usePermissions"
-import { ProductsTab } from "./optical/products-tab"
-import { StockTab } from "./optical/stock-tab"
+import { InventoryTab } from "./optical/inventory-tab"
 import { BillsTab } from "./optical/bills-tab"
 import { SettingsTab } from "./optical/settings-tab"
+import { useStockSummary } from "./optical/hooks"
 
 // ─── OpticalPage ──────────────────────────────────────────────────────────────
 
@@ -38,6 +42,8 @@ export default function OpticalPage() {
   const canEdit = can("optical:edit")
   const canViewSettings = can("settings:view")
   const canEditSettings = can("settings:edit")
+
+  const { data: summary } = useStockSummary(canView)
 
   // ── Permission gate ────────────────────────────────────────────────────────
   if (!canView) {
@@ -56,30 +62,33 @@ export default function OpticalPage() {
     <main className="space-y-6">
       <PageHeader
         title="Optical"
-        description="Manage optical products, stock, bills, and settings."
+        description="Frames, lenses & contact lens."
+        toolbar={
+          summary ? (
+            <>
+              <StatBadge value={summary.lowStock} label="Low Stock" variant="warning" />
+              <StatBadge value={summary.totalItems} label="Items in Stock" variant="info" />
+            </>
+          ) : undefined
+        }
       />
 
-      <Tabs defaultValue="products">
+      <Tabs defaultValue="billing">
         <TabsList aria-label="Optical sections">
-          <TabsTrigger value="products">Products</TabsTrigger>
-          <TabsTrigger value="stock">Stock</TabsTrigger>
-          <TabsTrigger value="bills">Bills</TabsTrigger>
-          <TabsTrigger value="settings">Settings</TabsTrigger>
+          <TabsTrigger value="billing">Billing</TabsTrigger>
+          <TabsTrigger value="inventory">Inventory</TabsTrigger>
+          <TabsTrigger value="configuration">Configuration</TabsTrigger>
         </TabsList>
 
-        <TabsContent value="products" className="mt-6">
-          <ProductsTab canEdit={canEdit} />
-        </TabsContent>
-
-        <TabsContent value="stock" className="mt-6">
-          <StockTab canEdit={canEdit} />
-        </TabsContent>
-
-        <TabsContent value="bills" className="mt-6">
+        <TabsContent value="billing" className="mt-6">
           <BillsTab canCreate={canCreate} canEdit={canEdit} />
         </TabsContent>
 
-        <TabsContent value="settings" className="mt-6">
+        <TabsContent value="inventory" className="mt-6">
+          <InventoryTab canEdit={canEdit} />
+        </TabsContent>
+
+        <TabsContent value="configuration" className="mt-6">
           <SettingsTab
             canViewSettings={canViewSettings}
             canEditSettings={canEditSettings}
