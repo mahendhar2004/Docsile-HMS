@@ -4,6 +4,12 @@
  * Sheet (side panel) showing full patient details with inline actions:
  * - Status update
  * - Date move
+ * - Billing: this visit's billed prescriptions, balance due, record payment
+ *   (billing:view / billing:create) — matches main's inline billing in
+ *   PatientDetail.tsx, not a separate page. The real backend contract has
+ *   no patientId filter on GET /billing/prescriptions (date-only), so this
+ *   queries by the patient's own appointmentDate and filters client-side to
+ *   this patient's patientId — bounded and correctly wired, not fabricated.
  * - Add services (billing:create)
  * - Print receipt (billing:view)
  * - Edit (patients:edit)
@@ -14,7 +20,7 @@
 
 import { useState } from "react"
 import { format } from "date-fns"
-import { Printer, Pencil, Trash2, Plus, Calendar, RefreshCw } from "lucide-react"
+import { Printer, Pencil, Trash2, Plus, Calendar, RefreshCw, Receipt } from "lucide-react"
 import {
   Sheet,
   SheetContent,
@@ -40,7 +46,17 @@ import {
   useDeletePatient,
 } from "./hooks"
 import { AddServicesModal } from "./add-services-modal"
+import { useBillingPrescriptions, useRecordPayment } from "../billing/hooks"
+import { RecordPaymentForm } from "../billing/record-payment-form"
 import type { Patient } from "./types"
+
+function formatINR(amount: number): string {
+  return new Intl.NumberFormat("en-IN", {
+    style: "currency",
+    currency: "INR",
+    maximumFractionDigits: 0,
+  }).format(amount)
+}
 
 // ─── Patient status options ────────────────────────────────────────────────────
 
@@ -105,6 +121,7 @@ export function PatientDetailPanel({
   const [showAddService, setShowAddService] = useState(false)
   const [newDate, setNewDate] = useState<Date | undefined>()
   const [showDateMove, setShowDateMove] = useState(false)
+  const [payingPrescriptionId, setPayingPrescriptionId] = useState<string | null>(null)
 
   const {
     data: patient,
@@ -113,6 +130,24 @@ export function PatientDetailPanel({
     error,
     refetch,
   } = usePatientDetail(patientId, open)
+
+  // This visit's billed prescriptions — bounded to the patient's own
+  // appointment date (see file header for why patientId can't be a server
+  // query param), filtered client-side to this patient.
+  const {
+    data: billingData,
+    isLoading: billingLoading,
+    refetch: refetchBilling,
+  } = useBillingPrescriptions(patient?.appointmentDate ?? null)
+  const billedPrescriptions = (billingData ?? []).filter(
+    (p) => p.patientId === patient?.patientId && p.status !== "CANCELLED",
+  )
+  const totalBalanceDue = billedPrescriptions.reduce((sum, p) => sum + p.balanceDue, 0)
+
+  const recordPayment = useRecordPayment(payingPrescriptionId ?? "", () => {
+    setPayingPrescriptionId(null)
+    void refetchBilling()
+  })
 
   const updateStatus = useUpdatePatientStatus(() => void refetch())
   const moveDate = useMovePatientDate(() => {
@@ -251,6 +286,84 @@ export function PatientDetailPanel({
                     <DetailRow label="Referred By" value={patient.referredBy} />
                   </div>
                 </section>
+
+                {/* Billing */}
+                {canViewReceipt && (
+                  <section aria-label="Billing">
+                    <div className="flex items-center justify-between mb-3">
+                      <h3 className="text-xs font-semibold uppercase tracking-wider text-[var(--color-muted-foreground)]">
+                        Billing
+                      </h3>
+                      {totalBalanceDue > 0 && (
+                        <span className="text-xs font-semibold text-[var(--color-error)]">
+                          Due: {formatINR(totalBalanceDue)}
+                        </span>
+                      )}
+                    </div>
+
+                    {billingLoading && (
+                      <div className="space-y-2">
+                        <Skeleton className="h-10 w-full" />
+                        <Skeleton className="h-10 w-full" />
+                      </div>
+                    )}
+
+                    {!billingLoading && billedPrescriptions.length === 0 && (
+                      <p className="text-sm text-[var(--color-muted-foreground)]">
+                        No billed prescriptions for this visit.
+                      </p>
+                    )}
+
+                    {!billingLoading && billedPrescriptions.length > 0 && (
+                      <div className="space-y-2">
+                        {billedPrescriptions.map((rx) => (
+                          <div
+                            key={rx.id}
+                            className="rounded-[var(--radius)] border border-[var(--color-border)] p-3 space-y-2"
+                          >
+                            <div className="flex items-center justify-between gap-2">
+                              <div className="flex items-center gap-2 min-w-0">
+                                <Receipt className="h-3.5 w-3.5 text-[var(--color-muted-foreground)] shrink-0" aria-hidden />
+                                <span className="text-xs font-mono font-medium text-[var(--color-foreground)] truncate">
+                                  {rx.prescriptionNumber}
+                                </span>
+                              </div>
+                              <span
+                                className={
+                                  rx.balanceDue > 0
+                                    ? "text-xs font-medium text-[var(--color-error)]"
+                                    : "text-xs font-medium text-[var(--color-success)]"
+                                }
+                              >
+                                {rx.balanceDue > 0 ? `Due: ${formatINR(rx.balanceDue)}` : "Paid"}
+                              </span>
+                            </div>
+                            <div className="flex items-center justify-between text-xs text-[var(--color-muted-foreground)]">
+                              <span>Total {formatINR(rx.total)} · Paid {formatINR(rx.amountPaid)}</span>
+                              {canAddServices && rx.balanceDue > 0 && payingPrescriptionId !== rx.id && (
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  onClick={() => setPayingPrescriptionId(rx.id)}
+                                >
+                                  Record Payment
+                                </Button>
+                              )}
+                            </div>
+                            {payingPrescriptionId === rx.id && (
+                              <RecordPaymentForm
+                                balanceDue={rx.balanceDue}
+                                isSubmitting={recordPayment.isPending}
+                                onSubmit={(values) => recordPayment.mutate(values)}
+                                onCancel={() => setPayingPrescriptionId(null)}
+                              />
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </section>
+                )}
 
                 {/* Date move */}
                 {canEdit && (

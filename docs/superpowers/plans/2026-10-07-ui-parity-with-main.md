@@ -20,8 +20,8 @@
 | 2 | Rework AppShell + Sidebar (hover-reveal, nav items, logout) | ✅ done |
 | 3 | Dashboard module grid | ✅ done |
 | 4 | Split Patients → `/patients` + new `/inpatients` | ⚠️ done (backend-limited stat badges, see ledger) |
-| 5 | Fold Billing into Patients, delete `/billing` | 🔄 in progress |
-| 6 | Delete standalone Queue page | ⬜ not started |
+| 5 | Fold Billing into Patients, delete `/billing` | ✅ done |
+| 6 | Delete standalone Queue page | 🔄 in progress |
 | 7 | Rework Doctor page (queue-table-takeover) | ⬜ not started |
 | 8 | Rework Workup page (Refraction) | ⬜ not started |
 | 9 | Pharmacy — consolidate to 4 tabs + stat badges | ⬜ not started |
