@@ -259,16 +259,28 @@ export interface EyeReadingFormProps {
   existingReading: EyeReadingRecord | null
   /** Whether the current user has workup:create permission */
   hasCreate: boolean
+  /**
+   * When true, hides this form's own Save button — the caller drives saving
+   * imperatively via the forwarded ref instead (doctor consultation's single
+   * "Save All" button). Matches main's EyeReadingForm `compact` prop.
+   */
+  compact?: boolean
+}
+
+export interface EyeReadingFormHandle {
+  save: () => Promise<void>
 }
 
 // ─── Main component ───────────────────────────────────────────────────────────
 
-export function EyeReadingForm({
+export const EyeReadingForm = React.forwardRef<EyeReadingFormHandle, EyeReadingFormProps>(
+function EyeReadingForm({
   patientId,
   patientName,
   existingReading,
   hasCreate,
-}: EyeReadingFormProps) {
+  compact = false,
+}, ref) {
   const saveMutation = useSaveEyeReading(patientId)
 
   const [fd, setFd] = React.useState<EyeReadingFormData>(() =>
@@ -332,10 +344,17 @@ export function EyeReadingForm({
 
   // ── Submit ────────────────────────────────────────────────────────────────────
 
+  async function handleSave() {
+    if (!hasCreate) return
+    const payload = formDataToPayload(fd, patientId)
+    await saveMutation.mutateAsync(payload)
+  }
+
+  React.useImperativeHandle(ref, () => ({ save: handleSave }))
+
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
-    const payload = formDataToPayload(fd, patientId)
-    saveMutation.mutate(payload)
+    void handleSave()
   }
 
   // ── Section renderers ─────────────────────────────────────────────────────────
@@ -650,32 +669,34 @@ export function EyeReadingForm({
         </TabsContent>
       </Tabs>
 
-      {/* Save action */}
-      {hasCreate ? (
-        <div className="pt-2">
-          <Button
-            type="submit"
-            variant="primary"
-            disabled={isDisabled}
-            aria-label="Save eye reading"
-          >
-            {saveMutation.isPending ? (
-              <>
-                <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />
-                Saving…
-              </>
-            ) : existingReading != null ? (
-              "Update Reading"
-            ) : (
-              "Save Reading"
-            )}
-          </Button>
-        </div>
-      ) : (
-        <p className="text-sm text-muted-foreground pt-2">
-          You need the <span className="font-medium">workup:create</span> permission to save eye readings.
-        </p>
+      {/* Save action — hidden in compact mode; caller drives saving via ref */}
+      {!compact && (
+        hasCreate ? (
+          <div className="pt-2">
+            <Button
+              type="submit"
+              variant="primary"
+              disabled={isDisabled}
+              aria-label="Save eye reading"
+            >
+              {saveMutation.isPending ? (
+                <>
+                  <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />
+                  Saving…
+                </>
+              ) : existingReading != null ? (
+                "Update Reading"
+              ) : (
+                "Save Reading"
+              )}
+            </Button>
+          </div>
+        ) : (
+          <p className="text-sm text-muted-foreground pt-2">
+            You need the <span className="font-medium">workup:create</span> permission to save eye readings.
+          </p>
+        )
       )}
     </form>
   )
-}
+})

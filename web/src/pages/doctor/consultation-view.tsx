@@ -2,12 +2,13 @@
  * doctor/consultation-view.tsx
  *
  * Main consultation panel — shown when the doctor selects a patient from
- * the queue. Displays:
- *   - Patient info header (name, ID, phone, gender, status)
- *   - Tabs: "Workup Data" (editable EyeReadingForm) + "Prescription"
- *     (PrescriptionForm) — matches main's consultation layout
- *     (src/app/(hospital)/doctor/components/DoctorPage.tsx on main).
- *   - Print receipt button (billing:view)
+ * the queue. Two-column layout matching main's exact consultation panel
+ * (src/app/(hospital)/doctor/components/DoctorPage.tsx on main):
+ *   - Left (flex-1): white card with Tabs ("Workup Data" / "Prescription")
+ *     and a single "Save All" button in the tab header row that saves both
+ *     forms at once via imperative refs.
+ *   - Right (w-80, sticky): History panel — today's AR reading (if any) +
+ *     past prescriptions — plus the patient info header.
  *
  * The Workup Data tab reuses workup/eye-reading-form.tsx and fetches via
  * useWorkupPatient (GET /workup/patients/{patientId}) rather than the
@@ -25,22 +26,25 @@
  * form indistinguishable from "no reading yet" — fixed during final review).
  * Sets this patient as Sitha AI's global context (see @/store/ai-context) so
  * the floating "Ask Sitha" widget knows to include them — Sitha lives in
- * AppShell now, not inline here.
+ * AppShell now, not inline here (main's inline "Ask Sitha AI" card in the
+ * history sidebar is intentionally not duplicated for the same reason).
  */
 
-import { useEffect } from "react"
-import { Printer } from "lucide-react"
+import { useEffect, useRef, useState } from "react"
+import { Printer, Loader2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Skeleton } from "@/components/ui/skeleton"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs"
 import { StatusPill, ErrorState } from "@/components/patterns"
 import { usePermissions } from "@/hooks/usePermissions"
+import { formatDate } from "@/lib/utils"
 import { useConsultation, useReferenceData } from "./hooks"
-import { PrescriptionForm } from "./prescription-form"
+import { PrescriptionForm, type PrescriptionFormHandle } from "./prescription-form"
 import { useWorkupPatient } from "../workup/use-workup"
-import { EyeReadingForm } from "../workup/eye-reading-form"
+import { EyeReadingForm, type EyeReadingFormHandle } from "../workup/eye-reading-form"
 import { useAiContextStore } from "@/store/ai-context"
+import { ARReadingSummary, PrescriptionHistoryCard } from "./consultation-history"
 
 // ─── Props ────────────────────────────────────────────────────────────────────
 
@@ -84,6 +88,10 @@ export function ConsultationView({
 
   const { can } = usePermissions()
   const hasWorkupCreate = can("workup:create")
+
+  const eyeReadingRef = useRef<EyeReadingFormHandle>(null)
+  const prescriptionRef = useRef<PrescriptionFormHandle>(null)
+  const [savingAll, setSavingAll] = useState(false)
 
   const consultationQuery = useConsultation(patientId)
   const referenceDataQuery = useReferenceData()
@@ -150,6 +158,26 @@ export function ConsultationView({
     window.open(`${apiBaseUrl}/doctor/patients/${consultation!.patientId}/receipt`, "_blank")
   }
 
+  async function handleSaveAll() {
+    setSavingAll(true)
+    try {
+      const saves: Promise<void>[] = []
+      if (eyeReadingRef.current) saves.push(eyeReadingRef.current.save())
+      if (prescriptionRef.current) saves.push(prescriptionRef.current.save())
+      await Promise.all(saves)
+    } catch (err) {
+      console.error("Save all error:", err)
+    } finally {
+      setSavingAll(false)
+    }
+  }
+
+  const pastPrescriptions = consultation.pastPrescriptions
+  const lastVisitLabel =
+    pastPrescriptions.length > 0
+      ? `Last visit: ${formatDate(pastPrescriptions[0].prescriptionDate)}`
+      : "First visit"
+
   return (
     <ScrollArea className="h-full">
       <div className="flex flex-col gap-5 p-6">
@@ -190,45 +218,118 @@ export function ConsultationView({
           )}
         </div>
 
-        {/* ── Workup Data / Prescription tabs ──────────────────────────────────── */}
-        <Tabs defaultValue="workup" variant="underline">
-          <TabsList aria-label="Consultation sections">
-            <TabsTrigger value="workup">Workup Data</TabsTrigger>
-            <TabsTrigger value="prescription">Prescription</TabsTrigger>
-          </TabsList>
+        {/* ── Two-column consultation layout — matches main's exact structure:
+            left card (Tabs + Save All), right sticky History sidebar. ────── */}
+        <div className="flex flex-col lg:flex-row gap-4">
+          {/* ── Left: Workup Data / Prescription tabs + Save All ──────────────── */}
+          <div className="flex-1 min-w-0 bg-white rounded-2xl border border-border">
+            <Tabs defaultValue="workup" variant="underline">
+              <div className="px-3 sm:px-6 pt-4 pb-0 border-b border-border flex flex-wrap gap-y-2 justify-between items-center">
+                <TabsList
+                  aria-label="Consultation sections"
+                  className="bg-transparent h-auto p-0 rounded-none gap-1 -mb-px"
+                >
+                  <TabsTrigger
+                    value="workup"
+                    className="rounded-none px-3 py-2.5 text-sm font-medium border-b-2 border-transparent text-muted-foreground hover:text-foreground transition-colors data-[state=active]:border-primary data-[state=active]:text-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none"
+                  >
+                    Workup Data
+                  </TabsTrigger>
+                  <TabsTrigger
+                    value="prescription"
+                    className="rounded-none px-3 py-2.5 text-sm font-medium border-b-2 border-transparent text-muted-foreground hover:text-foreground transition-colors data-[state=active]:border-primary data-[state=active]:text-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none"
+                  >
+                    Prescription
+                  </TabsTrigger>
+                </TabsList>
 
-          <TabsContent value="workup">
-            {workupPatientQuery.isLoading ? (
-              <Skeleton className="h-40 w-full rounded-md" />
-            ) : workupPatientQuery.error ? (
-              <ErrorState
-                title="Could not load workup data"
-                error={workupPatientQuery.error}
-                onRetry={() => void workupPatientQuery.refetch()}
-              />
-            ) : (
-              <EyeReadingForm
-                patientId={consultation.patientId}
-                patientName={fullName}
-                existingReading={existingReading}
-                hasCreate={hasWorkupCreate}
-              />
-            )}
-          </TabsContent>
+                <div className="flex items-center gap-3 mb-3">
+                  <span className="text-xs text-muted-foreground">{lastVisitLabel}</span>
+                  <Button size="sm" onClick={() => void handleSaveAll()} disabled={savingAll}>
+                    {savingAll && (
+                      <Loader2 className="h-3.5 w-3.5 animate-spin mr-1.5" aria-hidden="true" />
+                    )}
+                    Save All
+                  </Button>
+                </div>
+              </div>
 
-          <TabsContent value="prescription">
-            <PrescriptionForm
-              consultation={consultation}
-              referenceData={referenceData}
-              canConsult={canConsult}
-              canEdit={canEdit}
-              doctorName={doctorName}
-              onSaved={() => {
-                void consultationQuery.refetch()
-              }}
-            />
-          </TabsContent>
-        </Tabs>
+              {/* forceMount on both tabs so refs stay valid regardless of which
+                  tab is active — "Save All" must be able to save both forms
+                  even when only one is visible. */}
+              <TabsContent
+                value="workup"
+                forceMount
+                className="mt-0 px-3 sm:px-6 py-4 sm:py-5 data-[state=inactive]:hidden"
+              >
+                {workupPatientQuery.isLoading ? (
+                  <Skeleton className="h-40 w-full rounded-md" />
+                ) : workupPatientQuery.error ? (
+                  <ErrorState
+                    title="Could not load workup data"
+                    error={workupPatientQuery.error}
+                    onRetry={() => void workupPatientQuery.refetch()}
+                  />
+                ) : (
+                  <EyeReadingForm
+                    ref={eyeReadingRef}
+                    patientId={consultation.patientId}
+                    patientName={fullName}
+                    existingReading={existingReading}
+                    hasCreate={hasWorkupCreate}
+                    compact
+                  />
+                )}
+              </TabsContent>
+
+              <TabsContent
+                value="prescription"
+                forceMount
+                className="mt-0 px-3 sm:px-6 py-4 sm:py-5 data-[state=inactive]:hidden"
+              >
+                <PrescriptionForm
+                  ref={prescriptionRef}
+                  consultation={consultation}
+                  referenceData={referenceData}
+                  canConsult={canConsult}
+                  canEdit={canEdit}
+                  doctorName={doctorName}
+                  onSaved={() => {
+                    void consultationQuery.refetch()
+                  }}
+                />
+              </TabsContent>
+            </Tabs>
+          </div>
+
+          {/* ── Right: History (today's AR reading + past prescriptions) ─────── */}
+          <div className="w-full lg:w-80 lg:shrink-0 lg:sticky lg:top-4 lg:self-start space-y-3 lg:max-h-[calc(100vh-6rem)] lg:overflow-y-auto lg:pr-0.5">
+            <div className="bg-white rounded-2xl border border-border overflow-hidden">
+              <div className="px-4 pt-4 pb-2 border-b border-border">
+                <h3 className="text-sm font-semibold text-foreground">History</h3>
+              </div>
+              <div className="p-4 space-y-4">
+                {existingReading?.autoRefractometer && (
+                  <ARReadingSummary arJson={existingReading.autoRefractometer} />
+                )}
+
+                {pastPrescriptions.length > 0 ? (
+                  <div className="space-y-3">
+                    {pastPrescriptions.map((rx) => (
+                      <PrescriptionHistoryCard key={rx.id} prescription={rx} />
+                    ))}
+                  </div>
+                ) : (
+                  !existingReading?.autoRefractometer && (
+                    <div className="text-center py-12 text-muted-foreground text-sm">
+                      <p>No previous prescription history</p>
+                    </div>
+                  )
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
     </ScrollArea>
   )

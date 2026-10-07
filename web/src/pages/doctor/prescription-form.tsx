@@ -27,7 +27,7 @@
  *   src/app/(hospital)/doctor/components/PrescriptionForm.tsx handleSave()
  */
 
-import { useState, useCallback, useId } from "react"
+import { useState, useCallback, useId, forwardRef, useImperativeHandle } from "react"
 import { useForm, useFieldArray, Controller } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { z } from "zod"
@@ -307,14 +307,19 @@ interface PrescriptionFormProps {
   onSaved: () => void
 }
 
-export function PrescriptionForm({
+export interface PrescriptionFormHandle {
+  save: () => Promise<void>
+}
+
+export const PrescriptionForm = forwardRef<PrescriptionFormHandle, PrescriptionFormProps>(
+function PrescriptionForm({
   consultation,
   referenceData,
   canConsult,
   canEdit,
   doctorName,
   onSaved,
-}: PrescriptionFormProps) {
+}, ref) {
   const [addMedOpen, setAddMedOpen] = useState(false)
   const [medSearch, setMedSearch] = useState("")
   const [invSearch, setInvSearch] = useState("")
@@ -350,10 +355,10 @@ export function PrescriptionForm({
     onSaved()
   })
 
-  const onSubmit = (values: FormValues) => {
+  const onSubmit = async (values: FormValues) => {
     // Matches old app's handleSave() payload shape (actions.ts PrescriptionSchema).
     // medicines filtered to non-empty names; timing/days always strings (backend .default("")).
-    saveMutation.mutate({
+    await saveMutation.mutateAsync({
       patientId: consultation.patientId,
       doctorName: values.doctorName || undefined,
       department: values.department || undefined,
@@ -386,6 +391,15 @@ export function PrescriptionForm({
       notes: values.notes || undefined,
     })
   }
+
+  useImperativeHandle(ref, () => ({
+    save: async () => {
+      if (!canWrite) return
+      await handleSubmit(onSubmit, (errs) => {
+        console.warn("[PrescriptionForm] validation errors", errs)
+      })()
+    },
+  }))
 
   // Apply a prescription template — matches old app applyTemplate() behavior exactly:
   //   presentComplaint, previousHistory, provisionalDiagnosis→diagnosis, additionalNotes→notes,
@@ -893,24 +907,15 @@ export function PrescriptionForm({
           </div>
         </FormSection>
 
-        {/* Save button */}
-        <div className="flex justify-end gap-3 pt-2">
-          {!canWrite && (
-            <p className="text-sm text-muted-foreground self-center">
-              You need the <code>doctor:consult</code> permission to save.
-            </p>
-          )}
-          <Button
-            type="submit"
-            variant="primary"
-            size="md"
-            disabled={!canWrite || saveMutation.isPending}
-            aria-label="Save prescription"
-          >
-            {saveMutation.isPending ? "Saving…" : "Save prescription"}
-          </Button>
-        </div>
+        {/* No own Save button — matches main's PrescriptionForm exactly; the
+            consultation view's single "Save All" button (ref-driven) saves
+            this form. */}
+        {!canWrite && (
+          <p className="text-sm text-muted-foreground pt-2">
+            You need the <code>doctor:consult</code> permission to save.
+          </p>
+        )}
       </form>
     </>
   )
-}
+})
