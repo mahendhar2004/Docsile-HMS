@@ -24,6 +24,7 @@ const SettingsPage = React.lazy(() => import("@/pages/SettingsPage"))
 const AnalyticsPage = React.lazy(() => import("@/pages/AnalyticsPage"))
 const ReportsPage = React.lazy(() => import("@/pages/ReportsPage"))
 const DataExportPage = React.lazy(() => import("@/pages/DataExportPage"))
+const UnauthorizedPage = React.lazy(() => import("@/pages/UnauthorizedPage"))
 const WorkupPage = React.lazy(() => import("@/pages/WorkupPage"))
 const ExpensesPage = React.lazy(() => import("@/pages/ExpensesPage"))
 const DuesFollowupsPage = React.lazy(() => import("@/pages/DuesFollowupsPage"))
@@ -111,6 +112,7 @@ const router = createBrowserRouter([
       { path: "analytics", element: <AnalyticsPage /> },
       { path: "reports", element: <ReportsPage /> },
       { path: "data", element: <DataExportPage /> },
+      { path: "unauthorized", element: <UnauthorizedPage /> },
     ],
   },
 
