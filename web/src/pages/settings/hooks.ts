@@ -366,6 +366,25 @@ export function useCreatePackage(onSuccess?: () => void) {
   })
 }
 
+/**
+ * Toggles a package's isActive flag — main's PackagesTab lets admins click
+ * the Status badge directly rather than going through the edit dialog.
+ */
+export function useTogglePackageActive(onSuccess?: () => void) {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: ({ id, isActive }: { id: string; isActive: boolean }) =>
+      apiClient.patch(`/settings/packages/${id}`, { isActive }),
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: settingsKeys.packages() })
+      onSuccess?.()
+    },
+    onError: (err: unknown) => {
+      toast.error(err instanceof Error ? err.message : "Failed to update package.")
+    },
+  })
+}
+
 export function useUpdatePackage(id: string, onSuccess?: () => void) {
   const qc = useQueryClient()
   return useMutation({

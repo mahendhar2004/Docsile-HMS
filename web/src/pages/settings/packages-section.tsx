@@ -9,7 +9,7 @@
  */
 
 import { useState } from "react"
-import { Plus, Pencil, Trash2 } from "lucide-react"
+import { Plus } from "lucide-react"
 import {
   Table,
   TableBody,
@@ -43,6 +43,7 @@ import {
   useCreatePackage,
   useUpdatePackage,
   useDeletePackage,
+  useTogglePackageActive,
 } from "./hooks"
 import {
   INCLUSION_OPTIONS,
@@ -62,6 +63,7 @@ export function PackagesSection({ canEdit }: PackagesSectionProps) {
   const [deleteName, setDeleteName] = useState("")
 
   const deleteM = useDeletePackage()
+  const toggleM = useTogglePackageActive()
 
   function parseInclusions(pkg: PredefinedPackage): PackageInclusion[] {
     try {
@@ -83,7 +85,8 @@ export function PackagesSection({ canEdit }: PackagesSectionProps) {
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center justify-end">
+      <div className="flex items-center gap-3">
+        <div className="flex-1" />
         {canEdit && (
           <Button size="sm" className="h-9" onClick={() => { setEditItem(null); setDialogOpen(true) }}>
             <Plus className="h-4 w-4 mr-1" aria-hidden="true" />
@@ -153,7 +156,15 @@ export function PackagesSection({ canEdit }: PackagesSectionProps) {
                         : "—"}
                     </TableCell>
                     <TableCell className="text-center">
-                      <Badge variant={pkg.isActive ? "default" : "muted"}>
+                      <Badge
+                        variant={pkg.isActive ? "default" : "muted"}
+                        className={canEdit ? "cursor-pointer" : undefined}
+                        onClick={
+                          canEdit
+                            ? () => toggleM.mutate({ id: pkg.id, isActive: !pkg.isActive })
+                            : undefined
+                        }
+                      >
                         {pkg.isActive ? "Active" : "Inactive"}
                       </Badge>
                     </TableCell>
@@ -166,7 +177,7 @@ export function PackagesSection({ canEdit }: PackagesSectionProps) {
                             onClick={() => { setEditItem(pkg); setDialogOpen(true) }}
                             aria-label={`Edit ${pkg.name}`}
                           >
-                            <Pencil className="h-3.5 w-3.5" aria-hidden="true" />
+                            Edit
                           </Button>
                           <Button
                             variant="ghost"
@@ -175,7 +186,7 @@ export function PackagesSection({ canEdit }: PackagesSectionProps) {
                             className="text-destructive hover:bg-destructive/10"
                             aria-label={`Delete ${pkg.name}`}
                           >
-                            <Trash2 className="h-3.5 w-3.5" aria-hidden="true" />
+                            Delete
                           </Button>
                         </div>
                       </TableCell>
