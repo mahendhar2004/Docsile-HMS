@@ -3,25 +3,24 @@
  *
  * Main Insurance view (not a tab anymore — see InsurancePage.tsx), matching
  * main's single-list-page layout (src/app/(hospital)/insurance/components/
- * InsurancePage.tsx):
- * - 3 header StatBadges (Active, Preauth Pending, Awaiting Settlement)
- * - Status filter + "Companies" button (opens a Sheet, not a tab) +
- *   "+ New Claim" button (no search input — see note further down)
+ * InsurancePage.tsx). Header StatBadges live in InsurancePage.tsx now (main
+ * renders them in the sticky header, not the filter bar). This component
+ * owns just the filter bar + table:
+ * - A plain bordered/backdrop card (NOT the sticky PageToolbar/FilterBar —
+ *   main's own Insurance filter row is a one-off `rounded-xl border p-3`
+ *   block, not main's sticky FilterBar pattern used elsewhere)
+ * - Status filter as a pill group (main uses buttons in a muted rounded
+ *   strip, not a dropdown), then a right-aligned group: text "Refresh"
+ *   button, outline "Companies" button, primary "New Claim" button
  * - PaginatedDataTable with StatusPill using the real 13-value InsuranceClaimStatus enum
  * - Click row to open ClaimDetailPanel (Sheet)
  *
- * Stat badges: verified against main's actual aggregation
- * (src/app/(hospital)/insurance/actions.ts getInsuranceClaims stats, and
- * InsurancePage.tsx's StatBadge wiring) rather than approximated — "Active"
- * = all claims except CLOSED (stats.totalClaims — main does NOT also
- * exclude SETTLED/CLAIM_REJECTED, corrected during final review),
- * "Preauth Pending" = PREAUTH_SUBMITTED + PREAUTH_QUERY, "Awaiting
- * Settlement" = FINAL_BILL_SUBMITTED only (main does NOT include
- * PARTIALLY_SETTLED here, corrected during final review). Since GET
- * /insurance/claims only filters by one status at a time, computed via a
- * few extra lightweight calls to the same hook (only `.total` is read)
- * rather than fetching the whole list client-side (claims aren't bounded
- * to "today" like other modules' queues).
+ * No search input: main's search is a server-side DB filter
+ * (getInsuranceClaims' `search` param on the old Next.js app's direct
+ * Supabase query) — this backend's GET /insurance/claims has no search
+ * query param at all (confirmed in openapi.yaml), and a client-side filter
+ * over just the current page would silently miss matches on other pages,
+ * which is worse than no search.
  *
  * Endpoints:
  *   GET /insurance/claims?page=N&pageSize=N&status=... — insurance:view
@@ -29,7 +28,7 @@
  */
 
 import { useState } from "react"
-import { Plus, Building2 } from "lucide-react"
+import { Plus, Building2, RefreshCw } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import {
   Sheet,
@@ -41,10 +40,7 @@ import {
 import {
   PaginatedDataTable,
   StatusPill,
-  StatBadge,
   EmptyState,
-  SingleSelect,
-  PageToolbar,
 } from "@/components/patterns"
 import type { ColumnDef } from "@/components/patterns"
 import { usePermissions } from "@/hooks/usePermissions"
@@ -54,7 +50,7 @@ import { ClaimDetailPanel } from "./claim-detail-panel"
 import { CompaniesTab } from "./companies-tab"
 import { CLAIM_STATUS_FILTER_OPTIONS } from "./types"
 import type { InsuranceClaim } from "./types"
-import { formatCurrency } from "@/lib/utils"
+import { formatCurrency, cn } from "@/lib/utils"
 
 // ─── ClaimsTab ────────────────────────────────────────────────────────────────
 
@@ -79,20 +75,6 @@ export function ClaimsTab() {
     setPage,
     setPageSize,
   } = useInsuranceClaims(statusFilter)
-
-  // ── Header stat badges (real, status-bucketed — see file header) ────────────
-  const grandTotalQuery = useInsuranceClaims("")
-  const closedQuery = useInsuranceClaims("CLOSED")
-  const preauthSubmittedQuery = useInsuranceClaims("PREAUTH_SUBMITTED")
-  const preauthQueryQuery = useInsuranceClaims("PREAUTH_QUERY")
-  const finalBillQuery = useInsuranceClaims("FINAL_BILL_SUBMITTED")
-  // Matches main's getInsuranceClaims() stats exactly: totalClaims excludes
-  // only CLOSED (not SETTLED/CLAIM_REJECTED too), settlementPending is
-  // FINAL_BILL_SUBMITTED only (not + PARTIALLY_SETTLED) — corrected during
-  // final review, also cutting the extra queries from 8 to 4.
-  const activeCount = grandTotalQuery.total - closedQuery.total
-  const preauthPendingCount = preauthSubmittedQuery.total + preauthQueryQuery.total
-  const awaitingSettlementCount = finalBillQuery.total
 
   // ── Create claim ─────────────────────────────────────────────────────────────
   const [showCreate, setShowCreate] = useState(false)
@@ -207,47 +189,50 @@ export function ClaimsTab() {
 
   return (
     <div className="space-y-4">
-      {/* ── Stat badges ──────────────────────────────────────────────────────── */}
-      <div className="flex flex-wrap items-center gap-2">
-        <StatBadge value={activeCount} label="Active" variant="info" />
-        <StatBadge value={preauthPendingCount} label="Preauth Pending" variant="warning" />
-        <StatBadge value={awaitingSettlementCount} label="Awaiting Settlement" variant="success" />
-      </div>
-
-      {/* ── Toolbar ──────────────────────────────────────────────────────────── */}
-      {/* No search input: main's search is a server-side DB filter (getInsuranceClaims'
-          `search` param on the old Next.js app's direct Supabase query) — this backend's
-          GET /insurance/claims has no search query param at all (confirmed in
-          openapi.yaml), and a client-side filter over just the current page would
-          silently miss matches on other pages, which is worse than no search.
-          Corrected during final review (previously shipped a misleading version). */}
-      <PageToolbar>
-        {/* Status filter */}
-        <div className="w-52">
-          <SingleSelect
-            options={CLAIM_STATUS_FILTER_OPTIONS}
-            value={statusFilter}
-            onChange={(v) => {
-              setStatusFilter(v)
-            }}
-            placeholder="All Statuses"
-            aria-label="Filter by claim status"
-          />
+      {/* ── Filters + Actions ─────────────────────────────────────────────────── */}
+      {/* Plain bordered card, not the sticky PageToolbar/FilterBar — matches
+          main's own one-off filter-row treatment for this page exactly. */}
+      <div className="flex items-center gap-3 flex-wrap rounded-xl border border-border/60 bg-white/80 backdrop-blur-sm p-3">
+        {/* Status filter — pill group, not a dropdown, matching main exactly */}
+        <div className="flex gap-0.5 bg-muted/40 rounded-lg p-0.5 border border-border/30 flex-wrap">
+          {CLAIM_STATUS_FILTER_OPTIONS.map((opt) => (
+            <button
+              key={opt.value}
+              type="button"
+              onClick={() => setStatusFilter(opt.value)}
+              className={cn(
+                "rounded-md text-xs font-medium h-7 px-3 transition-all",
+                statusFilter === opt.value
+                  ? "bg-white text-foreground shadow-sm border border-border/60"
+                  : "text-muted-foreground hover:text-foreground",
+              )}
+            >
+              {opt.label}
+            </button>
+          ))}
         </div>
 
-        <Button variant="outline" size="sm" onClick={() => setShowCompanies(true)}>
-          <Building2 className="h-3.5 w-3.5 mr-1" aria-hidden="true" />
-          Companies
-        </Button>
-
-        {/* New claim button */}
-        {canCreate && (
-          <Button size="sm" onClick={() => setShowCreate(true)} className="ml-auto">
-            <Plus className="h-3.5 w-3.5 mr-1" aria-hidden="true" />
-            New Claim
+        <div className="ml-auto flex gap-2">
+          <button
+            type="button"
+            onClick={() => void refetch()}
+            className="h-8 px-2.5 flex items-center gap-1.5 rounded-lg text-xs font-medium text-muted-foreground hover:text-foreground hover:bg-muted/60 transition-colors"
+          >
+            <RefreshCw className={cn("h-3.5 w-3.5", isFetching && "animate-spin")} aria-hidden="true" />
+            Refresh
+          </button>
+          <Button variant="outline" size="sm" className="h-8" onClick={() => setShowCompanies(true)}>
+            <Building2 className="h-3.5 w-3.5 mr-1" aria-hidden="true" />
+            Companies
           </Button>
-        )}
-      </PageToolbar>
+          {canCreate && (
+            <Button size="sm" className="h-8" onClick={() => setShowCreate(true)}>
+              <Plus className="h-3.5 w-3.5 mr-1" aria-hidden="true" />
+              New Claim
+            </Button>
+          )}
+        </div>
+      </div>
 
       {/* ── Claims table ─────────────────────────────────────────────────────── */}
       <PaginatedDataTable
