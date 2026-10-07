@@ -706,7 +706,36 @@ export async function listInPatients(
     query.page,
     query.pageSize,
   );
-  return { data: data as unknown as InPatient[], total };
+  return { data: data.map(flattenInPatientPatient) as unknown as InPatient[], total };
+}
+
+/**
+ * Flattens the `patient:Patient(...)` embed (added by repository.listInPatients /
+ * findInPatientById) onto the row's own firstName/lastName/phone/gender/dateOfBirth
+ * fields, matching what the frontend's InPatient type already expects. Without this,
+ * every inpatient row displayed a truncated UUID instead of the patient's name —
+ * InPatient itself stores no demographic fields of its own.
+ */
+function flattenInPatientPatient(row: Record<string, unknown>): Record<string, unknown> {
+  const { patient, ...rest } = row as {
+    patient?: {
+      firstName?: string;
+      lastName?: string;
+      phone?: string;
+      gender?: string;
+      dateOfBirth?: string;
+    } | null;
+    [key: string]: unknown;
+  };
+  if (!patient) return rest;
+  return {
+    ...rest,
+    firstName: patient.firstName,
+    lastName: patient.lastName,
+    phone: patient.phone,
+    gender: patient.gender,
+    dateOfBirth: patient.dateOfBirth,
+  };
 }
 
 /**
@@ -802,7 +831,7 @@ export async function getInPatientById(s: Session, id: string): Promise<InPatien
   const repo = makeRepo(s);
   const ip = await repo.findInPatientById(id);
   if (!ip) throw new NotFoundError('InPatient', id);
-  return ip as unknown as InPatient;
+  return flattenInPatientPatient(ip) as unknown as InPatient;
 }
 
 /**

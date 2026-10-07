@@ -365,6 +365,10 @@ export class PatientCareRepository {
    * Paginated list of inpatients scoped to this hospital.
    * When date is provided, filters to admissions on that IST calendar day.
    * When status is provided, applies exact status filter (API values mapped to DB values).
+   * Embeds the linked Patient row (InPatient.patientId -> Patient.id) so callers
+   * can display the patient's name/phone/gender — without this join every row's
+   * name fell back to a truncated UUID, since InPatient itself stores no
+   * demographic fields. The service layer flattens `patient.*` onto the row.
    */
   async listInPatients(
     date: string | undefined,
@@ -377,7 +381,9 @@ export class PatientCareRepository {
 
     let query = this.supabase
       .from('InPatient')
-      .select('*', { count: 'exact' })
+      .select('*, patient:Patient(firstName, lastName, phone, gender, dateOfBirth)', {
+        count: 'exact',
+      })
       .eq('hospital_id', this.hospitalId)
       .order('admissionDate', { ascending: false })
       .range(from, to);
@@ -453,12 +459,13 @@ export class PatientCareRepository {
 
   /**
    * Fetch a single inpatient by UUID id.
-   * Returns null when not found.
+   * Returns null when not found. Embeds the linked Patient row (see
+   * listInPatients doc) — the service layer flattens `patient.*` onto the row.
    */
   async findInPatientById(id: string): Promise<Record<string, unknown> | null> {
     const { data, error } = await this.supabase
       .from('InPatient')
-      .select('*')
+      .select('*, patient:Patient(firstName, lastName, phone, gender, dateOfBirth)')
       .eq('id', id)
       .eq('hospital_id', this.hospitalId)
       .maybeSingle();
