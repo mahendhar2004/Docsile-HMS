@@ -52,32 +52,32 @@ export default function StaffPage() {
   }
 
   return (
-    <main className="space-y-6">
-      <PageHeader
-        title="Staff Management"
-        description="Manage staff members, roles, and permission assignments."
-      />
+    <Tabs value={activeTab} onValueChange={setActiveTab}>
+      <main className="space-y-6">
+        <PageHeader
+          title="Staff Management"
+          actions={
+            <TabsList>
+              <TabsTrigger value="members" className="gap-2">
+                <UserCog className="h-4 w-4" aria-hidden="true" />
+                Staff Members
+              </TabsTrigger>
+              <TabsTrigger value="roles" className="gap-2">
+                <Shield className="h-4 w-4" aria-hidden="true" />
+                Roles &amp; Permissions
+              </TabsTrigger>
+            </TabsList>
+          }
+        />
 
-      <Tabs value={activeTab} onValueChange={setActiveTab}>
-        <TabsList>
-          <TabsTrigger value="members" className="gap-2">
-            <UserCog className="h-4 w-4" aria-hidden="true" />
-            Staff Members
-          </TabsTrigger>
-          <TabsTrigger value="roles" className="gap-2">
-            <Shield className="h-4 w-4" aria-hidden="true" />
-            Roles &amp; Permissions
-          </TabsTrigger>
-        </TabsList>
-
-        <TabsContent value="members" className="mt-6">
+        <TabsContent value="members">
           <MembersTab roles={rolesQuery.data ?? []} />
         </TabsContent>
 
-        <TabsContent value="roles" className="mt-6">
+        <TabsContent value="roles">
           <RolesTab />
         </TabsContent>
-      </Tabs>
-    </main>
+      </main>
+    </Tabs>
   )
 }

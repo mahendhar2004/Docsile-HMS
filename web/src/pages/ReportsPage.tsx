@@ -48,8 +48,7 @@ export default function ReportsPage() {
   return (
     <div className="flex flex-col gap-6">
       <PageHeader
-        title="Reports"
-        description="Patient history, visit records, prescriptions and billing reports."
+        title="Patient Reports"
       />
 
       {/* ── Patient Report Viewer ──────────────────────────────────────────── */}

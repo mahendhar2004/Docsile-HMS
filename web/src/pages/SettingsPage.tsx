@@ -116,13 +116,26 @@ export default function SettingsPage() {
         value={activeSection}
         onValueChange={(v) => setSearchParams({ tab: v }, { replace: true })}
       >
-        <TabsList aria-label="Settings sections" className="flex-wrap h-auto">
-          {SECTIONS.map((s) => (
-            <TabsTrigger key={s.id} value={s.id}>
-              {s.label}
-            </TabsTrigger>
-          ))}
-        </TabsList>
+        {/* Custom pill styling matching main's exact Settings tab bar
+            (rounded-full group, white-active-pill with a primary ring) —
+            distinct from this app's default solid-fill active tab, which
+            main itself only uses everywhere else, not here. */}
+        <div className="mb-6 -mx-1 px-1 overflow-x-auto">
+          <TabsList
+            aria-label="Settings sections"
+            className="inline-flex h-auto items-center gap-1 rounded-full border border-border/60 bg-muted/40 p-1 shadow-sm backdrop-blur-sm w-auto"
+          >
+            {SECTIONS.map((s) => (
+              <TabsTrigger
+                key={s.id}
+                value={s.id}
+                className="whitespace-nowrap rounded-full px-4 py-1.5 text-sm font-medium text-muted-foreground transition-all hover:text-foreground hover:bg-white/60 data-[state=active]:bg-white data-[state=active]:text-primary data-[state=active]:shadow-sm data-[state=active]:ring-1 data-[state=active]:ring-primary/15"
+              >
+                {s.label}
+              </TabsTrigger>
+            ))}
+          </TabsList>
+        </div>
 
         <TabsContent value="services">
           <ServiceTemplatesSection canEdit={canEdit} />

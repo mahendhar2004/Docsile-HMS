@@ -46,7 +46,6 @@ export default function LicenseTrackerPage() {
     <main className="space-y-4">
       <PageHeader
         title="License Tracker"
-        description="Track hospital license expiry dates and manage compliance documents."
         actions={
           can("licenses:create") ? (
             <Button size="sm" onClick={() => setCreateOpen(true)}>
