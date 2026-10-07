@@ -40,8 +40,8 @@ import {
   ColumnDef,
   StatusPill,
   StatBadge,
+  SegmentedControl,
   SingleSelect,
-  DatePicker,
   ConfirmationModal,
   EmptyState,
   ErrorState,
@@ -298,18 +298,15 @@ export default function InPatientsPage() {
   const canDelete = can("inpatients:delete")
   const canDischarge = can("inpatients:discharge")
 
-  const [filterDate, setFilterDate] = useState<Date | undefined>()
   const [filterStatus, setFilterStatus] = useState<string>("")
   const [selectedInPatientId, setSelectedInPatientId] = useState<string | null>(null)
   const [showDetail, setShowDetail] = useState(false)
   const [showAdmit, setShowAdmit] = useState(false)
 
-  const dateStr = filterDate ? format(filterDate, "yyyy-MM-dd") : null
-
   const {
     data, total, page, pageSize, isLoading, isFetching, isError, error,
     setPage, setPageSize, refetch,
-  } = useIpdInPatients(dateStr, filterStatus || null)
+  } = useIpdInPatients(null, filterStatus || null)
 
   // Real backend-derived counts (meta.total from the same endpoint, filtered
   // by status) — not fabricated, but also not main's richer 5-stat
@@ -332,8 +329,9 @@ export default function InPatientsPage() {
     <main className="space-y-4">
       <PageHeader
         title="In-Patients"
-        description="Patient admissions, surgery tracking, billing and discharge."
-        toolbar={
+        description="Admission & ward management"
+        onRefresh={refetch}
+        actions={
           <>
             <StatBadge value={admittedCount} label="Admitted" variant="info" />
             <StatBadge value={dischargedCount} label="Discharged" variant="success" />
@@ -341,30 +339,15 @@ export default function InPatientsPage() {
         }
       />
 
+      {/* No date filter: main's InPatients toolbar is search + status pills
+          only (no DateNavigator) — confirmed against main's actual source. */}
       <PageToolbar className="items-start sm:items-center">
-        <div className="w-48">
-          <SingleSelect
-            options={STATUS_FILTER_OPTIONS}
-            value={filterStatus}
-            onChange={(v) => { setFilterStatus(v); setPage(1) }}
-            placeholder="All statuses"
-            clearable
-            aria-label="Filter by inpatient status"
-          />
-        </div>
-
-        <DatePicker
-          value={filterDate}
-          onChange={(d) => { setFilterDate(d); setPage(1) }}
-          placeholder="Filter by admission date"
-          aria-label="Filter by admission date"
+        <SegmentedControl
+          options={STATUS_FILTER_OPTIONS}
+          value={filterStatus}
+          onValueChange={(v) => { setFilterStatus(v); setPage(1) }}
+          aria-label="Filter by inpatient status"
         />
-
-        {filterDate && (
-          <Button variant="ghost" size="sm" onClick={() => { setFilterDate(undefined); setPage(1) }}>
-            Clear date
-          </Button>
-        )}
 
         {canCreate && (
           <Button onClick={() => setShowAdmit(true)} className="ml-auto">
@@ -394,7 +377,7 @@ export default function InPatientsPage() {
         emptyState={
           <EmptyState
             title="No inpatients found"
-            description={filterStatus || filterDate ? "Try adjusting the filters above." : "Admitted patients will appear here."}
+            description={filterStatus ? "Try adjusting the filters above." : "Admitted patients will appear here."}
             action={canCreate ? { label: "Admit Patient", onClick: () => setShowAdmit(true) } : undefined}
           />
         }

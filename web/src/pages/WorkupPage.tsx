@@ -153,16 +153,10 @@ export default function WorkupPage() {
       <PageHeader
         title="Refraction"
         description="Pre-consultation assessment"
-        toolbar={
+        onRefresh={!selectedPatient ? () => queueQuery.refetch() : undefined}
+        actions={
           !selectedPatient ? (
             <>
-              <SearchBar
-                variant="standalone"
-                value={search}
-                onChange={setSearch}
-                placeholder="Search by name, ID, or phone…"
-                aria-label="Search workup queue"
-              />
               <StatBadge value={queueData.length} label="Total" variant="default" />
               <StatBadge value={optometristCount} label="Optometrist" variant="destructive" />
               <StatBadge value={doctorCount} label="Doctor" variant="warning" />
@@ -174,6 +168,17 @@ export default function WorkupPage() {
               Back to queue
             </Button>
           )
+        }
+        toolbar={
+          !selectedPatient ? (
+            <SearchBar
+              variant="standalone"
+              value={search}
+              onChange={setSearch}
+              placeholder="Search by name, ID, or phone…"
+              aria-label="Search workup queue"
+            />
+          ) : undefined
         }
       />
 

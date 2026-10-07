@@ -30,7 +30,7 @@ export default function LabsPage() {
   const { can } = usePermissions()
   const hasAccess = can("labs:view")
 
-  const { data: labs } = useLabsList(hasAccess)
+  const { data: labs, refetch: refetchLabs } = useLabsList(hasAccess)
   const activeLabsCount = (labs ?? []).filter((l) => l.isActive).length
 
   // ── Permission gate ────────────────────────────────────────────────────────────
@@ -51,7 +51,8 @@ export default function LabsPage() {
       <PageHeader
         title="Labs"
         description="Billing, history & configuration"
-        toolbar={
+        onRefresh={refetchLabs}
+        actions={
           labs ? (
             <StatBadge value={activeLabsCount} label="Active Labs" variant="info" />
           ) : undefined

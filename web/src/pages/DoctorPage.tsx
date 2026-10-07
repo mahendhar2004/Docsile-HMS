@@ -91,24 +91,27 @@ export default function DoctorPage() {
       <PageHeader
         title="Doctor Console"
         description="Patient queue & consultation"
-        toolbar={
+        onRefresh={!selectedPatientId ? () => queueQuery.refetch() : undefined}
+        actions={
           !selectedPatientId ? (
-            <>
-              <SearchBar
-                variant="standalone"
-                value={search}
-                onChange={setSearch}
-                placeholder="Search by name, ID, or phone…"
-                aria-label="Search doctor queue"
-              />
-              <StatBadge value={queueQuery.data?.length ?? 0} label="in queue" variant="info" />
-            </>
+            <StatBadge value={queueQuery.data?.length ?? 0} label="in queue" variant="info" />
           ) : (
             <Button variant="outline" size="sm" onClick={() => setSelectedPatientId(null)}>
               <ArrowLeft className="h-4 w-4 mr-1.5" aria-hidden="true" />
               Back to queue
             </Button>
           )
+        }
+        toolbar={
+          !selectedPatientId ? (
+            <SearchBar
+              variant="standalone"
+              value={search}
+              onChange={setSearch}
+              placeholder="Search by name, ID, or phone…"
+              aria-label="Search doctor queue"
+            />
+          ) : undefined
         }
       />
 

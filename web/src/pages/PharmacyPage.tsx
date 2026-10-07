@@ -37,7 +37,7 @@ export default function PharmacyPage() {
   const { can } = usePermissions()
   const hasAccess = can("pharmacy:view")
 
-  const { data: summary } = useStockSummary(hasAccess)
+  const { data: summary, refetch: refetchSummary } = useStockSummary(hasAccess)
 
   if (!hasAccess) {
     return (
@@ -55,11 +55,16 @@ export default function PharmacyPage() {
       <PageHeader
         title="Pharmacy"
         description="Billing, inventory & suppliers"
-        toolbar={
+        onRefresh={refetchSummary}
+        actions={
           summary ? (
             <>
-              <StatBadge value={summary.lowStock} label="Low Stock" variant="destructive" />
-              <StatBadge value={summary.nearExpiry} label="Near Expiry" variant="warning" />
+              {summary.lowStock > 0 && (
+                <StatBadge value={summary.lowStock} label="Low Stock" variant="destructive" />
+              )}
+              {summary.nearExpiry > 0 && (
+                <StatBadge value={summary.nearExpiry} label="Near Expiry" variant="warning" />
+              )}
               <StatBadge value={summary.totalItems} label="Items in Stock" variant="info" />
             </>
           ) : undefined

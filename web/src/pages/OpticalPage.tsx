@@ -43,7 +43,7 @@ export default function OpticalPage() {
   const canViewSettings = can("settings:view")
   const canEditSettings = can("settings:edit")
 
-  const { data: summary } = useStockSummary(canView)
+  const { data: summary, refetch: refetchSummary } = useStockSummary(canView)
 
   // ── Permission gate ────────────────────────────────────────────────────────
   if (!canView) {
@@ -63,10 +63,13 @@ export default function OpticalPage() {
       <PageHeader
         title="Optical"
         description="Frames, lenses & contact lens"
-        toolbar={
+        onRefresh={refetchSummary}
+        actions={
           summary ? (
             <>
-              <StatBadge value={summary.lowStock} label="Low Stock" variant="destructive" />
+              {summary.lowStock > 0 && (
+                <StatBadge value={summary.lowStock} label="Low Stock" variant="destructive" />
+              )}
               <StatBadge value={summary.totalItems} label="Items in Stock" variant="info" />
             </>
           ) : undefined

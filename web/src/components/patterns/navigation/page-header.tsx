@@ -68,7 +68,7 @@ export interface PageHeaderProps {
    * title. Wire this to whichever query this page's data primarily depends
    * on. Omit on pages with no single natural refetch to attach it to.
    */
-  onRefresh?: () => void | Promise<void>
+  onRefresh?: () => unknown
   className?: string
 }
 
