@@ -89,10 +89,24 @@ export default function CallLogsPage() {
       />
 
       {/* ── Tabs: Logs | Analytics ────────────────────────────────────────────── */}
+      {/* Custom pill styling matching main's exact tab toggle here
+          (bg-muted rounded-lg p-0.5, white active pill) — distinct from
+          this app's default solid-fill active tab, which main itself
+          only uses elsewhere, not for this specific toggle. */}
       <Tabs defaultValue="logs" variant="underline">
-        <TabsList>
-          <TabsTrigger value="logs">Calls</TabsTrigger>
-          <TabsTrigger value="analytics">Analytics</TabsTrigger>
+        <TabsList className="bg-muted rounded-lg p-0.5 gap-0 h-auto">
+          <TabsTrigger
+            value="logs"
+            className="px-4 py-1.5 text-xs font-semibold rounded-md data-[state=active]:bg-white data-[state=active]:text-foreground data-[state=active]:shadow-sm"
+          >
+            Calls
+          </TabsTrigger>
+          <TabsTrigger
+            value="analytics"
+            className="px-4 py-1.5 text-xs font-semibold rounded-md data-[state=active]:bg-white data-[state=active]:text-foreground data-[state=active]:shadow-sm"
+          >
+            Analytics
+          </TabsTrigger>
         </TabsList>
 
         {/* ── Calls tab ──────────────────────────────────────────────────────── */}

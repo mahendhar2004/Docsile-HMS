@@ -26,7 +26,6 @@ import {
 import {
   DatePicker,
   EmptyState,
-  PageToolbar,
   PaginatedDataTable,
   SearchBar,
   SingleSelect,
@@ -242,8 +241,10 @@ export function LogsTab({ canView, canEdit }: LogsTabProps) {
 
   return (
     <>
-      {/* ── Filter bar ──────────────────────────────────────────────────────── */}
-      <PageToolbar className="mb-4">
+      {/* ── Filter bar ──────────────────────────────────────────────────────────
+          Plain bordered card, not the sticky PageToolbar/FilterBar — matches
+          main's exact one-off filter-row treatment for this tab. */}
+      <div className="flex flex-col sm:flex-row gap-3 p-4 mb-4 rounded-xl border border-border/60 bg-white shadow-sm">
         <DatePicker
           value={viewDate}
           onChange={(d) => { if (d) { setViewDate(d); setPage(1) } }}
@@ -273,7 +274,7 @@ export function LogsTab({ canView, canEdit }: LogsTabProps) {
           onChange={setDirectionFilter}
           placeholder="All Directions"
         />
-      </PageToolbar>
+      </div>
 
       {/* ── Paginated table ──────────────────────────────────────────────────── */}
       <PaginatedDataTable<CallLog>
