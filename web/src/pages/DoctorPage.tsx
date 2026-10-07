@@ -46,6 +46,7 @@ export default function DoctorPage() {
   const { can } = usePermissions()
   const user = useSessionStore((s) => s.user)
   const toggleSitha = useAiContextStore((s) => s.toggleOpen)
+  const sithaOpen = useAiContextStore((s) => s.open)
 
   const hasView = can("doctor:view")
   const canConsult = can("doctor:consult")
@@ -102,9 +103,14 @@ export default function DoctorPage() {
                 Back to queue
               </Button>
             )}
-            <Button variant="outline" size="sm" onClick={toggleSitha} aria-label="Ask Sitha AI">
+            <Button
+              variant={sithaOpen ? "primary" : "outline"}
+              size="sm"
+              onClick={toggleSitha}
+              aria-label="Ask Sitha AI"
+            >
               <Sparkles className="h-3.5 w-3.5 mr-1.5" aria-hidden="true" />
-              Ask Sitha
+              {sithaOpen ? "Hide Sitha" : "Ask Sitha"}
             </Button>
           </>
         }

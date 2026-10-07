@@ -110,6 +110,7 @@ export default function WorkupPage() {
   const setAiContext = useAiContextStore((s) => s.setAiContext)
   const clearAiContext = useAiContextStore((s) => s.clearAiContext)
   const toggleSitha = useAiContextStore((s) => s.toggleOpen)
+  const sithaOpen = useAiContextStore((s) => s.open)
   React.useEffect(() => {
     if (!selectedPatient) return
     setAiContext({ patientId: selectedPatient.patientId, module: "workup" })
@@ -208,14 +209,14 @@ export default function WorkupPage() {
             </span>
             <StatusPill status={selectedPatient.status} dot />
             <Button
-              variant="outline"
+              variant={sithaOpen ? "primary" : "outline"}
               size="sm"
               className="ml-auto"
               onClick={toggleSitha}
               aria-label="Ask Sitha AI"
             >
               <Sparkles className="h-3.5 w-3.5 mr-1.5" aria-hidden />
-              Ask Sitha
+              {sithaOpen ? "Hide Sitha" : "Ask Sitha"}
             </Button>
           </div>
           <PatientWorkupDetail patientId={selectedPatient.patientId} hasCreate={hasCreate} />

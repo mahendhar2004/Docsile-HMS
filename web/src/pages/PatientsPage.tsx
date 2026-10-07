@@ -58,6 +58,7 @@ export default function PatientsPage() {
   const { can } = usePermissions()
   const navigate = useNavigate()
   const toggleSitha = useAiContextStore((s) => s.toggleOpen)
+  const sithaOpen = useAiContextStore((s) => s.open)
 
   // Resolve all permissions up front (all hooks called unconditionally).
   const canViewOPD = can("patients:view")
@@ -134,13 +135,13 @@ export default function PatientsPage() {
               )}
 
               <Button
-                variant="outline"
+                variant={sithaOpen ? "primary" : "outline"}
                 size="sm"
                 onClick={toggleSitha}
                 aria-label="Ask Sitha AI"
               >
                 <Sparkles className="h-3.5 w-3.5 mr-1.5" aria-hidden />
-                Ask Sitha
+                {sithaOpen ? "Hide Sitha" : "Ask Sitha"}
               </Button>
 
               {activeTab === "opd" && canCreatePatient && (

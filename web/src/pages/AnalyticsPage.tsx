@@ -72,6 +72,7 @@ export default function AnalyticsPage() {
   const setAiContext = useAiContextStore((s) => s.setAiContext)
   const clearAiContext = useAiContextStore((s) => s.clearAiContext)
   const toggleSitha = useAiContextStore((s) => s.toggleOpen)
+  const sithaOpen = useAiContextStore((s) => s.open)
   useEffect(() => {
     setAiContext({ patientId: null, module: "analytics" })
     return () => clearAiContext()
@@ -106,9 +107,14 @@ export default function AnalyticsPage() {
         title="Analytics"
         description="Hospital analytics — revenue, patient trends, doctor performance, and operational insights."
         actions={
-          <Button variant="outline" size="sm" onClick={toggleSitha} aria-label="Ask Sitha AI">
+          <Button
+            variant={sithaOpen ? "primary" : "outline"}
+            size="sm"
+            onClick={toggleSitha}
+            aria-label="Ask Sitha AI"
+          >
             <Sparkles className="h-3.5 w-3.5 mr-1.5" aria-hidden />
-            Ask Sitha
+            {sithaOpen ? "Hide Sitha" : "Ask Sitha"}
           </Button>
         }
         toolbar={
