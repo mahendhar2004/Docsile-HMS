@@ -1,9 +1,8 @@
 /**
- * InsurancePage — TPA companies, claim filing, status tracking, payment management.
- *
- * Structure: two-tab layout (Companies | Claims)
- *   Companies tab — insurance company CRUD (insurance:edit gated write actions)
- *   Claims tab — paginated claims list with status filter, claim detail panel, create flow
+ * InsurancePage — TPA claims, preauth tracking, and settlements, matching
+ * main's single-list layout (src/app/(hospital)/insurance/components/
+ * InsurancePage.tsx) — no top-level tabs. "Companies" is a modal triggered
+ * from the claims toolbar, not a separate tab (see insurance/claims-tab.tsx).
  *
  * Endpoints consumed:
  *   GET  /insurance/companies               — insurance:view
@@ -22,10 +21,8 @@
  * Permission gate: insurance:view — renders access-denied ErrorState if absent.
  */
 
-import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs"
 import { PageHeader, ErrorState } from "@/components/patterns"
 import { usePermissions } from "@/hooks/usePermissions"
-import { CompaniesTab } from "./insurance/companies-tab"
 import { ClaimsTab } from "./insurance/claims-tab"
 
 export default function InsurancePage() {
@@ -46,24 +43,11 @@ export default function InsurancePage() {
   return (
     <main className="space-y-6">
       <PageHeader
-        title="Insurance"
-        description="TPA company management, claim filing, status tracking, and patient payment management."
+        title="Insurance Claims"
+        description="Preauth, billing & settlement"
       />
 
-      <Tabs defaultValue="claims">
-        <TabsList>
-          <TabsTrigger value="claims">Claims</TabsTrigger>
-          <TabsTrigger value="companies">Companies</TabsTrigger>
-        </TabsList>
-
-        <TabsContent value="claims" className="mt-4">
-          <ClaimsTab />
-        </TabsContent>
-
-        <TabsContent value="companies" className="mt-4">
-          <CompaniesTab />
-        </TabsContent>
-      </Tabs>
+      <ClaimsTab />
     </main>
   )
 }
