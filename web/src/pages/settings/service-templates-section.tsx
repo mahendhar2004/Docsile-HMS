@@ -33,7 +33,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
-import { ConfirmationModal, ErrorState, EmptyState, PageToolbar } from "@/components/patterns"
+import { ConfirmationModal, ErrorState, EmptyState } from "@/components/patterns"
 import {
   useServiceTemplates,
   useCreateServiceTemplate,
@@ -86,8 +86,9 @@ export function ServiceTemplatesSection({ canEdit }: ServiceTemplatesProps) {
 
   return (
     <div className="space-y-4">
-      {/* Toolbar */}
-      <PageToolbar>
+      {/* Toolbar — plain flex row, not the sticky PageToolbar/FilterBar; matches
+          main's exact ServicesTab toolbar recipe. */}
+      <div className="flex items-center gap-3 flex-wrap">
         <Input
           placeholder="Search services..."
           value={search}
@@ -123,7 +124,7 @@ export function ServiceTemplatesSection({ canEdit }: ServiceTemplatesProps) {
             Add Service
           </Button>
         )}
-      </PageToolbar>
+      </div>
 
       {/* Table */}
       <div className="rounded-[var(--radius-lg)] bg-[var(--color-card)] shadow-[var(--shadow-card)] overflow-hidden">

@@ -31,7 +31,7 @@ import { Badge } from "@/components/ui/badge"
 import { Label } from "@/components/ui/label"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Skeleton } from "@/components/ui/skeleton"
-import { ConfirmationModal, ErrorState, EmptyState, PageToolbar } from "@/components/patterns"
+import { ConfirmationModal, ErrorState, EmptyState } from "@/components/patterns"
 import {
   usePrescriptionTemplates,
   useCreatePrescriptionTemplate,
@@ -98,7 +98,7 @@ export function PrescriptionTemplatesSection({ canEdit }: PrescriptionTemplatesS
 
   return (
     <div className="space-y-4">
-      <PageToolbar>
+      <div className="flex items-center gap-3 flex-wrap">
         <Input
           placeholder="Search by code, name or diagnosis..."
           value={search}
@@ -121,7 +121,7 @@ export function PrescriptionTemplatesSection({ canEdit }: PrescriptionTemplatesS
             Add Template
           </Button>
         )}
-      </PageToolbar>
+      </div>
 
       <div className="rounded-[var(--radius-lg)] bg-[var(--color-card)] shadow-[var(--shadow-card)] overflow-hidden">
         <Table>

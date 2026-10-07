@@ -34,7 +34,7 @@ import { Badge } from "@/components/ui/badge"
 import { Label } from "@/components/ui/label"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Skeleton } from "@/components/ui/skeleton"
-import { ConfirmationModal, ErrorState, EmptyState, PageToolbar } from "@/components/patterns"
+import { ConfirmationModal, ErrorState, EmptyState } from "@/components/patterns"
 import {
   useSurgeries,
   useCreateSurgery,
@@ -96,7 +96,7 @@ export function SurgeriesSection({ canEdit }: SurgeriesSectionProps) {
 
   return (
     <div className="space-y-4">
-      <PageToolbar>
+      <div className="flex items-center gap-3 flex-wrap">
         <Input
           placeholder="Search surgeries..."
           value={search}
@@ -119,7 +119,7 @@ export function SurgeriesSection({ canEdit }: SurgeriesSectionProps) {
             Add Surgery
           </Button>
         )}
-      </PageToolbar>
+      </div>
 
       <div className="rounded-[var(--radius-lg)] bg-[var(--color-card)] shadow-[var(--shadow-card)] overflow-hidden">
         <Table>
