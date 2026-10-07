@@ -21,12 +21,24 @@ export interface AiContext {
 interface AiContextState extends AiContext {
   setAiContext: (ctx: Partial<AiContext>) => void
   clearAiContext: () => void
+  /**
+   * Whether the Sitha panel is open. Main has a per-page "Ask Sitha" toggle
+   * button in several headers (Patients, Doctor) that open/close the SAME
+   * chat panel this app renders once, globally, in AppShell — so any page's
+   * header button just flips this flag rather than owning its own panel.
+   */
+  open: boolean
+  setOpen: (open: boolean) => void
+  toggleOpen: () => void
 }
 
 const EMPTY_CONTEXT: AiContext = { patientId: null, module: null }
 
 export const useAiContextStore = create<AiContextState>((set) => ({
   ...EMPTY_CONTEXT,
+  open: false,
   setAiContext: (ctx) => set((prev) => ({ ...prev, ...ctx })),
-  clearAiContext: () => set(EMPTY_CONTEXT),
+  clearAiContext: () => set((prev) => ({ ...prev, ...EMPTY_CONTEXT })),
+  setOpen: (open) => set({ open }),
+  toggleOpen: () => set((prev) => ({ open: !prev.open })),
 }))

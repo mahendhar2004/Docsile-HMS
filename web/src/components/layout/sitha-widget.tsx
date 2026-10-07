@@ -8,9 +8,13 @@
  * patient is selected; Analytics sets module: "analytics". Everywhere else
  * it runs in general clinical mode (no patient, no module).
  *
- * Gated on doctor:consult — the backend requires this permission
- * unconditionally, even in analytics mode (see .sde/schemas/openapi.yaml),
- * so the button is hidden entirely for roles that would just get a 403.
+ * Visible unconditionally, matching main exactly — main's own Patients/
+ * Doctor headers show the "Ask Sitha" button to every role too, even though
+ * the backend's doctor:consult requirement (.sde/schemas/openapi.yaml)
+ * means a non-doctor's question still 403s there. That mismatch is
+ * documented as an intentional, unchanged carry-over from the old app, not
+ * a migration bug to fix here — so this widget reproduces it rather than
+ * hiding the button for roles main itself shows it to.
  *
  * Accept: copies the AI's answer to the clipboard (toast notification).
  * Dismiss: clears the current answer banner; conversation history is
@@ -36,20 +40,15 @@ import {
 // split off in whichever page actually renders a chart.
 import { AlertBanner } from "@/components/patterns/feedback/alert-banner"
 import { toast } from "@/components/ui/sonner"
-import { usePermissions } from "@/hooks/usePermissions"
 import { useAiContextStore } from "@/store/ai-context"
 import { useAskSitha, type SithaHistoryTurn } from "@/hooks/useAskSitha"
 
 export function SithaWidget() {
-  const { can } = usePermissions()
-  const canConsult = can("doctor:consult")
-
-  const [open, setOpen] = useState(false)
   const [question, setQuestion] = useState("")
   const [history, setHistory] = useState<SithaHistoryTurn[]>([])
   const [currentAnswer, setCurrentAnswer] = useState<string | null>(null)
 
-  const { patientId, module } = useAiContextStore()
+  const { patientId, module, open, setOpen } = useAiContextStore()
   const askMutation = useAskSitha()
 
   const handleSubmit = useCallback(() => {
@@ -89,9 +88,6 @@ export function SithaWidget() {
   }, [currentAnswer])
 
   const handleDismiss = useCallback(() => setCurrentAnswer(null), [])
-
-  // Nothing to show for roles the backend would reject anyway.
-  if (!canConsult) return null
 
   const contextLabel = patientId
     ? "This patient's history, dues, and clinical suggestions"
