@@ -19,15 +19,27 @@
  *   billing:view     — shows Print Receipt in detail panel
  */
 
-import { useState, useEffect, useId } from "react"
+import { useState, useEffect, useId, useMemo, forwardRef, useImperativeHandle } from "react"
 import { useForm, Controller } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { z } from "zod"
 import { format } from "date-fns"
-import { calculateAge } from "@/lib/utils"
-import { Plus, Pencil, Trash2 } from "lucide-react"
+import { calculateAge, formatCurrency } from "@/lib/utils"
+import { Pencil, Trash2, MoreVertical, Settings } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { IconButton } from "@/components/ui/icon-button"
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip"
 import {
   Dialog,
   DialogContent,
@@ -222,50 +234,157 @@ function PatientEditForm({ patient, open, onOpenChange, onSuccess }: PatientEdit
 
 // ─── Table columns ─────────────────────────────────────────────────────────────
 
-const columns: ColumnDef<Patient>[] = [
-  {
-    key: "patientId",
-    header: "ID",
-    cell: (p) => <span className="font-mono text-xs">{p.patientId}</span>,
-  },
-  {
-    key: "name",
-    header: "Name",
-    cell: (p) => (
-      <span className="font-medium">
-        {p.firstName} {p.lastName}
-      </span>
-    ),
-  },
-  {
-    key: "ageGender",
-    header: "Age / Gender",
-    cell: (p) =>
-      p.dateOfBirth
-        ? `${calculateAge(p.dateOfBirth)} / ${p.gender}`
-        : p.gender,
-  },
-  {
-    key: "phone",
-    header: "Phone",
-    cell: (p) => p.phone,
-  },
-  {
-    key: "patientType",
-    header: "Type",
-    cell: (p) => p.patientType,
-  },
-  {
-    key: "status",
-    header: "Status",
-    cell: (p) => <StatusPill status={p.status ?? "REGISTERED"} size="sm" />,
-  },
-  {
-    key: "referredBy",
-    header: "Referred By",
-    cell: (p) => p.referredBy ?? "—",
-  },
-]
+/**
+ * Token is a stable per-day registration-order number, matching main's
+ * PatientTable (tokenMap sorts the whole day ascending by createdAt and
+ * assigns 1, 2, 3…). The migrated table paginates server-side (offset,
+ * newest first), so the same numbering is reconstructed from total/page/
+ * pageSize rather than re-sorting the current page alone.
+ */
+function buildColumns(args: {
+  total: number
+  page: number
+  pageSize: number
+}): ColumnDef<Patient>[] {
+  const { total, page, pageSize } = args
+
+  return [
+    {
+      key: "token",
+      header: "Token",
+      cell: (_p, index) => {
+        const token = total - ((page - 1) * pageSize + index)
+        return (
+          <span className="inline-flex items-center justify-center h-6 min-w-7 rounded bg-primary/10 border border-primary/20 border-dashed text-xs font-bold text-primary tabular-nums px-1.5">
+            {token}
+          </span>
+        )
+      },
+      minWidth: "48px",
+    },
+    {
+      key: "time",
+      header: "Time",
+      cell: (p) => (
+        <span className="text-muted-foreground text-sm tabular-nums whitespace-nowrap">
+          {format(new Date(p.createdAt), "hh:mm a")}
+        </span>
+      ),
+    },
+    {
+      key: "patientId",
+      header: "ID",
+      cell: (p) => <span className="font-mono text-xs">{p.patientId}</span>,
+    },
+    {
+      key: "name",
+      header: "Name",
+      cell: (p) => (
+        <span className="font-medium">
+          {p.firstName} {p.lastName}
+        </span>
+      ),
+    },
+    {
+      key: "ageGender",
+      header: "Age / Gender",
+      cell: (p) =>
+        p.dateOfBirth
+          ? `${calculateAge(p.dateOfBirth)} / ${p.gender}`
+          : p.gender,
+    },
+    {
+      key: "phone",
+      header: "Phone",
+      cell: (p) => p.phone,
+    },
+    {
+      key: "doctor",
+      header: "Doctor",
+      cell: (p) => {
+        const doctorName = p.prescriptions?.[0]?.doctorName
+        if (!doctorName) return <span className="text-muted-foreground/50">—</span>
+        return (
+          <span className="text-sm font-medium">
+            {doctorName.startsWith("Dr") ? doctorName : `Dr. ${doctorName}`}
+          </span>
+        )
+      },
+    },
+    {
+      key: "patientType",
+      header: "Type",
+      cell: (p) => p.patientType,
+    },
+    {
+      key: "status",
+      header: "Status",
+      cell: (p) => <StatusPill status={p.status ?? "REGISTERED"} size="sm" />,
+    },
+    {
+      key: "services",
+      header: "Services",
+      cell: (p) => {
+        const items = p.prescriptions?.[0]?.items ?? []
+        if (items.length === 0) return <span className="text-muted-foreground/50">—</span>
+        const sorted = [...items].sort((a, b) => (a.sortOrder ?? 0) - (b.sortOrder ?? 0))
+        const extra = sorted.length - 1
+        return (
+          <Tooltip delayDuration={150}>
+            <TooltipTrigger asChild>
+              <div className="inline-flex items-center gap-1 max-w-[200px] cursor-default">
+                <span className="inline-flex items-center h-6 px-2 rounded-md bg-muted/70 border border-border/40 text-[12px] font-medium truncate">
+                  {sorted[0].description}
+                </span>
+                {extra > 0 && (
+                  <span className="inline-flex items-center justify-center h-6 px-1.5 rounded-md bg-muted/70 border border-border/40 text-[11px] font-semibold text-muted-foreground tabular-nums shrink-0">
+                    +{extra}
+                  </span>
+                )}
+              </div>
+            </TooltipTrigger>
+            <TooltipContent side="top" align="start" className="max-w-xs px-3 py-2">
+              <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider mb-1.5">
+                Services ({sorted.length})
+              </p>
+              <ul className="space-y-1 text-xs">
+                {sorted.map((it, i) => (
+                  <li key={i} className="flex items-start gap-1.5">
+                    <span className="text-muted-foreground/60 mt-0.5">•</span>
+                    <span>{it.description}</span>
+                  </li>
+                ))}
+              </ul>
+            </TooltipContent>
+          </Tooltip>
+        )
+      },
+    },
+    {
+      key: "receipt",
+      header: "Receipt",
+      cell: (p) => {
+        const rx = p.prescriptions?.[0]
+        if (!rx) return <span className="text-muted-foreground/50">—</span>
+        return (
+          <div>
+            <span className="font-semibold text-sm tabular-nums">{formatCurrency(rx.total)}</span>
+            {rx.balanceDue > 0 && (
+              <p className="text-[11px] text-orange-600 font-medium mt-0.5 tabular-nums">
+                Due: {formatCurrency(rx.balanceDue)}
+              </p>
+            )}
+          </div>
+        )
+      },
+    },
+    {
+      key: "referredBy",
+      header: "Referred By",
+      cell: (p) => p.referredBy ?? "—",
+    },
+  ]
+}
 
 // ─── OpdTab component ─────────────────────────────────────────────────────────
 
@@ -275,16 +394,34 @@ export interface OpdTabProps {
   canDelete: boolean
   canAddServices: boolean
   canViewReceipt: boolean
+  /**
+   * Controlled by the parent (PatientsPage) so the header's Stats button can
+   * fetch stats for the same date this tab is viewing — matches main, where
+   * `selectedDate` lives at the PatientsPage level, not inside the OPD view.
+   */
+  viewDate: Date
+  onViewDateChange: (date: Date) => void
+  /** Opens /settings — matches main's Configurations shortcut in the FilterBar. */
+  onOpenSettings: () => void
 }
 
-export function OpdTab({
+export interface OpdTabHandle {
+  /** Opens the Register Patient dialog — main's header button lives one level up. */
+  openRegister: () => void
+  /** Refetches the current page — main's header Refresh button lives one level up. */
+  refetch: () => void
+}
+
+export const OpdTab = forwardRef<OpdTabHandle, OpdTabProps>(function OpdTab({
   canCreate,
   canEdit,
   canDelete,
   canAddServices,
   canViewReceipt,
-}: OpdTabProps) {
-  const [viewDate, setViewDate] = useState<Date>(new Date())
+  viewDate,
+  onViewDateChange,
+  onOpenSettings,
+}, ref) {
   const [searchQ, setSearchQ] = useState("")
   const [selectedPatientId, setSelectedPatientId] = useState<string | null>(null)
   const [showDetail, setShowDetail] = useState(false)
@@ -330,13 +467,21 @@ export function OpdTab({
   }
 
   function navigateDate(direction: -1 | 1) {
-    setViewDate((d) => {
-      const next = new Date(d)
-      next.setDate(next.getDate() + direction)
-      return next
-    })
+    const next = new Date(viewDate)
+    next.setDate(next.getDate() + direction)
+    onViewDateChange(next)
     setPage(1)
   }
+
+  const columns = useMemo(
+    () => buildColumns({ total, page, pageSize }),
+    [total, page, pageSize],
+  )
+
+  useImperativeHandle(ref, () => ({
+    openRegister: () => setShowRegister(true),
+    refetch: () => void refetch(),
+  }))
 
   return (
     <div className="space-y-4">
@@ -346,13 +491,13 @@ export function OpdTab({
         <DateNavigator
           date={dateStr}
           onDateChange={(iso) => {
-            setViewDate(new Date(iso + "T00:00:00"))
+            onViewDateChange(new Date(iso + "T00:00:00"))
             setPage(1)
           }}
           onPrev={() => navigateDate(-1)}
           onNext={() => navigateDate(1)}
           onToday={() => {
-            setViewDate(new Date())
+            onViewDateChange(new Date())
             setPage(1)
           }}
           isToday={dateStr === format(new Date(), "yyyy-MM-dd")}
@@ -380,79 +525,89 @@ export function OpdTab({
           />
         </div>
 
-        {/* Register new patient */}
-        {canCreate && (
-          <Button onClick={() => setShowRegister(true)} className="ml-auto">
-            <Plus className="h-4 w-4 mr-1.5" aria-hidden />
-            Register Patient
-          </Button>
-        )}
+        {/* Configurations shortcut — matches main's FilterBar placement exactly
+            (main's Register/Add Patient button lives in the page header
+            instead, one level up, not in this toolbar). */}
+        <IconButton
+          variant="outline"
+          size="sm"
+          className="ml-auto"
+          onClick={onOpenSettings}
+          aria-label="Open configurations"
+          title="Configurations"
+        >
+          <Settings className="h-4 w-4" aria-hidden />
+        </IconButton>
       </PageToolbar>
 
       {/* ── Patient table ─────────────────────────────────────────────────── */}
-      <PaginatedDataTable<Patient>
-        mode="offset"
-        data={data}
-        columns={columns}
-        variant={canEdit || canDelete ? "with-row-actions" : "standard"}
-        isLoading={isLoading}
-        isFetching={isFetching}
-        isError={isError}
-        error={error}
-        onRetry={refetch}
-        page={page}
-        pageSize={pageSize}
-        total={total}
-        onPageChange={setPage}
-        onPageSizeChange={setPageSize}
-        showPageSizeSelector
-        aria-label="OPD patients table"
-        onRowClick={(patient) => {
-          setSelectedPatientId(patient.id)
-          setShowDetail(true)
-        }}
-        rowActions={(patient) => (
-          <div className="flex items-center gap-1 justify-end">
-            {canEdit && (
-              <IconButton
-                size="sm"
-                variant="ghost"
-                aria-label={`Edit ${patient.firstName} ${patient.lastName}`}
-                onClick={(e) => {
-                  e.stopPropagation()
-                  setEditPatient(patient)
-                }}
-              >
-                <Pencil className="h-3.5 w-3.5" aria-hidden />
-              </IconButton>
-            )}
-            {canDelete && (
-              <IconButton
-                size="sm"
-                variant="ghost"
-                aria-label={`Delete ${patient.firstName} ${patient.lastName}`}
-                onClick={(e) => {
-                  e.stopPropagation()
-                  setDeleteTarget(patient)
-                }}
-              >
-                <Trash2 className="h-3.5 w-3.5 text-[var(--color-error)]" aria-hidden />
-              </IconButton>
-            )}
-          </div>
-        )}
-        emptyState={
-          <EmptyState
-            title="No patients today"
-            description={`No patients have been registered for ${format(viewDate, "dd MMM yyyy")}.`}
-            action={
-              canCreate
-                ? { label: "Register Patient", onClick: () => setShowRegister(true) }
-                : undefined
-            }
-          />
-        }
-      />
+      <TooltipProvider delayDuration={150}>
+        <PaginatedDataTable<Patient>
+          mode="offset"
+          data={data}
+          columns={columns}
+          variant={canEdit || canDelete ? "with-row-actions" : "standard"}
+          isLoading={isLoading}
+          isFetching={isFetching}
+          isError={isError}
+          error={error}
+          onRetry={refetch}
+          page={page}
+          pageSize={pageSize}
+          total={total}
+          onPageChange={setPage}
+          onPageSizeChange={setPageSize}
+          showPageSizeSelector
+          aria-label="OPD patients table"
+          rowClassName={() => "group"}
+          onRowClick={(patient) => {
+            setSelectedPatientId(patient.id)
+            setShowDetail(true)
+          }}
+          rowActions={(patient) => (
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="h-7 w-7 p-0 opacity-0 group-hover:opacity-100 transition-opacity"
+                  aria-label={`Actions for ${patient.firstName} ${patient.lastName}`}
+                >
+                  <MoreVertical className="h-4 w-4" aria-hidden />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                {canEdit && (
+                  <DropdownMenuItem onSelect={() => setEditPatient(patient)}>
+                    <Pencil className="h-3.5 w-3.5 mr-2" aria-hidden />
+                    Edit
+                  </DropdownMenuItem>
+                )}
+                {canDelete && (
+                  <DropdownMenuItem
+                    onSelect={() => setDeleteTarget(patient)}
+                    className="text-destructive focus:text-destructive"
+                  >
+                    <Trash2 className="h-3.5 w-3.5 mr-2" aria-hidden />
+                    Delete
+                  </DropdownMenuItem>
+                )}
+              </DropdownMenuContent>
+            </DropdownMenu>
+          )}
+          emptyState={
+            <EmptyState
+              title="No patients today"
+              description={`No patients have been registered for ${format(viewDate, "dd MMM yyyy")}.`}
+              action={
+                canCreate
+                  ? { label: "Register Patient", onClick: () => setShowRegister(true) }
+                  : undefined
+              }
+            />
+          }
+        />
+      </TooltipProvider>
 
       {/* ── Patient detail panel ──────────────────────────────────────────── */}
       <PatientDetailPanel
@@ -503,4 +658,4 @@ export function OpdTab({
       )}
     </div>
   )
-}
+})

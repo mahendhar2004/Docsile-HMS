@@ -21,9 +21,10 @@
  *   inpatients:discharge — shows discharge action
  */
 
-import { useState } from "react"
+import { useState, forwardRef, useImperativeHandle } from "react"
 import { format } from "date-fns"
 import { Trash2, RefreshCw } from "lucide-react"
+import { calculateAge, formatCurrency, cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 import {
   Sheet,
@@ -278,9 +279,18 @@ const columns: ColumnDef<InPatient>[] = [
     key: "patient",
     header: "Patient",
     cell: (ip) =>
-      ip.firstName
-        ? `${ip.firstName} ${ip.lastName ?? ""}`.trim()
-        : ip.patientId.slice(0, 8) + "…",
+      ip.firstName ? (
+        <div>
+          <div className="font-semibold text-sm">{`${ip.firstName} ${ip.lastName ?? ""}`.trim()}</div>
+          <div className="text-xs text-muted-foreground mt-0.5">
+            {ip.dateOfBirth && <>{calculateAge(ip.dateOfBirth)}y · </>}
+            {ip.gender && <>{ip.gender.charAt(0)} · </>}
+            <span className="tabular-nums">{ip.phone}</span>
+          </div>
+        </div>
+      ) : (
+        ip.patientId.slice(0, 8) + "…"
+      ),
   },
   {
     key: "doctors",
@@ -296,6 +306,14 @@ const columns: ColumnDef<InPatient>[] = [
         return <span className="text-[var(--color-muted-foreground)]">—</span>
       }
     },
+  },
+  {
+    key: "operation",
+    header: "Operation",
+    cell: (ip) =>
+      ip.operationName ?? (
+        <span className="text-muted-foreground/50 italic text-xs">Not assigned</span>
+      ),
   },
   {
     key: "admissionDate",
@@ -317,6 +335,21 @@ const columns: ColumnDef<InPatient>[] = [
     header: "Status",
     cell: (ip) => <StatusPill status={ip.status.toUpperCase()} size="sm" />,
   },
+  {
+    key: "balance",
+    header: "Balance",
+    align: "right",
+    cell: (ip) => (
+      <span
+        className={cn(
+          "font-semibold text-sm tabular-nums",
+          (ip.balanceAmount ?? 0) > 0 ? "text-orange-600" : "text-green-600",
+        )}
+      >
+        {formatCurrency(ip.balanceAmount ?? 0)}
+      </span>
+    ),
+  },
 ]
 
 // ─── IpdTab component ─────────────────────────────────────────────────────────
@@ -327,7 +360,15 @@ export interface IpdTabProps {
   canDischarge: boolean
 }
 
-export function IpdTab({ canEdit, canDelete, canDischarge }: IpdTabProps) {
+export interface IpdTabHandle {
+  /** Refetches the current page — main's header Refresh button lives one level up. */
+  refetch: () => void
+}
+
+export const IpdTab = forwardRef<IpdTabHandle, IpdTabProps>(function IpdTab(
+  { canEdit, canDelete, canDischarge },
+  ref,
+) {
   const [selectedInPatientId, setSelectedInPatientId] = useState<string | null>(null)
   const [showDetail, setShowDetail] = useState(false)
 
@@ -344,6 +385,10 @@ export function IpdTab({ canEdit, canDelete, canDischarge }: IpdTabProps) {
     setPageSize,
     refetch,
   } = useIpdInPatients(null, null)
+
+  useImperativeHandle(ref, () => ({
+    refetch: () => void refetch(),
+  }))
 
   return (
     <div className="space-y-4">
@@ -393,4 +438,4 @@ export function IpdTab({ canEdit, canDelete, canDischarge }: IpdTabProps) {
       />
     </div>
   )
-}
+})
