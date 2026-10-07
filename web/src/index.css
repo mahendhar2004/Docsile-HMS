@@ -96,17 +96,14 @@
   --color-sidebar-active-foreground: #2563eb;
 
   /* ─── Border Radius ─────────────────────────────── */
-  /* Nudged up a step across the whole scale — subtly softer corners
-     everywhere (buttons, inputs, cards, tables, dialogs) rather than
-     reading as boxy/sharp-edged. Still restrained, not pill-shaped;
-     --radius-full stays for chips/badges/avatars that should be pills. */
-  --radius-xs: 6px;
-  --radius-sm: 8px;
-  --radius: 10px;
-  --radius-md: 12px;
-  --radius-lg: 14px;
-  --radius-xl: 18px;
-  --radius-2xl: 22px;
+  /* Matches main's exact scale (src/app/globals.css) for UI parity. */
+  --radius-xs: 4px;
+  --radius-sm: 6px;
+  --radius: 8px;
+  --radius-md: 10px;
+  --radius-lg: 12px;
+  --radius-xl: 16px;
+  --radius-2xl: 20px;
   --radius-full: 9999px;
 
   /* ─── Shadows ────────────────────────────────────── */

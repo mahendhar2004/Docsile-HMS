@@ -1,26 +1,19 @@
 /**
  * ui/card.tsx
  *
- * Card primitive — generic surface container.
+ * Card primitive — generic surface container. Matches main's plain
+ * `rounded-lg border bg-card shadow-sm` look (src/components/ui/card.tsx on
+ * main) — no elevated/flat shadow-tier distinction, main has none.
  *
  * Composition:
  *   Card > CardHeader > CardTitle + CardDescription
  *   Card > CardContent
  *   Card > CardFooter
  *
- * Variants:
- *   elevated (default) — hairline ring + soft resting shadow (--shadow-card),
- *                        the standard dashboard/panel card look
- *   flat               — hairline ring only, no shadow (use inside another
- *                        elevated surface, e.g. a detail panel inside a sheet)
- *
- * Both use the same box-shadow-based ring (--shadow-border / --shadow-card)
- * rather than the `border` property — renders crisp at any radius and lets
- * `interactive` swap in --shadow-card-hover without a border/shadow seam.
- *
  * Props:
  *   interactive — adds hover/active micro-feedback via .motion-interactive +
- *                 a lifted shadow + faint tint; use for clickable nav/dashboard tiles
+ *                 a slightly deeper shadow; use for clickable nav/dashboard tiles
+ *                 (main itself has no such concept, kept for call-site compatibility)
  */
 
 import * as React from "react"
@@ -31,14 +24,17 @@ import { cn } from "@/lib/utils"
 
 const cardVariants = cva(
   [
-    "rounded-[var(--radius-lg)]",
+    "rounded-[var(--radius-lg)] border border-[var(--color-border)]",
     "bg-[var(--color-card)] text-[var(--color-card-foreground)]",
+    "shadow-[var(--shadow-sm)]",
   ],
   {
     variants: {
+      /** No visual difference between variants — main has no elevated/flat
+       *  distinction. Kept so existing `variant="flat"` call sites still compile. */
       variant: {
-        elevated: "shadow-[var(--shadow-card)]",
-        flat: "shadow-[var(--shadow-border)]",
+        elevated: "",
+        flat: "",
       },
     },
     defaultVariants: {
@@ -62,7 +58,7 @@ const Card = React.forwardRef<HTMLDivElement, CardProps>(
         cardVariants({ variant }),
         interactive && [
           "motion-interactive cursor-pointer",
-          "hover:shadow-[var(--shadow-card-hover)] hover:bg-[var(--color-surface)]",
+          "hover:shadow-[var(--shadow-md)]",
           "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-ring)] focus-visible:ring-offset-2",
         ],
         className
@@ -82,7 +78,7 @@ const CardHeader = React.forwardRef<
 >(({ className, ...props }, ref) => (
   <div
     ref={ref}
-    className={cn("flex flex-col gap-1.5 px-5 pt-5 pb-0", className)}
+    className={cn("flex flex-col space-y-1.5 p-6", className)}
     {...props}
   />
 ))
@@ -97,7 +93,7 @@ const CardTitle = React.forwardRef<
   <h3
     ref={ref}
     className={cn(
-      "text-[length:var(--text-subtitle)] font-semibold leading-[var(--leading-tight)] text-[var(--color-foreground)]",
+      "text-2xl font-semibold leading-none tracking-tight text-[var(--color-foreground)]",
       className
     )}
     {...props}
@@ -113,10 +109,7 @@ const CardDescription = React.forwardRef<
 >(({ className, ...props }, ref) => (
   <p
     ref={ref}
-    className={cn(
-      "text-[length:var(--text-body)] text-[var(--color-muted-foreground)] leading-[var(--leading-normal)]",
-      className
-    )}
+    className={cn("text-sm text-[var(--color-muted-foreground)]", className)}
     {...props}
   />
 ))
@@ -128,7 +121,7 @@ const CardContent = React.forwardRef<
   HTMLDivElement,
   React.HTMLAttributes<HTMLDivElement>
 >(({ className, ...props }, ref) => (
-  <div ref={ref} className={cn("px-5 py-5", className)} {...props} />
+  <div ref={ref} className={cn("p-6 pt-0", className)} {...props} />
 ))
 CardContent.displayName = "CardContent"
 
@@ -140,10 +133,7 @@ const CardFooter = React.forwardRef<
 >(({ className, ...props }, ref) => (
   <div
     ref={ref}
-    className={cn(
-      "flex items-center gap-2 px-5 pb-5 pt-0",
-      className
-    )}
+    className={cn("flex items-center p-6 pt-0", className)}
     {...props}
   />
 ))

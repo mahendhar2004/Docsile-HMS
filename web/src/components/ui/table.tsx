@@ -13,60 +13,46 @@ import { cn } from "@/lib/utils"
 // ---------------------------------------------------------------------------
 
 /**
- * Outermost table container. Wraps a native <table> in a bordered, rounded
- * card-like frame (--shadow-card, matching ui/card.tsx) with its own
- * overflow scroll so wide tables scroll horizontally without breaking the
- * rounded corners — the previous bare, borderless <table> read as an
- * unstyled HTML table dropped straight onto the page.
+ * Outermost table container. Matches main's plain unstyled wrapper
+ * (src/components/ui/table.tsx on main) — no border, no rounded frame,
+ * just an overflow scroller.
  *
  * Props:
- * - `containerClassName` — applied to the outer bordered frame, not the <table>.
+ * - `containerClassName` — applied to the outer frame, not the <table>.
  */
 const Table = React.forwardRef<
   HTMLTableElement,
   React.HTMLAttributes<HTMLTableElement> & {
-    /** Class name applied to the outer bordered frame, not the <table> itself. */
+    /** Class name applied to the outer frame, not the <table> itself. */
     containerClassName?: string
   }
 >(({ className, containerClassName, ...props }, ref) => (
-  <div
-    className={cn(
-      "relative w-full overflow-x-auto overflow-y-hidden rounded-[var(--radius-lg)] bg-[var(--color-card)] shadow-[var(--shadow-card)]",
-      containerClassName,
-    )}
-  >
+  <div className={cn("relative w-full overflow-auto", containerClassName)}>
     <table
       ref={ref}
-      className={cn("w-full caption-bottom text-[var(--text-body)]", className)}
+      className={cn("w-full caption-bottom text-sm", className)}
       {...props}
     />
   </div>
 ))
 Table.displayName = "Table"
 
-/**
- * <thead> wrapper. A slightly stronger surface tint than the body plus a
- * crisp bottom rule gives the header band real separation instead of a
- * near-invisible tonal shift.
- */
+/** <thead> wrapper — plain bottom rule on its rows, matching main. */
 const TableHeader = React.forwardRef<
   HTMLTableSectionElement,
   React.HTMLAttributes<HTMLTableSectionElement>
 >(({ className, ...props }, ref) => (
   <thead
     ref={ref}
-    className={cn(
-      "bg-[var(--color-muted)]/60 [&_tr]:border-b [&_tr]:border-[var(--color-border)]",
-      className,
-    )}
+    className={cn("[&_tr]:border-b [&_tr]:border-[var(--color-border)]", className)}
     {...props}
   />
 ))
 TableHeader.displayName = "TableHeader"
 
 /**
- * <tbody> wrapper. Rows inside are divided by a subtle hairline border;
- * the last row has no bottom border (handled by Tailwind sibling selector).
+ * <tbody> wrapper — matches main's zebra striping (even rows tinted) with
+ * no bottom border on the last row.
  */
 const TableBody = React.forwardRef<
   HTMLTableSectionElement,
@@ -75,7 +61,7 @@ const TableBody = React.forwardRef<
   <tbody
     ref={ref}
     className={cn(
-      "divide-y divide-[var(--color-border)] [&_tr:last-child]:border-b-0",
+      "[&_tr:last-child]:border-0 [&_tr:nth-child(even)]:bg-[var(--color-muted)]/40",
       className,
     )}
     {...props}
@@ -83,9 +69,7 @@ const TableBody = React.forwardRef<
 ))
 TableBody.displayName = "TableBody"
 
-/**
- * <tfoot> wrapper. Used for summary rows, aggregate totals, etc.
- */
+/** <tfoot> wrapper — used for summary rows, aggregate totals, etc. */
 const TableFooter = React.forwardRef<
   HTMLTableSectionElement,
   React.HTMLAttributes<HTMLTableSectionElement>
@@ -93,7 +77,7 @@ const TableFooter = React.forwardRef<
   <tfoot
     ref={ref}
     className={cn(
-      "border-t border-[var(--color-border)] bg-[var(--color-muted)] font-medium",
+      "border-t border-[var(--color-border)] bg-[var(--color-muted)]/50 font-medium",
       "[&>tr]:last:border-b-0",
       className,
     )}
@@ -103,7 +87,8 @@ const TableFooter = React.forwardRef<
 TableFooter.displayName = "TableFooter"
 
 /**
- * <tr> — applies hover/selected state styling and micro-motion transition.
+ * <tr> — applies hover/selected state styling, matching main's plain
+ * hover/selected tints (no micro-motion transition tokens).
  *
  * Set `data-state="selected"` on the row to activate the selected background.
  */
@@ -114,10 +99,8 @@ const TableRow = React.forwardRef<
   <tr
     ref={ref}
     className={cn(
-      "border-b border-[var(--color-border)]",
-      "transition-colors",
-      "duration-[var(--duration-micro)] ease-[var(--ease-micro)]",
-      "hover:bg-[var(--color-muted)] data-[state=selected]:bg-[var(--color-accent)]",
+      "border-b border-[var(--color-border)] transition-colors",
+      "hover:bg-[var(--color-muted)]/50 data-[state=selected]:bg-[var(--color-muted)]",
       className,
     )}
     {...props}
@@ -126,9 +109,7 @@ const TableRow = React.forwardRef<
 TableRow.displayName = "TableRow"
 
 /**
- * <th> — column header cell. Uses a compact all-caps label style that
- * matches the "11px semibold uppercase tracking-wider muted" pattern
- * used everywhere in the design system for column headers.
+ * <th> — column header cell, matching main's bold uppercase label style.
  */
 const TableHead = React.forwardRef<
   HTMLTableCellElement,
@@ -137,11 +118,9 @@ const TableHead = React.forwardRef<
   <th
     ref={ref}
     className={cn(
-      "px-4 py-2.5 text-left align-middle",
-      "text-[11px] font-semibold uppercase tracking-wider",
-      "text-[var(--color-muted-foreground)] whitespace-nowrap",
-      // Checkbox column resets
-      "[&:has([role=checkbox])]:pr-0 [&>[role=checkbox]]:translate-y-0.5",
+      "h-9 px-3 text-left align-middle font-bold text-xs uppercase tracking-wide",
+      "text-[var(--color-foreground)]/80",
+      "[&:has([role=checkbox])]:pr-0",
       className,
     )}
     {...props}
@@ -150,9 +129,8 @@ const TableHead = React.forwardRef<
 TableHead.displayName = "TableHead"
 
 /**
- * <td> — body cell. Default 14px body text, left-aligned.
- * Use the `align` prop or pass an `className` with Tailwind text-align
- * to override alignment per column.
+ * <td> — body cell, matching main's plain padding (no forced text color/size
+ * beyond the table's own text-sm).
  */
 const TableCell = React.forwardRef<
   HTMLTableCellElement,
@@ -160,13 +138,7 @@ const TableCell = React.forwardRef<
 >(({ className, ...props }, ref) => (
   <td
     ref={ref}
-    className={cn(
-      "px-4 py-3 align-middle",
-      "text-sm text-[var(--color-foreground)]",
-      // Checkbox column resets
-      "[&:has([role=checkbox])]:pr-0 [&>[role=checkbox]]:translate-y-0.5",
-      className,
-    )}
+    className={cn("px-3 py-3 align-middle [&:has([role=checkbox])]:pr-0", className)}
     {...props}
   />
 ))

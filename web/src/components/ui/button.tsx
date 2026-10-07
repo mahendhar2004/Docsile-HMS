@@ -13,23 +13,19 @@ const buttonVariants = cva(
   ],
   {
     variants: {
+      // Matches main's plain, flat variants exactly (src/components/ui/button.tsx
+      // on main) — no shadow on any variant, rounded-md everywhere.
       variant: {
-        // Solid variants get the full --shadow-card treatment (hairline
-        // ring + soft resting shadow) for real depth. Secondary/outline
-        // get the hairline ring alone (--shadow-border) so they read as
-        // defined surfaces rather than a flat color/transparent blob —
-        // outline in particular moves off `bg-transparent` onto a card
-        // surface so it doesn't disappear against tinted page backgrounds.
         primary:
-          "bg-primary text-primary-foreground hover:bg-primary/90 shadow-[var(--shadow-card)] rounded-sm",
+          "bg-primary text-primary-foreground hover:bg-primary/90 rounded-md",
         secondary:
-          "bg-secondary text-secondary-foreground hover:bg-secondary/80 shadow-[var(--shadow-border)] rounded-sm",
+          "bg-secondary text-secondary-foreground hover:bg-secondary/80 rounded-md",
         outline:
-          "bg-[var(--color-card)] text-foreground hover:bg-muted shadow-[var(--shadow-border)] rounded-sm",
+          "border border-input bg-background hover:bg-accent hover:text-accent-foreground rounded-md",
         ghost:
-          "bg-transparent text-foreground hover:bg-muted rounded-sm",
+          "bg-transparent text-foreground hover:bg-muted rounded-md",
         destructive:
-          "bg-destructive text-destructive-foreground hover:bg-destructive/90 shadow-[var(--shadow-card)] rounded-sm",
+          "bg-destructive text-destructive-foreground hover:bg-destructive/90 rounded-md",
         link:
           "bg-transparent text-primary underline-offset-4 hover:underline h-auto p-0",
       },

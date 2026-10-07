@@ -4,16 +4,16 @@ import { cva, type VariantProps } from 'class-variance-authority';
 import { cn } from '@/lib/utils';
 
 /* ─── List (tab bar) variants ────────────────────────────────── */
-const tabsListVariants = cva('flex', {
+// "underline" is the default variant name kept for call-site compatibility,
+// but its look now matches main's single tab style exactly: main has no
+// underline/pill/vertical distinction — every TabsList on main is a muted
+// rounded-md strip with filled-pill active triggers (src/components/ui/tabs.tsx).
+const tabsListVariants = cva('inline-flex items-center justify-center', {
   variants: {
     variant: {
-      // A muted background strip + inset top padding gives the tab bar its
-      // own visual footprint (like a browser/VS Code tab strip) instead of
-      // bare text with a hairline underneath — the active tab then "docks"
-      // into this strip with a filled surface + rounded top corners.
       underline: [
-        'gap-1 rounded-t-[var(--radius-md)] px-1.5 pt-1.5',
-        'bg-[var(--color-muted)]/50 border-b border-[var(--color-border)]',
+        'h-10 rounded-[var(--radius)] bg-[var(--color-muted)] p-1',
+        'text-[var(--color-muted-foreground)]',
       ],
       pill: [
         'gap-1 p-1 rounded-[var(--radius-lg)]',
@@ -31,8 +31,7 @@ const tabsListVariants = cva('flex', {
 const tabsTriggerVariants = cva(
   [
     'inline-flex items-center justify-center gap-1.5 whitespace-nowrap',
-    'text-[length:var(--text-body)] font-medium',
-    'transition-all duration-[var(--duration-micro)]',
+    'text-sm font-medium transition-colors',
     'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-ring)]',
     'disabled:pointer-events-none disabled:opacity-50',
   ],
@@ -40,13 +39,11 @@ const tabsTriggerVariants = cva(
     variants: {
       variant: {
         underline: [
-          'px-3.5 py-2 -mb-px rounded-t-[var(--radius-sm)] border-b-2 border-transparent',
+          'px-3 py-1.5 rounded-[var(--radius-sm)]',
           'text-[var(--color-muted-foreground)]',
-          'hover:text-[var(--color-foreground)] hover:bg-[var(--color-surface)]/60',
-          'data-[state=active]:bg-[var(--color-surface)] data-[state=active]:shadow-[var(--shadow-xs)]',
-          'data-[state=active]:border-[var(--color-primary)]',
-          'data-[state=active]:text-[var(--color-primary)]',
-          'data-[state=active]:font-semibold',
+          'data-[state=active]:bg-[var(--color-primary)]',
+          'data-[state=active]:text-[var(--color-primary-foreground)]',
+          'data-[state=active]:shadow-[var(--shadow-sm)]',
         ],
         pill: [
           'flex-1 px-3 py-1.5 rounded-[var(--radius-sm)]',
