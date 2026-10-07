@@ -28,8 +28,8 @@
 | 10 | Optical — consolidate to 3 tabs + stat badges | ✅ done |
 | 11 | Labs — consolidate to 2 tabs + stat badge | ✅ done |
 | 12 | Insurance — remove invented tab structure | ⚠️ done (claim detail kept as Sheet, see ledger) |
-| 13 | Dues & Follow-Ups — label fixes | 🔄 in progress |
-| 14 | Call Logs / Expenses — padding/skin pass | ⬜ not started |
+| 13 | Dues & Follow-Ups — label fixes | ✅ done |
+| 14 | Call Logs / Expenses — padding/skin pass | 🔄 in progress |
 | 15 | Analytics — filter pills, sticky header | ⬜ not started |
 | 16 | Split Data Export out of Reports | ⬜ not started |
 | 17 | License Tracker / Staff — confirm copy | ⬜ not started |

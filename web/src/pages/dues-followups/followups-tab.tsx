@@ -140,7 +140,7 @@ export function FollowupsTab() {
     },
     {
       key: "additionalNotes",
-      header: "Notes",
+      header: "Additional Notes",
       cell: (row) => (
         <span className="text-xs text-muted-foreground line-clamp-1 max-w-36 block">
           {parseAdditionalNotes(row.additionalNotes)}

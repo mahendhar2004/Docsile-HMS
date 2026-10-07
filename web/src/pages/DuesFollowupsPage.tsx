@@ -42,14 +42,14 @@ export default function DuesFollowupsPage() {
   return (
     <main className="space-y-6">
       <PageHeader
-        title="Dues & Follow-ups"
+        title="Dues & Follow-Ups"
         description="Track outstanding payments and manage patient follow-up communications."
       />
 
       <Tabs defaultValue="dues">
         <TabsList>
           <TabsTrigger value="dues">Dues</TabsTrigger>
-          <TabsTrigger value="followups">Follow-ups</TabsTrigger>
+          <TabsTrigger value="followups">Follow-Ups</TabsTrigger>
         </TabsList>
 
         <TabsContent value="dues" className="mt-4">
