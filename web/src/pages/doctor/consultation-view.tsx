@@ -38,13 +38,19 @@ import { ScrollArea } from "@/components/ui/scroll-area"
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs"
 import { StatusPill, ErrorState } from "@/components/patterns"
 import { usePermissions } from "@/hooks/usePermissions"
+import { toast } from "@/components/ui/sonner"
 import { formatDate } from "@/lib/utils"
+import { apiClient } from "@/lib/api-client"
+import { printReceiptsHtml } from "@/lib/print-receipts"
+import { useDefaultPrintConfig } from "@/pages/settings/hooks"
 import { useConsultation, useReferenceData } from "./hooks"
 import { PrescriptionForm, type PrescriptionFormHandle } from "./prescription-form"
 import { useWorkupPatient } from "../workup/use-workup"
 import { EyeReadingForm, type EyeReadingFormHandle } from "../workup/eye-reading-form"
 import { useAiContextStore } from "@/store/ai-context"
 import { ARReadingSummary, PrescriptionHistoryCard } from "./consultation-history"
+import { QuickPrintRenderer } from "@/components/receipts/quick-print-renderer"
+import type { PatientReceiptData } from "@/pages/patient-care/types"
 
 // ─── Props ────────────────────────────────────────────────────────────────────
 
@@ -62,7 +68,6 @@ interface ConsultationViewProps {
   canConsult: boolean
   canEdit: boolean
   canViewBilling: boolean
-  apiBaseUrl: string
 }
 
 // ─── Component ────────────────────────────────────────────────────────────────
@@ -73,7 +78,6 @@ export function ConsultationView({
   canConsult,
   canEdit,
   canViewBilling,
-  apiBaseUrl,
 }: ConsultationViewProps) {
   const setAiContext = useAiContextStore((s) => s.setAiContext)
   const clearAiContext = useAiContextStore((s) => s.clearAiContext)
@@ -92,6 +96,12 @@ export function ConsultationView({
   const eyeReadingRef = useRef<EyeReadingFormHandle>(null)
   const prescriptionRef = useRef<PrescriptionFormHandle>(null)
   const [savingAll, setSavingAll] = useState(false)
+
+  const { items: defaultPrintItems } = useDefaultPrintConfig()
+  const defaultPrintConfigured = defaultPrintItems.length > 0
+  const [printingReceipt, setPrintingReceipt] = useState(false)
+  const [quickPrintData, setQuickPrintData] = useState<PatientReceiptData | null>(null)
+  const quickPrintRef = useRef<HTMLDivElement>(null)
 
   const consultationQuery = useConsultation(patientId)
   const referenceDataQuery = useReferenceData()
@@ -153,9 +163,32 @@ export function ConsultationView({
   const fullName = `${consultation.firstName} ${consultation.lastName}`.trim()
   const existingReading = workupPatientQuery.data?.eyeReadings[0] ?? null
 
-  function handlePrintReceipt() {
-    // Opens receipt in a new tab — same pattern as Patient Care page
-    window.open(`${apiBaseUrl}/doctor/patients/${consultation!.patientId}/receipt`, "_blank")
+  async function handlePrintReceipt() {
+    // Was previously `window.open(.../receipt, "_blank")`, which just opened
+    // the raw JSON API response in a new tab — not a printable page. Fixed
+    // to use the same receipt-rendering subsystem as the Patients OPD
+    // table's quick-print button (ported from main's QuickPrintRenderer).
+    if (!defaultPrintConfigured || printingReceipt) return
+    setPrintingReceipt(true)
+    try {
+      const { data } = await apiClient.get<PatientReceiptData>(
+        `/doctor/patients/${consultation!.patientId}/receipt`,
+      )
+      setQuickPrintData(data)
+      setTimeout(() => {
+        const html = quickPrintRef.current?.innerHTML ?? ""
+        if (!html) {
+          toast.error("Nothing to print")
+          return
+        }
+        printReceiptsHtml({ title: `Print - ${fullName}`, contentHtml: html })
+        setTimeout(() => setQuickPrintData(null), 1500)
+      }, 50)
+    } catch {
+      toast.error("Failed to load receipt data")
+    } finally {
+      setPrintingReceipt(false)
+    }
   }
 
   async function handleSaveAll() {
@@ -209,10 +242,20 @@ export function ConsultationView({
               type="button"
               variant="outline"
               size="sm"
-              onClick={handlePrintReceipt}
+              onClick={() => void handlePrintReceipt()}
+              disabled={!defaultPrintConfigured || printingReceipt}
+              title={
+                defaultPrintConfigured
+                  ? undefined
+                  : "Configure defaults in Settings → Print Defaults"
+              }
               aria-label={`Print receipt for ${fullName}`}
             >
-              <Printer size={14} aria-hidden="true" />
+              {printingReceipt ? (
+                <Loader2 size={14} className="animate-spin" aria-hidden="true" />
+              ) : (
+                <Printer size={14} aria-hidden="true" />
+              )}
               Print receipt
             </Button>
           )}
@@ -331,6 +374,11 @@ export function ConsultationView({
           </div>
         </div>
       </div>
+
+      {/* ── Hidden quick-print renderer ───────────────────────────────────── */}
+      {quickPrintData && (
+        <QuickPrintRenderer ref={quickPrintRef} data={quickPrintData} items={defaultPrintItems} />
+      )}
     </ScrollArea>
   )
 }

@@ -8,7 +8,7 @@
  *   GET  /doctor/reference-data                     → ReferenceData (medicines, investigations, templates, dropdowns)
  *   POST /doctor/medicines                          → MedicineMasterRecord (create new medicine)
  *   POST /doctor/dropdown-options                   → void (add dropdown option)
- *   GET  /doctor/patients/{id}/receipt              → opened in new tab (billing:view)
+ *   GET  /doctor/patients/{id}/receipt              → rendered via QuickPrintRenderer + printReceiptsHtml (billing:view)
  *   POST /doctor/ai/ask                             → { answer: string } (Sitha AI)
  *
  * Permissions:
@@ -30,22 +30,22 @@
  */
 
 import { useMemo, useState } from "react"
-import { ArrowLeft, Stethoscope } from "lucide-react"
+import { ArrowLeft, Sparkles, Stethoscope } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { PageHeader, SearchBar, StatBadge, ErrorState, EmptyState } from "@/components/patterns"
 import { usePermissions } from "@/hooks/usePermissions"
 import { useSessionStore } from "@/store/session"
+import { useAiContextStore } from "@/store/ai-context"
 import { useDoctorQueue } from "./doctor/hooks"
 import { DoctorQueue } from "./doctor/doctor-queue"
 import { ConsultationView } from "./doctor/consultation-view"
-
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL as string
 
 // ─── DoctorPage ───────────────────────────────────────────────────────────────
 
 export default function DoctorPage() {
   const { can } = usePermissions()
   const user = useSessionStore((s) => s.user)
+  const toggleSitha = useAiContextStore((s) => s.toggleOpen)
 
   const hasView = can("doctor:view")
   const canConsult = can("doctor:consult")
@@ -93,14 +93,20 @@ export default function DoctorPage() {
         description="Patient queue & consultation"
         onRefresh={!selectedPatientId ? () => queueQuery.refetch() : undefined}
         actions={
-          !selectedPatientId ? (
-            <StatBadge value={queueQuery.data?.length ?? 0} label="in queue" variant="info" />
-          ) : (
-            <Button variant="outline" size="sm" onClick={() => setSelectedPatientId(null)}>
-              <ArrowLeft className="h-4 w-4 mr-1.5" aria-hidden="true" />
-              Back to queue
+          <>
+            {!selectedPatientId ? (
+              <StatBadge value={queueQuery.data?.length ?? 0} label="in queue" variant="info" />
+            ) : (
+              <Button variant="outline" size="sm" onClick={() => setSelectedPatientId(null)}>
+                <ArrowLeft className="h-4 w-4 mr-1.5" aria-hidden="true" />
+                Back to queue
+              </Button>
+            )}
+            <Button variant="outline" size="sm" onClick={toggleSitha} aria-label="Ask Sitha AI">
+              <Sparkles className="h-3.5 w-3.5 mr-1.5" aria-hidden="true" />
+              Ask Sitha
             </Button>
-          )
+          </>
         }
         toolbar={
           !selectedPatientId ? (
@@ -122,7 +128,6 @@ export default function DoctorPage() {
           canConsult={canConsult}
           canEdit={canEdit}
           canViewBilling={canViewBilling}
-          apiBaseUrl={API_BASE_URL}
         />
       ) : filteredPatients.length === 0 && !queueQuery.isLoading && !queueQuery.error ? (
         <EmptyState
