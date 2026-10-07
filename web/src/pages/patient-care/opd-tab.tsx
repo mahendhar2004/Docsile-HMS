@@ -19,15 +19,20 @@
  *   billing:view     — shows Print Receipt in detail panel
  */
 
-import { useState, useEffect, useId, useMemo, forwardRef, useImperativeHandle } from "react"
+import { useState, useEffect, useId, useMemo, useRef, forwardRef, useImperativeHandle } from "react"
 import { useForm, Controller } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { z } from "zod"
 import { format } from "date-fns"
+import { toast } from "@/components/ui/sonner"
 import { calculateAge, formatCurrency } from "@/lib/utils"
-import { Pencil, Trash2, MoreVertical, Settings } from "lucide-react"
+import { apiClient } from "@/lib/api-client"
+import { printReceiptsHtml } from "@/lib/print-receipts"
+import { Pencil, Trash2, MoreVertical, Settings, Loader2, Zap } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { IconButton } from "@/components/ui/icon-button"
+import { QuickPrintRenderer } from "@/components/receipts/quick-print-renderer"
+import { useDefaultPrintConfig } from "@/pages/settings/hooks"
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -73,7 +78,7 @@ import {
 } from "./hooks"
 import { PatientRegistrationForm } from "./patient-registration-form"
 import { PatientDetailPanel } from "./patient-detail-panel"
-import type { Patient } from "./types"
+import type { Patient, PatientReceiptData } from "./types"
 
 // ─── Edit form schema ──────────────────────────────────────────────────────────
 
@@ -245,8 +250,13 @@ function buildColumns(args: {
   total: number
   page: number
   pageSize: number
+  canViewReceipt: boolean
+  defaultPrintConfigured: boolean
+  printingId: string | null
+  onQuickPrint: (patient: Patient) => void
 }): ColumnDef<Patient>[] {
-  const { total, page, pageSize } = args
+  const { total, page, pageSize, canViewReceipt, defaultPrintConfigured, printingId, onQuickPrint } =
+    args
 
   return [
     {
@@ -383,6 +393,48 @@ function buildColumns(args: {
       header: "Referred By",
       cell: (p) => p.referredBy ?? "—",
     },
+    ...(canViewReceipt
+      ? [
+          {
+            key: "print",
+            header: "",
+            align: "center" as const,
+            cell: (p: Patient) => {
+              if (p.status !== "COMPLETED") return null
+              const isPrinting = printingId === p.patientId
+              return (
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      disabled={!defaultPrintConfigured || isPrinting}
+                      className={
+                        defaultPrintConfigured
+                          ? "h-7 w-7 p-0 text-primary opacity-70 group-hover:opacity-100 transition-opacity"
+                          : "h-7 w-7 p-0 text-muted-foreground/40"
+                      }
+                      onClick={() => onQuickPrint(p)}
+                      aria-label={`Quick print receipt for ${p.firstName} ${p.lastName}`}
+                    >
+                      {isPrinting ? (
+                        <Loader2 className="h-4 w-4 animate-spin" aria-hidden />
+                      ) : (
+                        <Zap className="h-4 w-4" aria-hidden />
+                      )}
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent side="left" className="text-xs">
+                    {defaultPrintConfigured
+                      ? "Quick print (default receipts)"
+                      : "Configure defaults in Settings → Print Defaults"}
+                  </TooltipContent>
+                </Tooltip>
+              )
+            },
+          } satisfies ColumnDef<Patient>,
+        ]
+      : []),
   ]
 }
 
@@ -473,9 +525,52 @@ export const OpdTab = forwardRef<OpdTabHandle, OpdTabProps>(function OpdTab({
     setPage(1)
   }
 
+  // ── Quick print (matches main's PatientTable "Print" column exactly) ──────
+  const { items: defaultPrintItems } = useDefaultPrintConfig()
+  const defaultPrintConfigured = defaultPrintItems.length > 0
+  const [printingId, setPrintingId] = useState<string | null>(null)
+  const [quickPrintData, setQuickPrintData] = useState<PatientReceiptData | null>(null)
+  const quickPrintRef = useRef<HTMLDivElement>(null)
+
+  async function handleQuickPrint(patient: Patient) {
+    if (!defaultPrintConfigured) return
+    setPrintingId(patient.patientId)
+    try {
+      const { data } = await apiClient.get<PatientReceiptData>(
+        `/patient-care/patients/${patient.id}/receipt`,
+      )
+      setQuickPrintData(data)
+      setTimeout(() => {
+        const html = quickPrintRef.current?.innerHTML ?? ""
+        if (!html) {
+          toast.error("Nothing to print")
+          return
+        }
+        printReceiptsHtml({
+          title: `Print - ${patient.firstName} ${patient.lastName}`,
+          contentHtml: html,
+        })
+        setTimeout(() => setQuickPrintData(null), 1500)
+      }, 50)
+    } catch {
+      toast.error("Failed to load receipt data")
+    } finally {
+      setPrintingId(null)
+    }
+  }
+
   const columns = useMemo(
-    () => buildColumns({ total, page, pageSize }),
-    [total, page, pageSize],
+    () =>
+      buildColumns({
+        total,
+        page,
+        pageSize,
+        canViewReceipt,
+        defaultPrintConfigured,
+        printingId,
+        onQuickPrint: (p) => void handleQuickPrint(p),
+      }),
+    [total, page, pageSize, canViewReceipt, defaultPrintConfigured, printingId],
   )
 
   useImperativeHandle(ref, () => ({
@@ -655,6 +750,11 @@ export const OpdTab = forwardRef<OpdTabHandle, OpdTabProps>(function OpdTab({
           onConfirm={() => deletePatient.mutate(deleteTarget.id)}
           isLoading={deletePatient.isPending}
         />
+      )}
+
+      {/* ── Hidden quick-print renderer ───────────────────────────────────── */}
+      {quickPrintData && (
+        <QuickPrintRenderer ref={quickPrintRef} data={quickPrintData} items={defaultPrintItems} />
       )}
     </div>
   )
