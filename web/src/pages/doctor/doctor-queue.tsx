@@ -1,14 +1,20 @@
 /**
  * doctor/doctor-queue.tsx
  *
- * The left-panel queue: all OPD patients visible to the doctor today.
- * Clicking a row selects a patient and loads their consultation view.
+ * Today's OPD queue visible to the doctor. Matches main's actual table
+ * structure (src/app/(hospital)/doctor/components/DoctorPage.tsx) — a real
+ * data table, not a card list. Main's table supports 29 user-customizable
+ * columns persisted server-side (updateUserPreferences({ doctorColumns })) —
+ * that full customization system needs a new backend preference endpoint
+ * this app doesn't have, so this shows a fixed set of main's default
+ * columns instead: Patient ID, Name, Phone, Type, Appointment, Status.
+ * Main's other defaults (Token #, Age, Doctor, Services, Total, Print) rely
+ * on fields GET /doctor/queue doesn't return at all (no billing/doctor-name
+ * data on this endpoint) — can't show those without fabricating data.
  */
 
-import { Skeleton } from "@/components/ui/skeleton"
-import { StatusPill } from "@/components/patterns"
-import { ErrorState, EmptyState } from "@/components/patterns"
-import { cn } from "@/lib/utils"
+import { StatusPill, ErrorState, EmptyState, DataTable } from "@/components/patterns"
+import type { ColumnDef } from "@/components/patterns"
 import type { DoctorQueuePatient } from "./types"
 
 // ─── Props ────────────────────────────────────────────────────────────────────
@@ -49,112 +55,68 @@ export function DoctorQueue({
 }: DoctorQueueProps) {
   if (loading) {
     return (
-      <div className="flex flex-col gap-2 p-3" aria-label="Loading doctor queue">
-        {Array.from({ length: 6 }).map((_, i) => (
-          <div key={i} className="flex flex-col gap-1 px-2 py-2.5 rounded-md">
-            <Skeleton className="h-4 w-3/4" />
-            <Skeleton className="h-3 w-1/2" />
-          </div>
-        ))}
+      <div className="rounded-[var(--radius-lg)] border border-border overflow-hidden" aria-label="Loading doctor queue">
+        <div className="bg-muted/50 px-4 py-2.5 border-b border-border flex gap-8">
+          {Array.from({ length: 6 }).map((_, i) => (
+            // eslint-disable-next-line react/no-array-index-key
+            <div key={i} className="h-3 w-20 bg-muted animate-pulse rounded" />
+          ))}
+        </div>
       </div>
     )
   }
 
   if (error) {
-    return (
-      <div className="p-3">
-        <ErrorState
-          title="Could not load queue"
-          error={error}
-          onRetry={onRefetch}
-        />
-      </div>
-    )
+    return <ErrorState title="Could not load queue" error={error} onRetry={onRefetch} />
   }
 
   if (patients.length === 0) {
     return (
-      <div className="p-3">
-        <EmptyState
-          title="No patients yet"
-          description="Today's OPD queue is empty. Patients will appear as they register."
-        />
-      </div>
+      <EmptyState
+        title="No patients yet"
+        description="Today's OPD queue is empty. Patients will appear as they register."
+      />
     )
   }
 
+  const columns: ColumnDef<DoctorQueuePatient>[] = [
+    {
+      key: "patientId",
+      header: "Patient ID",
+      cell: (p) => <span className="font-mono text-xs">{p.patientId}</span>,
+    },
+    {
+      key: "name",
+      header: "Name",
+      cell: (p) => (
+        <div className="flex items-center gap-2">
+          <span className="text-sm font-medium">{`${p.firstName} ${p.lastName}`.trim()}</span>
+          {p.eyeReadings.length > 0 && (
+            <span className="text-xs text-success-soft-foreground" title="Eye reading done" aria-label="Eye reading done">
+              Eye ✓
+            </span>
+          )}
+          {p.prescriptions.length > 0 && (
+            <span className="text-xs text-primary" title="Prescription exists" aria-label="Prescription exists">
+              Rx ✓
+            </span>
+          )}
+        </div>
+      ),
+    },
+    { key: "phone", header: "Phone", cell: (p) => <span className="text-sm text-muted-foreground">{p.phone}</span> },
+    { key: "patientType", header: "Type", cell: (p) => <span className="text-sm text-muted-foreground">{p.patientType}</span> },
+    { key: "appointmentDate", header: "Appointment", cell: (p) => <span className="text-sm text-muted-foreground">{formatTime(p.appointmentDate)}</span> },
+    { key: "status", header: "Status", cell: (p) => <StatusPill status={p.status} size="sm" /> },
+  ]
+
   return (
-    <ol
-      className="flex flex-col divide-y divide-border"
+    <DataTable<DoctorQueuePatient>
       aria-label="Doctor's patient queue"
-    >
-      {patients.map((patient) => {
-        // Selection is keyed by the sequential patientId, not the UUID id —
-        // GET /doctor/patients/{patientId}/consultation and friends filter
-        // on the Patient table's patientId column server-side (verified
-        // against supabase/functions/doctor/repository.ts), not the UUID.
-        const isSelected = patient.patientId === selectedId
-        const fullName = `${patient.firstName} ${patient.lastName}`.trim()
-        const hasWorkup = patient.eyeReadings.length > 0
-        const hasPrescription = patient.prescriptions.length > 0
-
-        return (
-          <li key={patient.id}>
-            <button
-              type="button"
-              aria-pressed={isSelected}
-              aria-label={`Select patient ${fullName}`}
-              onClick={() => onSelectPatient(patient.patientId)}
-              className={cn(
-                "w-full text-left px-3 py-3 flex flex-col gap-1",
-                "hover:bg-muted/60 focus-visible:outline-none focus-visible:bg-muted/60",
-                "motion-interactive",
-                isSelected && "bg-primary/8 border-l-2 border-l-primary",
-              )}
-            >
-              {/* Name + token */}
-              <div className="flex items-center justify-between gap-2">
-                <span className="text-sm font-medium text-foreground truncate">
-                  {fullName}
-                </span>
-                <span className="text-xs text-muted-foreground shrink-0">
-                  {patient.patientId}
-                </span>
-              </div>
-
-              {/* Time + status */}
-              <div className="flex items-center justify-between gap-2">
-                <span className="text-xs text-muted-foreground">
-                  {formatTime(patient.appointmentDate)}
-                </span>
-                <StatusPill status={patient.status} size="sm" />
-              </div>
-
-              {/* Indicators */}
-              <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                {hasWorkup && (
-                  <span
-                    className="text-success-soft-foreground"
-                    title="Eye reading done"
-                    aria-label="Eye reading done"
-                  >
-                    Eye ✓
-                  </span>
-                )}
-                {hasPrescription && (
-                  <span
-                    className="text-primary"
-                    title="Prescription exists"
-                    aria-label="Prescription exists"
-                  >
-                    Rx ✓
-                  </span>
-                )}
-              </div>
-            </button>
-          </li>
-        )
-      })}
-    </ol>
+      data={patients}
+      columns={columns}
+      onRowClick={(p) => onSelectPatient(p.patientId)}
+      rowClassName={(p) => (p.patientId === selectedId ? "bg-primary/8" : undefined)}
+    />
   )
 }
