@@ -22,7 +22,6 @@ import { Switch } from "@/components/ui/switch"
 import { Skeleton } from "@/components/ui/skeleton"
 import { ErrorState } from "@/components/patterns/feedback"
 import { ConfirmationModal } from "@/components/patterns/modals"
-import { PageToolbar } from "@/components/patterns"
 import { usePermissions } from "@/hooks/usePermissions"
 import { ALL_PERMISSIONS } from "@/lib/permissions"
 import { useStaffRoles, useDeleteRole, useUpdateRolePerms, useSeedSystemRoles } from "./hooks"
@@ -173,9 +172,11 @@ export function RolesTab() {
   // ── Main layout: sidebar + permission panel ────────────────────────────────
   return (
     <div className="space-y-4">
-      {/* Permission search + actions row */}
-      <PageToolbar>
-        <div className="relative max-w-xs flex-1">
+      {/* Permission search — standalone, not paired with "New Role" here;
+          matches main's exact layout (search bar alone above the two-column
+          sidebar+panel, "New" button lives in the sidebar header instead). */}
+      {roles.length > 0 && (
+        <div className="relative max-w-md">
           <Search
             className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none"
             aria-hidden="true"
@@ -184,33 +185,35 @@ export function RolesTab() {
             value={permSearch}
             onChange={(e) => setPermSearch(e.target.value)}
             placeholder="Search permissions…"
-            className="pl-9"
+            className="pl-9 h-10"
             aria-label="Search permissions"
           />
         </div>
-        {canManageRoles && (
-          <Button
-            size="sm"
-            variant="outline"
-            onClick={() => {
-              setRoleToEdit(null)
-              setShowRoleForm(true)
-            }}
-            className="gap-2 shrink-0"
-            aria-label="Create new role"
-          >
-            <Plus className="h-3.5 w-3.5" aria-hidden="true" />
-            New Role
-          </Button>
-        )}
-      </PageToolbar>
+      )}
 
       <div className="flex gap-5 min-h-[500px]">
         {/* ── Role Sidebar ──────────────────────────────────────────────── */}
-        <nav
-          aria-label="Roles"
-          className="w-64 shrink-0 space-y-1.5"
-        >
+        <div className="w-64 shrink-0 space-y-3">
+          <div className="flex items-center justify-between">
+            <h3 className="text-sm font-semibold text-foreground">Roles</h3>
+            {canManageRoles && (
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => {
+                  setRoleToEdit(null)
+                  setShowRoleForm(true)
+                }}
+                className="h-7 text-xs gap-1.5"
+                aria-label="Create new role"
+              >
+                <Plus className="h-3.5 w-3.5" aria-hidden="true" />
+                New
+              </Button>
+            )}
+          </div>
+
+          <nav aria-label="Roles" className="space-y-1.5">
           {roles.map((role) => {
             const permCount = role.permissions.length
             const pct = totalPerms > 0 ? Math.round((permCount / totalPerms) * 100) : 0
@@ -272,7 +275,8 @@ export function RolesTab() {
               </button>
             )
           })}
-        </nav>
+          </nav>
+        </div>
 
         {/* ── Permission Panel ──────────────────────────────────────────── */}
         <div className="flex-1 min-w-0">

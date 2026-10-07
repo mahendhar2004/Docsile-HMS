@@ -22,7 +22,6 @@ import {
   PaginatedDataTable,
   EmptyState,
   StatusPill,
-  PageToolbar,
   SingleSelect,
 } from "@/components/patterns"
 import type { ColumnDef } from "@/components/patterns"
@@ -177,8 +176,9 @@ export function BillsTab({ canCreate, canEdit }: BillsTabProps) {
 
   return (
     <div className="space-y-4">
-      {/* Filter bar */}
-      <PageToolbar>
+      {/* Filter bar — plain bordered card, not the sticky PageToolbar/FilterBar;
+          matches main's exact Bill History card treatment. */}
+      <div className="rounded-xl border border-border bg-white p-4 flex items-center gap-3 flex-wrap">
         <div className="flex items-center gap-2">
           <Input
             type="date"
@@ -223,7 +223,7 @@ export function BillsTab({ canCreate, canEdit }: BillsTabProps) {
             New Bill
           </Button>
         )}
-      </PageToolbar>
+      </div>
 
       {/* Paginated table */}
       <PaginatedDataTable

@@ -31,7 +31,6 @@ import {
   ThemedDonutChart,
   ErrorState,
   EmptyState,
-  PageToolbar,
   SegmentedControl,
 } from "@/components/patterns"
 import type { DonutChartSlice } from "@/components/patterns"
@@ -154,8 +153,9 @@ export function ExpensesSection({
 
   return (
     <div className="space-y-5">
-      {/* Time filter bar */}
-      <PageToolbar>
+      {/* Time filter bar — plain bordered card, not the sticky PageToolbar/
+          FilterBar; matches main's exact treatment for this page. */}
+      <div className="rounded-xl border border-border/60 bg-white shadow-sm px-4 py-3 flex flex-wrap gap-2 items-center">
         <SegmentedControl
           options={TIME_FILTER_OPTIONS}
           value={timeFilter}
@@ -182,7 +182,7 @@ export function ExpensesSection({
             />
           </div>
         )}
-      </PageToolbar>
+      </div>
 
       {/* Error state */}
       {error && !isLoading && (

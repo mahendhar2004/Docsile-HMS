@@ -38,7 +38,6 @@ import {
   ConfirmationModal,
   EmptyState,
   ErrorState,
-  PageToolbar,
   SearchBar,
   SingleSelect,
 } from "@/components/patterns"
@@ -367,34 +366,37 @@ export function LicensesList({ createOpen, onCreateOpenChange }: LicensesListPro
         </div>
       </div>
 
-      {/* ── Filters ────────────────────────────────────────────────────────────── */}
-      <PageToolbar>
-        <SearchBar
-          variant="standalone"
-          value={searchQuery}
-          onChange={setSearchQuery}
-          placeholder="Search licenses..."
-          aria-label="Search licenses by name, number, or issuing authority"
-          className="flex-1 min-w-[200px]"
-        />
-
-        <SingleSelect
-          options={STATUS_FILTER_OPTIONS}
-          value={statusFilter}
-          onChange={(v) => setStatusFilter(v as StatusFilterValue)}
-          placeholder="All Statuses"
-        />
-
-        {/* Only show category filter if there is more than just "All Categories" */}
-        {categoryOptions.length > 1 && (
-          <SingleSelect
-            options={categoryOptions}
-            value={categoryFilter}
-            onChange={setCategoryFilter}
-            placeholder="All Categories"
+      {/* ── Filters — plain bordered card, not the sticky PageToolbar/FilterBar;
+          matches main's exact filter-row treatment for this page. ──────────── */}
+      <div className="bg-white rounded-xl shadow-sm border border-border/60 p-4">
+        <div className="flex flex-col sm:flex-row gap-3">
+          <SearchBar
+            variant="standalone"
+            value={searchQuery}
+            onChange={setSearchQuery}
+            placeholder="Search licenses..."
+            aria-label="Search licenses by name, number, or issuing authority"
+            className="flex-1 min-w-[200px]"
           />
-        )}
-      </PageToolbar>
+
+          <SingleSelect
+            options={STATUS_FILTER_OPTIONS}
+            value={statusFilter}
+            onChange={(v) => setStatusFilter(v as StatusFilterValue)}
+            placeholder="All Statuses"
+          />
+
+          {/* Only show category filter if there is more than just "All Categories" */}
+          {categoryOptions.length > 1 && (
+            <SingleSelect
+              options={categoryOptions}
+              value={categoryFilter}
+              onChange={setCategoryFilter}
+              placeholder="All Categories"
+            />
+          )}
+        </div>
+      </div>
 
       {/* ── License cards ───────────────────────────────────────────────────────── */}
       {filteredLicenses.length === 0 ? (

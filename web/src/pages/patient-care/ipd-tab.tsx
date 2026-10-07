@@ -8,7 +8,7 @@
  * stat-badge view, live on the separate /inpatients route (InPatientsPage)
  * now, matching main's separate fuller page.
  *
- * - Date filter + status filter (admitted / discharged / all)
+ * - No toolbar/filters — main's embedded IPD tab renders the table directly
  * - Offset-paginated inpatient table via PaginatedDataTable
  * - Inpatient detail panel (Sheet)
  * - Status update (admitted / discharged)
@@ -40,10 +40,8 @@ import {
   ColumnDef,
   StatusPill,
   SingleSelect,
-  DatePicker,
   ConfirmationModal,
   EmptyState,
-  PageToolbar,
 } from "@/components/patterns"
 import {
   useIpdInPatients,
@@ -54,12 +52,6 @@ import {
 import type { InPatient } from "./types"
 
 // ─── Static options ───────────────────────────────────────────────────────────
-
-const STATUS_FILTER_OPTIONS = [
-  { value: "", label: "All" },
-  { value: "admitted", label: "Admitted" },
-  { value: "discharged", label: "Discharged" },
-]
 
 const INPATIENT_STATUS_OPTIONS = [
   { value: "admitted", label: "Admitted" },
@@ -336,12 +328,8 @@ export interface IpdTabProps {
 }
 
 export function IpdTab({ canEdit, canDelete, canDischarge }: IpdTabProps) {
-  const [filterDate, setFilterDate] = useState<Date | undefined>()
-  const [filterStatus, setFilterStatus] = useState<string>("")
   const [selectedInPatientId, setSelectedInPatientId] = useState<string | null>(null)
   const [showDetail, setShowDetail] = useState(false)
-
-  const dateStr = filterDate ? format(filterDate, "yyyy-MM-dd") : null
 
   const {
     data,
@@ -355,42 +343,14 @@ export function IpdTab({ canEdit, canDelete, canDischarge }: IpdTabProps) {
     setPage,
     setPageSize,
     refetch,
-  } = useIpdInPatients(dateStr, filterStatus || null)
+  } = useIpdInPatients(null, null)
 
   return (
     <div className="space-y-4">
-      {/* ── Toolbar ──────────────────────────────────────────────────────── */}
-      <PageToolbar className="items-start sm:items-center">
-        {/* Status filter */}
-        <div className="w-48">
-          <SingleSelect
-            options={STATUS_FILTER_OPTIONS}
-            value={filterStatus}
-            onChange={(v) => { setFilterStatus(v); setPage(1) }}
-            placeholder="All statuses"
-            clearable
-            aria-label="Filter by inpatient status"
-          />
-        </div>
-
-        {/* Date filter */}
-        <DatePicker
-          value={filterDate}
-          onChange={(d) => { setFilterDate(d); setPage(1) }}
-          placeholder="Filter by admission date"
-          aria-label="Filter by admission date"
-        />
-
-        {filterDate && (
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => { setFilterDate(undefined); setPage(1) }}
-          >
-            Clear date
-          </Button>
-        )}
-      </PageToolbar>
+      {/* No toolbar here — main's embedded IPD tab inside PatientsPage renders
+          the table directly with no filter row at all (confirmed against
+          main's actual source); filtering lives on the separate, fuller
+          /inpatients route (InPatientsPage). */}
 
       {/* ── Inpatient table ───────────────────────────────────────────────── */}
       <PaginatedDataTable<InPatient>
@@ -416,11 +376,7 @@ export function IpdTab({ canEdit, canDelete, canDischarge }: IpdTabProps) {
         emptyState={
           <EmptyState
             title="No inpatients found"
-            description={
-              filterStatus || filterDate
-                ? "Try adjusting the filters above."
-                : "Admitted patients will appear here."
-            }
+            description="Admitted patients will appear here."
           />
         }
       />

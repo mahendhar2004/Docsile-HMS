@@ -40,7 +40,6 @@ import { DataTable, type ColumnDef } from "@/components/patterns/tables"
 import { EmptyState, ErrorState } from "@/components/patterns/feedback"
 import { ConfirmationModal } from "@/components/patterns/modals"
 import { SingleSelect } from "@/components/patterns/selection"
-import { PageToolbar } from "@/components/patterns"
 import { usePermissions } from "@/hooks/usePermissions"
 import { useStaffMembers, useToggleActive, useResetPassword } from "./hooks"
 import { MemberForm } from "./member-form"
@@ -216,8 +215,8 @@ export function MembersTab({ roles }: MembersTabProps) {
 
   return (
     <div className="space-y-4">
-      {/* Filter bar */}
-      <PageToolbar>
+      {/* Filter bar — plain flex row, matches main's exact Staff tab filter row. */}
+      <div className="flex flex-col sm:flex-row gap-3">
         <div className="relative flex-1">
           <Search
             className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none"
@@ -262,7 +261,7 @@ export function MembersTab({ roles }: MembersTabProps) {
             Add Member
           </Button>
         )}
-      </PageToolbar>
+      </div>
 
       {/* Loading state */}
       {isLoading && (
