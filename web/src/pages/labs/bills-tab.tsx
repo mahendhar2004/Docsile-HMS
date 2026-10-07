@@ -49,7 +49,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
-import { PaginatedDataTable, EmptyState, PageToolbar } from "@/components/patterns"
+import { PaginatedDataTable, EmptyState } from "@/components/patterns"
 import type { ColumnDef } from "@/components/patterns"
 import { usePatientInvestigations, useCreateLabBills, useLabBills } from "./hooks"
 import {
@@ -772,8 +772,9 @@ export function BillsTab() {
 
       {/* ── HISTORY SECTION ────────────────────────────────────────────────────── */}
       <section aria-label="Lab bills history">
-        {/* Filter bar */}
-        <PageToolbar className="mb-3">
+        {/* Filter bar — plain flex row matching main's collapsible history
+            panel filter row, not the sticky PageToolbar/FilterBar. */}
+        <div className="flex items-center gap-3 flex-wrap mb-3">
           <div>
             <label className="text-xs text-muted-foreground block mb-1" htmlFor="history-date">
               Date
@@ -799,7 +800,7 @@ export function BillsTab() {
               </Button>
             </div>
           </div>
-        </PageToolbar>
+        </div>
 
         {/* Bill history table */}
         <PaginatedDataTable

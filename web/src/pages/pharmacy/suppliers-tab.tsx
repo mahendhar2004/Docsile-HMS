@@ -8,7 +8,7 @@
 import { useState } from "react"
 import { Plus, Building2, Phone, Mail, MapPin } from "lucide-react"
 import { toast } from "sonner"
-import { EmptyState, ErrorState, ConfirmationModal, PageToolbar, SearchBar } from "@/components/patterns"
+import { EmptyState, ErrorState, ConfirmationModal, SearchBar } from "@/components/patterns"
 import {
   Dialog,
   DialogContent,
@@ -157,8 +157,8 @@ export function SuppliersTab() {
 
   return (
     <div className="space-y-5">
-      {/* Toolbar */}
-      <PageToolbar>
+      {/* Toolbar — plain flex row, matches main's exact SuppliersTab recipe. */}
+      <div className="flex items-center gap-3">
         <SearchBar
           variant="standalone"
           value={search}
@@ -173,7 +173,7 @@ export function SuppliersTab() {
             Add Supplier
           </Button>
         )}
-      </PageToolbar>
+      </div>
 
       {/* Supplier cards */}
       {filtered.length === 0 ? (

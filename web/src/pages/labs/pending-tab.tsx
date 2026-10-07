@@ -16,7 +16,7 @@ import { RefreshCw, FlaskConical, ClipboardList } from "lucide-react"
 import { Skeleton } from "@/components/ui/skeleton"
 import { Input } from "@/components/ui/input"
 import { IconButton } from "@/components/ui/icon-button"
-import { EmptyState, ErrorState, PageToolbar } from "@/components/patterns"
+import { EmptyState, ErrorState } from "@/components/patterns"
 import { usePendingInvestigations } from "./hooks"
 import { cn } from "@/lib/utils"
 
@@ -59,7 +59,7 @@ export function PendingTab() {
           )}
         </div>
 
-        <PageToolbar>
+        <div className="flex items-center gap-2">
           <Input
             type="date"
             value={date}
@@ -79,7 +79,7 @@ export function PendingTab() {
               aria-hidden="true"
             />
           </IconButton>
-        </PageToolbar>
+        </div>
       </div>
 
       {/* Loading state */}

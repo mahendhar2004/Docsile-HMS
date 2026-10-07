@@ -13,7 +13,6 @@ import {
   DataTable,
   EmptyState,
   ErrorState,
-  PageToolbar,
   SearchBar,
   SegmentedControl,
 } from "@/components/patterns"
@@ -274,8 +273,8 @@ export function StockTab() {
         />
       </div>
 
-      {/* Toolbar */}
-      <PageToolbar>
+      {/* Toolbar — plain flex row, matches main's exact Stock tab search & actions row. */}
+      <div className="flex items-center gap-3 flex-wrap">
         <SearchBar
           variant="standalone"
           value={search}
@@ -303,7 +302,7 @@ export function StockTab() {
             Add Stock
           </Button>
         )}
-      </PageToolbar>
+      </div>
 
       {/* Table */}
       {stockLoading ? (

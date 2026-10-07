@@ -11,7 +11,7 @@
 import { useState } from "react"
 import { Plus, Package, ChevronDown, ChevronUp, Check } from "lucide-react"
 import { toast } from "sonner"
-import { EmptyState, ErrorState, FormSection, FormField, SingleSelect, PageToolbar, SegmentedControl } from "@/components/patterns"
+import { EmptyState, ErrorState, FormSection, FormField, SingleSelect, SegmentedControl } from "@/components/patterns"
 import {
   Dialog,
   DialogContent,
@@ -285,8 +285,8 @@ export function PurchaseOrdersTab() {
 
   return (
     <div className="space-y-5">
-      {/* Toolbar */}
-      <PageToolbar>
+      {/* Toolbar — plain flex row, matches main's exact PurchaseOrdersTab recipe. */}
+      <div className="flex items-center gap-3">
         <SegmentedControl
           options={PO_STATUS_SEGMENTS}
           value={statusFilter || "ALL"}
@@ -306,7 +306,7 @@ export function PurchaseOrdersTab() {
           <Plus className="h-4 w-4 mr-1.5" aria-hidden="true" />
           New Purchase Order
         </Button>
-      </PageToolbar>
+      </div>
 
       {/* Orders list */}
       {(orders ?? []).length === 0 ? (

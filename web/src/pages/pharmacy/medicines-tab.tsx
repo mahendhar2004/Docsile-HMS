@@ -11,7 +11,6 @@ import {
   EmptyState,
   ErrorState,
   ConfirmationModal,
-  PageToolbar,
   SearchBar,
 } from "@/components/patterns"
 import type { ColumnDef } from "@/components/patterns"
@@ -186,8 +185,8 @@ export function MedicinesTab() {
 
   return (
     <div className="space-y-4">
-      {/* Toolbar */}
-      <PageToolbar>
+      {/* Toolbar — plain flex row, matches main's exact Medicines tab search & actions row. */}
+      <div className="flex items-center gap-3">
         <SearchBar
           variant="standalone"
           value={search}
@@ -209,7 +208,7 @@ export function MedicinesTab() {
             Add Medicine
           </Button>
         )}
-      </PageToolbar>
+      </div>
 
       {/* Table */}
       {filtered.length === 0 ? (
