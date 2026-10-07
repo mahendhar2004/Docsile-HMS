@@ -9,8 +9,6 @@
 
 import * as React from "react"
 import type { UseQueryResult } from "@tanstack/react-query"
-import { Eye } from "lucide-react"
-import { Button } from "@/components/ui/button"
 import { Skeleton } from "@/components/ui/skeleton"
 import { DataTable, EmptyState, ErrorState, StatusPill } from "@/components/patterns"
 import type { ColumnDef } from "@/components/patterns"
@@ -36,19 +34,27 @@ function formatDate(dateStr: string | null): string {
 
 // ─── Column definitions ───────────────────────────────────────────────────────
 
-function buildColumns(
-  onSelectPatient: (p: WorkupQueuePatient) => void,
-): ColumnDef<WorkupQueuePatient>[] {
+function buildColumns(): ColumnDef<WorkupQueuePatient>[] {
   return [
     {
-      key: "patient",
-      header: "Patient",
-      cell: (p) => (
-        <div>
-          <p className="text-sm font-medium text-foreground">{p.name}</p>
-          <p className="text-xs text-muted-foreground">{p.patientId}</p>
-        </div>
+      key: "token",
+      header: "Token",
+      cell: (_p, index) => (
+        <span className="inline-flex items-center justify-center h-6 min-w-7 rounded bg-primary/10 border border-primary/20 border-dashed text-xs font-bold text-primary tabular-nums px-1.5">
+          {index + 1}
+        </span>
       ),
+      minWidth: "48px",
+    },
+    {
+      key: "patientId",
+      header: "Patient ID",
+      cell: (p) => <span className="font-mono text-xs">{p.patientId}</span>,
+    },
+    {
+      key: "name",
+      header: "Name",
+      cell: (p) => <span className="text-sm font-medium text-foreground">{p.name}</span>,
       minWidth: "140px",
     },
     {
@@ -66,6 +72,18 @@ function buildColumns(
       },
     },
     {
+      key: "phone",
+      header: "Phone",
+      cell: (p) => (
+        <span className="text-sm text-muted-foreground tabular-nums">{p.phone ?? "—"}</span>
+      ),
+    },
+    {
+      key: "status",
+      header: "Status",
+      cell: (p) => <StatusPill status={p.status} dot />,
+    },
+    {
       key: "appointment",
       header: "Appointment",
       cell: (p) => (
@@ -74,30 +92,6 @@ function buildColumns(
         </span>
       ),
       minWidth: "130px",
-    },
-    {
-      key: "status",
-      header: "Status",
-      cell: (p) => <StatusPill status={p.status} dot />,
-    },
-    {
-      key: "action",
-      header: "",
-      cell: (p) => (
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={(e) => {
-            e.stopPropagation()
-            onSelectPatient(p)
-          }}
-          aria-label={`Open workup for ${p.name}`}
-        >
-          <Eye className="h-4 w-4 mr-1.5" aria-hidden="true" />
-          Workup
-        </Button>
-      ),
-      align: "right",
     },
   ]
 }
@@ -132,10 +126,7 @@ export interface WorkupQueueProps {
 
 export function WorkupQueue({ query, onSelectPatient }: WorkupQueueProps) {
   const { data, isLoading, error, refetch } = query
-  const columns = React.useMemo(
-    () => buildColumns(onSelectPatient),
-    [onSelectPatient],
-  )
+  const columns = React.useMemo(() => buildColumns(), [])
 
   if (isLoading) {
     return <WorkupQueueSkeleton />
