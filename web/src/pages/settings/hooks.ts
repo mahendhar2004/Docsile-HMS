@@ -19,7 +19,9 @@ import type {
   PredefinedSurgery,
   PredefinedDischarge,
   MedicineMaster,
+  DefaultPrintItem,
 } from "./types"
+import { parsePrintConfig } from "./types"
 
 // ─── Query key factory ────────────────────────────────────────────────────────
 
@@ -148,6 +150,20 @@ export function usePrintConfig(enabled = true) {
     enabled,
     staleTime: 5 * 60 * 1000,
   })
+}
+
+/**
+ * Parsed, validated default-print items for the quick-print button —
+ * cross-module convenience wrapper over usePrintConfig + parsePrintConfig
+ * so callers outside Settings (Patients OPD table, Doctor consultation)
+ * don't need to know the raw `/settings/print-config` response shape.
+ */
+export function useDefaultPrintConfig(enabled = true): {
+  items: DefaultPrintItem[]
+  isLoading: boolean
+} {
+  const { data, isLoading } = usePrintConfig(enabled)
+  return { items: parsePrintConfig(data), isLoading }
 }
 
 export function useUpdatePrintConfig(onSuccess?: () => void) {

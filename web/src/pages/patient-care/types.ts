@@ -267,3 +267,117 @@ export interface AdmissionFormData {
   doctors?: string[]
   [key: string]: unknown
 }
+
+// ─── Receipt data (GET /patient-care/patients/{id}/receipt) ───────────────────
+//
+// Backend returns full raw DB rows (.select('*', ...)) — field names verified
+// against db/create-hospital-db.sql's Prescription/InvoiceItem/Payment/
+// HospitalProfile table DDL, which is more complete than this endpoint's
+// under-documented OpenAPI schemas (same documentation gap as the Patient
+// list endpoint's nested prescriptions/eyeReadings — see listPatients in
+// supabase/functions/patient-care/service.ts).
+
+/** One InvoiceItem row, as nested under a receipt prescription. */
+export interface ReceiptInvoiceItem {
+  id: string
+  prescriptionId: string
+  description: string
+  category?: string | null
+  quantity: number
+  unitPrice: number
+  amount: number
+  sortOrder: number
+}
+
+/** One Payment row, as nested under a receipt prescription. */
+export interface ReceiptPayment {
+  id: string
+  prescriptionId: string
+  paymentMode: string
+  amount: number
+  createdAt: string
+}
+
+/**
+ * Full Prescription row (all DB columns), as returned nested under
+ * GET /patient-care/patients/{id}/receipt — richer than PrescriptionRecord
+ * in doctor/types.ts, which only covers the doctor consultation's own needs.
+ */
+export interface ReceiptPrescription {
+  id: string
+  prescriptionNumber: string | null
+  patientId: string
+  patientType: string
+  doctorId: string | null
+  doctorName: string | null
+  department: string | null
+  temperature: number | null
+  pulseRate: number | null
+  spo2: number | null
+  heightCm: number | null
+  weightKg: number | null
+  presentComplaint: string | null
+  previousHistory: string | null
+  diagnosis: string | null
+  additionalNotes: string | null
+  /** JSON-encoded MedicineItem[] */
+  medicines: string
+  /** JSON-encoded InvestigationItem[] */
+  investigations: string
+  followUpDate: string | null
+  notes: string | null
+  subtotal: number
+  discount: number
+  discountReason: string | null
+  total: number
+  amountPaid: number
+  balanceDue: number
+  paymentMode: string | null
+  paymentDate: string | null
+  status: string
+  prescriptionDate: string
+  createdAt: string
+  updatedAt: string
+  items?: ReceiptInvoiceItem[]
+  payments?: ReceiptPayment[]
+}
+
+/**
+ * Full Patient row plus nested eyeReadings/prescriptions — richer than the
+ * list endpoint's Patient.prescriptions/eyeReadings (which are a trimmed,
+ * latest-only summary for the OPD table columns), since the receipt
+ * endpoint returns full Prescription/EyeReading rows.
+ */
+export interface ReceiptPatient extends Omit<Patient, "eyeReadings" | "prescriptions"> {
+  eyeReadings: import("../workup/types").EyeReadingRecord[]
+  prescriptions: ReceiptPrescription[]
+}
+
+/** Full HospitalProfile row — verified against db/create-hospital-db.sql. */
+export interface ReceiptHospitalProfile {
+  id: string
+  name: string
+  displayName: string | null
+  address: string | null
+  phone: string | null
+  email: string | null
+  website: string | null
+  logoUrl: string | null
+  registrationNo: string | null
+  gstin: string | null
+  /** JSON-encoded settings blob (navStyle, defaultPrint, etc). */
+  settings: string
+}
+
+/**
+ * Response shape of GET /patient-care/patients/{id}/receipt — matches
+ * getPatientReceiptData in supabase/functions/patient-care/service.ts
+ * exactly: `{ patient: {...with eyeReadings, prescriptions}, hospital,
+ * prescription: prescriptions[0] ?? null, eyeReading: eyeReadings[0] ?? null }`.
+ */
+export interface PatientReceiptData {
+  patient: ReceiptPatient | null
+  hospital: ReceiptHospitalProfile | null
+  prescription: ReceiptPrescription | null
+  eyeReading: import("../workup/types").EyeReadingRecord | null
+}

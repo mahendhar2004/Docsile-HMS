@@ -48,6 +48,7 @@ import type {
   UpdateInPatientStatusBody,
   UpdateInPatientBasicInfoBody,
   AddServiceBody,
+  PatientReceiptData,
 } from "./types"
 
 // ─── Query key factory ────────────────────────────────────────────────────────
@@ -68,6 +69,7 @@ export const patientCareKeys = {
   admissionForm: () => [...patientCareKeys.all, "admission-form"] as const,
   nextPatientId: () => [...patientCareKeys.all, "next-patient-id"] as const,
   nextIpNumber: () => [...patientCareKeys.all, "next-ip-number"] as const,
+  receipt: (id: string) => [...patientCareKeys.patients(), "receipt", id] as const,
 } as const
 
 // ─── Query hooks ──────────────────────────────────────────────────────────────
@@ -84,6 +86,24 @@ export function useOpdPatients(date: string) {
         `/patient-care/patients?date=${date}&page=${page}&pageSize=${pageSize}`,
       ),
     initialPageSize: 50,
+  })
+}
+
+/**
+ * Full (unpaginated, single-page-of-many) OPD patient list for a date, used
+ * only to compute the header's Stats modal (counts + revenue breakdown) —
+ * matches main's PatientsPage, which keeps the whole day's patients in
+ * state and reduces over them directly. Disabled until the modal opens, so
+ * it doesn't cost an extra request on every page load.
+ */
+export function useOpdPatientsStats(date: string, enabled: boolean) {
+  return useQuery({
+    queryKey: [...patientCareKeys.patientList(date), "stats"],
+    queryFn: () =>
+      apiClient
+        .get<Patient[]>(`/patient-care/patients?date=${date}&page=1&pageSize=1000`)
+        .then((res) => res.data),
+    enabled,
   })
 }
 
@@ -119,6 +139,22 @@ export function usePatientDetail(id: string | null, enabled = true) {
       apiClient.get<Patient>(`/patient-care/patients/${id!}`).then((e) => e.data),
     enabled: enabled && id != null,
     staleTime: 5 * 60 * 1000,
+  })
+}
+
+/**
+ * Fetch receipt data (patient + hospital + latest prescription/eye-reading)
+ * for the quick-print button. On-demand only — enabled false until a print
+ * is actually requested, since this is a heavier nested-join query not
+ * needed for the list view itself.
+ * Endpoint: GET /patient-care/patients/{id}/receipt
+ */
+export function usePatientReceipt(id: string | null, enabled = true) {
+  return useQuery({
+    queryKey: patientCareKeys.receipt(id ?? ""),
+    queryFn: () =>
+      apiClient.get<PatientReceiptData>(`/patient-care/patients/${id!}/receipt`).then((e) => e.data),
+    enabled: enabled && id != null,
   })
 }
 

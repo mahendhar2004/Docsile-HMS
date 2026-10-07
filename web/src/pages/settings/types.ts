@@ -94,6 +94,40 @@ export interface DefaultPrintConfig {
   items: DefaultPrintItem[]
 }
 
+const ALL_PRINT_ITEM_TYPES: DefaultPrintItemType[] = ["cash", "prescription", "readings", "report"]
+const VALID_PRINT_TYPES = new Set(ALL_PRINT_ITEM_TYPES)
+const VALID_READINGS_SUBMODES = new Set<ReadingsSubMode>(["readings", "clinical", "both"])
+
+/**
+ * Parses the raw `/settings/print-config` response (`{ defaultPrint: { items } }`,
+ * loosely typed since it's a free-form JSON blob) into a validated
+ * DefaultPrintItem[], dropping anything malformed. Shared by the Settings
+ * print-config editor and the quick-print button's `useDefaultPrintConfig` hook
+ * — extracted here so both read the exact same parsing rules.
+ */
+export function parsePrintConfig(raw: Record<string, unknown> | undefined): DefaultPrintItem[] {
+  if (!raw) return []
+  const dp = raw.defaultPrint as { items?: unknown } | undefined
+  if (!dp || !Array.isArray(dp.items)) return []
+  const seen = new Set<string>()
+  const items: DefaultPrintItem[] = []
+  for (const item of dp.items as unknown[]) {
+    if (!item || typeof item !== "object") continue
+    const t = (item as { type?: unknown }).type
+    if (typeof t !== "string" || !VALID_PRINT_TYPES.has(t as DefaultPrintItemType)) continue
+    if (seen.has(t)) continue
+    if (t === "readings") {
+      const sm = (item as { subMode?: unknown }).subMode
+      if (typeof sm !== "string" || !VALID_READINGS_SUBMODES.has(sm as ReadingsSubMode)) continue
+      items.push({ type: "readings", subMode: sm as ReadingsSubMode })
+    } else {
+      items.push({ type: t as Exclude<DefaultPrintItemType, "readings"> })
+    }
+    seen.add(t)
+  }
+  return items
+}
+
 export const DEFAULT_PRINT_LABELS: Record<DefaultPrintItemType, string> = {
   cash: "Cash Receipt",
   prescription: "Prescription",
