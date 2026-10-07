@@ -24,6 +24,7 @@ import { useForm, Controller } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { z } from "zod"
 import { format } from "date-fns"
+import { calculateAge } from "@/lib/utils"
 import { Plus, Pencil, Trash2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { IconButton } from "@/components/ui/icon-button"
@@ -235,6 +236,14 @@ const columns: ColumnDef<Patient>[] = [
         {p.firstName} {p.lastName}
       </span>
     ),
+  },
+  {
+    key: "ageGender",
+    header: "Age / Gender",
+    cell: (p) =>
+      p.dateOfBirth
+        ? `${calculateAge(p.dateOfBirth)} / ${p.gender}`
+        : p.gender,
   },
   {
     key: "phone",
