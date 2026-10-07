@@ -35,7 +35,7 @@
 | 17 | License Tracker / Staff — confirm copy | ✅ done (no changes needed) |
 | 18 | Settings — flatten tabs, add Users, drop Inpatient Templates | ⚠️ done (no Users tab — no backend endpoint, see ledger) |
 | 19 | Add missing Unauthorized page | ✅ done |
-| 20 | Whole-branch verification sweep | 🔄 in progress |
+| 20 | Whole-branch verification sweep | ✅ done (final review complete, 2 critical + 8 important fixed, see ledger) |
 
 Legend: ⬜ not started · 🔄 in progress · ✅ done · ⚠️ done with a flagged issue
 
