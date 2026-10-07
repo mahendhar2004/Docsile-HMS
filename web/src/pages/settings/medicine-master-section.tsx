@@ -8,7 +8,7 @@
  */
 
 import { useState } from "react"
-import { Plus, Pencil, Trash2 } from "lucide-react"
+import { Plus } from "lucide-react"
 import {
   Table,
   TableBody,
@@ -42,6 +42,7 @@ import {
   useMedicineMaster,
   useCreateMedicineMaster,
   useUpdateMedicineMaster,
+  useToggleMedicineMasterActive,
   useDeleteMedicineMaster,
 } from "./hooks"
 import {
@@ -65,6 +66,7 @@ export function MedicineMasterSection({ canEdit }: MedicineMasterSectionProps) {
   const [deleteId, setDeleteId] = useState<string | null>(null)
   const [deleteName, setDeleteName] = useState("")
 
+  const toggleActiveM = useToggleMedicineMasterActive()
   const deleteM = useDeleteMedicineMaster()
 
   const filtered = medicines.filter((m) => {
@@ -221,13 +223,18 @@ export function MedicineMasterSection({ canEdit }: MedicineMasterSectionProps) {
                   {canEdit && (
                     <TableCell className="text-right">
                       <div className="flex justify-end gap-1">
+                        <Button variant="ghost" size="sm" onClick={() => openEdit(med)}>
+                          Edit
+                        </Button>
                         <Button
                           variant="ghost"
                           size="sm"
-                          onClick={() => openEdit(med)}
-                          aria-label={`Edit ${med.name}`}
+                          className="text-muted-foreground"
+                          onClick={() =>
+                            toggleActiveM.mutate({ id: med.id, isActive: !med.isActive })
+                          }
                         >
-                          <Pencil className="h-3.5 w-3.5" aria-hidden="true" />
+                          {med.isActive ? "Deactivate" : "Activate"}
                         </Button>
                         <Button
                           variant="ghost"
@@ -237,9 +244,8 @@ export function MedicineMasterSection({ canEdit }: MedicineMasterSectionProps) {
                             setDeleteName(med.name)
                           }}
                           className="text-destructive hover:bg-destructive/10"
-                          aria-label={`Delete ${med.name}`}
                         >
-                          <Trash2 className="h-3.5 w-3.5" aria-hidden="true" />
+                          Delete
                         </Button>
                       </div>
                     </TableCell>

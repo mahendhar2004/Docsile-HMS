@@ -8,7 +8,7 @@
  */
 
 import { useState } from "react"
-import { Plus, Pencil, Trash2 } from "lucide-react"
+import { Plus } from "lucide-react"
 import {
   Table,
   TableBody,
@@ -27,7 +27,6 @@ import {
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
 import { Button } from "@/components/ui/button"
-import { Badge } from "@/components/ui/badge"
 import { Label } from "@/components/ui/label"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Skeleton } from "@/components/ui/skeleton"
@@ -60,6 +59,16 @@ export function DischargesSection({ canEdit }: DischargesSectionProps) {
     if (!search) return true
     return d.name.toLowerCase().includes(search.toLowerCase())
   })
+
+  function medicationCount(d: PredefinedDischarge): number {
+    try {
+      const parsed: unknown = JSON.parse(d.dischargeMedications ?? "[]")
+      if (!Array.isArray(parsed)) return 0
+      return parsed.filter((r: { medicine?: string }) => r.medicine?.trim()).length
+    } catch {
+      return 0
+    }
+  }
 
   if (error) {
     return (
@@ -103,11 +112,11 @@ export function DischargesSection({ canEdit }: DischargesSectionProps) {
           <TableHeader>
             <TableRow className="bg-muted/40 hover:bg-muted/40">
               <TableHead className="w-48">Name</TableHead>
-              <TableHead>Condition</TableHead>
+              <TableHead className="w-28">Condition</TableHead>
               <TableHead>Discharge Diagnosis</TableHead>
-              <TableHead>Follow-up Instructions</TableHead>
-              <TableHead className="text-center">Status</TableHead>
-              {canEdit && <TableHead className="text-right">Actions</TableHead>}
+              <TableHead>Prescription</TableHead>
+              <TableHead className="w-28">Follow-up</TableHead>
+              {canEdit && <TableHead className="w-28 text-right">Actions</TableHead>}
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -133,48 +142,53 @@ export function DischargesSection({ canEdit }: DischargesSectionProps) {
                 </TableCell>
               </TableRow>
             ) : (
-              filtered.map((d) => (
-                <TableRow key={d.id} className={d.isActive === false ? "opacity-60" : ""}>
-                  <TableCell className="font-medium">{d.name}</TableCell>
-                  <TableCell className="text-sm text-muted-foreground">
-                    {d.conditionAtDischarge || "—"}
-                  </TableCell>
-                  <TableCell className="text-sm text-muted-foreground max-w-[220px] truncate">
-                    {d.dischargeDiagnosis || "—"}
-                  </TableCell>
-                  <TableCell className="text-sm text-muted-foreground max-w-[200px] truncate">
-                    {d.followUpInstructions ? d.followUpInstructions.split("\n")[0] : "—"}
-                  </TableCell>
-                  <TableCell className="text-center">
-                    <Badge variant={d.isActive !== false ? "default" : "muted"}>
-                      {d.isActive !== false ? "Active" : "Inactive"}
-                    </Badge>
-                  </TableCell>
-                  {canEdit && (
-                    <TableCell className="text-right">
-                      <div className="flex justify-end gap-1">
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => { setEditItem(d); setDialogOpen(true) }}
-                          aria-label={`Edit ${d.name}`}
-                        >
-                          <Pencil className="h-3.5 w-3.5" aria-hidden="true" />
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => { setDeleteId(d.id); setDeleteName(d.name) }}
-                          className="text-destructive hover:bg-destructive/10"
-                          aria-label={`Delete ${d.name}`}
-                        >
-                          <Trash2 className="h-3.5 w-3.5" aria-hidden="true" />
-                        </Button>
-                      </div>
+              filtered.map((d) => {
+                const rxCount = medicationCount(d)
+                return (
+                  <TableRow key={d.id} className={d.isActive === false ? "opacity-50" : ""}>
+                    <TableCell className="font-medium">{d.name}</TableCell>
+                    <TableCell className="text-sm text-muted-foreground">
+                      {d.conditionAtDischarge || "—"}
                     </TableCell>
-                  )}
-                </TableRow>
-              ))
+                    <TableCell className="text-sm text-muted-foreground max-w-[260px] truncate">
+                      {d.dischargeDiagnosis || "—"}
+                    </TableCell>
+                    <TableCell className="text-sm">
+                      {rxCount > 0 ? (
+                        <span className="inline-flex items-center gap-1 text-xs font-medium text-primary bg-primary/8 px-2 py-0.5 rounded-full">
+                          {rxCount} med{rxCount !== 1 ? "s" : ""}
+                        </span>
+                      ) : (
+                        <span className="text-muted-foreground">—</span>
+                      )}
+                    </TableCell>
+                    <TableCell className="text-sm text-muted-foreground truncate max-w-[180px]">
+                      {d.followUpInstructions ? d.followUpInstructions.split("\n")[0] : "—"}
+                    </TableCell>
+                    {canEdit && (
+                      <TableCell className="text-right">
+                        <div className="flex justify-end gap-1">
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            onClick={() => { setEditItem(d); setDialogOpen(true) }}
+                          >
+                            Edit
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            onClick={() => { setDeleteId(d.id); setDeleteName(d.name) }}
+                            className="text-destructive"
+                          >
+                            Delete
+                          </Button>
+                        </div>
+                      </TableCell>
+                    )}
+                  </TableRow>
+                )
+              })
             )}
           </TableBody>
         </Table>

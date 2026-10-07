@@ -8,7 +8,7 @@
  */
 
 import { useState } from "react"
-import { Plus, Pencil, Trash2 } from "lucide-react"
+import { Plus } from "lucide-react"
 import {
   Table,
   TableBody,
@@ -36,6 +36,7 @@ import {
   usePrescriptionTemplates,
   useCreatePrescriptionTemplate,
   useUpdatePrescriptionTemplate,
+  useTogglePrescriptionTemplateActive,
   useDeletePrescriptionTemplate,
   useMedicineMaster,
 } from "./hooks"
@@ -65,6 +66,7 @@ export function PrescriptionTemplatesSection({ canEdit }: PrescriptionTemplatesS
   const [editItem, setEditItem] = useState<PrescriptionTemplate | null>(null)
   const [deleteId, setDeleteId] = useState<string | null>(null)
 
+  const toggleActiveM = useTogglePrescriptionTemplateActive()
   const deleteM = useDeletePrescriptionTemplate()
 
   const filtered = templates.filter((t) => {
@@ -207,18 +209,26 @@ export function PrescriptionTemplatesSection({ canEdit }: PrescriptionTemplatesS
                             variant="ghost"
                             size="sm"
                             onClick={() => { setEditItem(tmpl); setDialogOpen(true) }}
-                            aria-label={`Edit ${tmpl.name}`}
                           >
-                            <Pencil className="h-3.5 w-3.5" aria-hidden="true" />
+                            Edit
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="text-muted-foreground"
+                            onClick={() =>
+                              toggleActiveM.mutate({ id: tmpl.id, isActive: !tmpl.isActive })
+                            }
+                          >
+                            {tmpl.isActive ? "Deactivate" : "Activate"}
                           </Button>
                           <Button
                             variant="ghost"
                             size="sm"
                             onClick={() => setDeleteId(tmpl.id)}
                             className="text-destructive hover:bg-destructive/10"
-                            aria-label={`Delete ${tmpl.name}`}
                           >
-                            <Trash2 className="h-3.5 w-3.5" aria-hidden="true" />
+                            Delete
                           </Button>
                         </div>
                       </TableCell>

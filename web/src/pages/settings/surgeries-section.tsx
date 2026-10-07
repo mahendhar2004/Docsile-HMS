@@ -11,7 +11,7 @@
  */
 
 import { useState } from "react"
-import { Plus, Pencil, Trash2 } from "lucide-react"
+import { Plus } from "lucide-react"
 import {
   Table,
   TableBody,
@@ -30,7 +30,6 @@ import {
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
 import { Button } from "@/components/ui/button"
-import { Badge } from "@/components/ui/badge"
 import { Label } from "@/components/ui/label"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Skeleton } from "@/components/ui/skeleton"
@@ -125,11 +124,10 @@ export function SurgeriesSection({ canEdit }: SurgeriesSectionProps) {
         <Table>
           <TableHeader>
             <TableRow className="bg-muted/40 hover:bg-muted/40">
-              <TableHead>Operation Name</TableHead>
+              <TableHead>Name</TableHead>
               <TableHead>Department</TableHead>
               <TableHead>Doctors</TableHead>
               <TableHead>On-Duty</TableHead>
-              <TableHead className="text-center">Status</TableHead>
               {canEdit && <TableHead className="text-right">Actions</TableHead>}
             </TableRow>
           </TableHeader>
@@ -137,7 +135,7 @@ export function SurgeriesSection({ canEdit }: SurgeriesSectionProps) {
             {isLoading ? (
               Array.from({ length: 4 }).map((_, i) => (
                 <TableRow key={i}>
-                  {Array.from({ length: canEdit ? 6 : 5 }).map((_, j) => (
+                  {Array.from({ length: canEdit ? 5 : 4 }).map((_, j) => (
                     <TableCell key={j}>
                       <Skeleton className="h-4 w-full" />
                     </TableCell>
@@ -146,7 +144,7 @@ export function SurgeriesSection({ canEdit }: SurgeriesSectionProps) {
               ))
             ) : filtered.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={canEdit ? 6 : 5} className="py-12">
+                <TableCell colSpan={canEdit ? 5 : 4} className="py-12">
                   <EmptyState
                     title="No surgery templates"
                     description={
@@ -160,7 +158,7 @@ export function SurgeriesSection({ canEdit }: SurgeriesSectionProps) {
                 const doctors = parseDoctors(s)
                 const onDuty = parseOnDuty(s)
                 return (
-                  <TableRow key={s.id} className={s.isActive === false ? "opacity-60" : ""}>
+                  <TableRow key={s.id} className={s.isActive === false ? "opacity-50" : ""}>
                     <TableCell className="font-medium">{s.name}</TableCell>
                     <TableCell className="text-sm text-muted-foreground">
                       {s.department || "—"}
@@ -171,30 +169,23 @@ export function SurgeriesSection({ canEdit }: SurgeriesSectionProps) {
                     <TableCell className="text-sm text-muted-foreground">
                       {onDuty.length > 0 ? onDuty.join(", ") : "—"}
                     </TableCell>
-                    <TableCell className="text-center">
-                      <Badge variant={s.isActive !== false ? "default" : "muted"}>
-                        {s.isActive !== false ? "Active" : "Inactive"}
-                      </Badge>
-                    </TableCell>
                     {canEdit && (
                       <TableCell className="text-right">
-                        <div className="flex justify-end gap-1">
+                        <div className="flex gap-1 justify-end">
                           <Button
-                            variant="ghost"
                             size="sm"
+                            variant="ghost"
                             onClick={() => { setEditItem(s); setDialogOpen(true) }}
-                            aria-label={`Edit ${s.name}`}
                           >
-                            <Pencil className="h-3.5 w-3.5" aria-hidden="true" />
+                            Edit
                           </Button>
                           <Button
-                            variant="ghost"
                             size="sm"
+                            variant="ghost"
                             onClick={() => { setDeleteId(s.id); setDeleteName(s.name) }}
-                            className="text-destructive hover:bg-destructive/10"
-                            aria-label={`Delete ${s.name}`}
+                            className="text-destructive"
                           >
-                            <Trash2 className="h-3.5 w-3.5" aria-hidden="true" />
+                            Delete
                           </Button>
                         </div>
                       </TableCell>

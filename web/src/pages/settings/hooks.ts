@@ -80,6 +80,21 @@ export function useUpdateServiceTemplate(id: string, onSuccess?: () => void) {
   })
 }
 
+export function useToggleServiceTemplateActive(onSuccess?: () => void) {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: ({ id, isActive }: { id: string; isActive: boolean }) =>
+      apiClient.patch(`/settings/service-templates/${id}`, { isActive }),
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: settingsKeys.serviceTemplates() })
+      onSuccess?.()
+    },
+    onError: (err: unknown) => {
+      toast.error(err instanceof Error ? err.message : "Failed to update service template.")
+    },
+  })
+}
+
 export function useDeleteServiceTemplate(onSuccess?: () => void) {
   const qc = useQueryClient()
   return useMutation({
@@ -208,6 +223,21 @@ export function useUpdatePrescriptionTemplate(id: string, onSuccess?: () => void
     onSuccess: () => {
       void qc.invalidateQueries({ queryKey: settingsKeys.prescriptionTemplates() })
       toast.success("Prescription template updated.")
+      onSuccess?.()
+    },
+    onError: (err: unknown) => {
+      toast.error(err instanceof Error ? err.message : "Failed to update prescription template.")
+    },
+  })
+}
+
+export function useTogglePrescriptionTemplateActive(onSuccess?: () => void) {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: ({ id, isActive }: { id: string; isActive: boolean }) =>
+      apiClient.patch(`/settings/prescription-templates/${id}`, { isActive }),
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: settingsKeys.prescriptionTemplates() })
       onSuccess?.()
     },
     onError: (err: unknown) => {
@@ -505,6 +535,21 @@ export function useUpdateMedicineMaster(id: string, onSuccess?: () => void) {
     onSuccess: () => {
       void qc.invalidateQueries({ queryKey: settingsKeys.medicineMaster() })
       toast.success("Medicine updated.")
+      onSuccess?.()
+    },
+    onError: (err: unknown) => {
+      toast.error(err instanceof Error ? err.message : "Failed to update medicine.")
+    },
+  })
+}
+
+export function useToggleMedicineMasterActive(onSuccess?: () => void) {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: ({ id, isActive }: { id: string; isActive: boolean }) =>
+      apiClient.patch(`/settings/medicine-master/${id}`, { isActive }),
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: settingsKeys.medicineMaster() })
       onSuccess?.()
     },
     onError: (err: unknown) => {

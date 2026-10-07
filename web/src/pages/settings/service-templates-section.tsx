@@ -4,7 +4,7 @@
  */
 
 import { useState } from "react"
-import { Plus, Pencil, Trash2 } from "lucide-react"
+import { Plus } from "lucide-react"
 import {
   Table,
   TableBody,
@@ -38,6 +38,7 @@ import {
   useServiceTemplates,
   useCreateServiceTemplate,
   useUpdateServiceTemplate,
+  useToggleServiceTemplateActive,
   useDeleteServiceTemplate,
 } from "./hooks"
 import { SERVICE_CATEGORIES, type ServiceTemplate } from "./types"
@@ -55,6 +56,7 @@ export function ServiceTemplatesSection({ canEdit }: ServiceTemplatesProps) {
   const [editItem, setEditItem] = useState<ServiceTemplate | null>(null)
   const [deleteId, setDeleteId] = useState<string | null>(null)
 
+  const toggleActiveM = useToggleServiceTemplateActive()
   const deleteM = useDeleteServiceTemplate()
 
   const filtered = templates.filter((s) => {
@@ -199,22 +201,26 @@ export function ServiceTemplatesSection({ canEdit }: ServiceTemplatesProps) {
                   {canEdit && (
                     <TableCell className="text-right">
                       <div className="flex justify-end gap-1">
+                        <Button variant="ghost" size="sm" onClick={() => openEdit(svc)}>
+                          Edit
+                        </Button>
                         <Button
                           variant="ghost"
                           size="sm"
-                          onClick={() => openEdit(svc)}
-                          aria-label={`Edit ${svc.name}`}
+                          className="text-muted-foreground"
+                          onClick={() =>
+                            toggleActiveM.mutate({ id: svc.id, isActive: !svc.isActive })
+                          }
                         >
-                          <Pencil className="h-3.5 w-3.5" aria-hidden="true" />
+                          {svc.isActive ? "Deactivate" : "Activate"}
                         </Button>
                         <Button
                           variant="ghost"
                           size="sm"
                           onClick={() => setDeleteId(svc.id)}
                           className="text-destructive hover:bg-destructive/10"
-                          aria-label={`Delete ${svc.name}`}
                         >
-                          <Trash2 className="h-3.5 w-3.5" aria-hidden="true" />
+                          Delete
                         </Button>
                       </div>
                     </TableCell>
