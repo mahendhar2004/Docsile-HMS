@@ -17,14 +17,14 @@
  * Permissions: staff:view, staff:create, staff:edit, staff:deactivate, staff:manage_roles
  */
 
-import { useState } from "react"
+import { useRef, useState } from "react"
 import { UserCog, Shield } from "lucide-react"
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs"
 import { PageHeader } from "@/components/patterns/navigation"
 import { ErrorState } from "@/components/patterns/feedback"
 import { usePermissions } from "@/hooks/usePermissions"
 import { useStaffRoles } from "./staff/hooks"
-import { MembersTab } from "./staff/members-tab"
+import { MembersTab, type MembersTabHandle } from "./staff/members-tab"
 import { RolesTab } from "./staff/roles-tab"
 
 // ─── StaffPage ────────────────────────────────────────────────────────────────
@@ -38,6 +38,7 @@ export default function StaffPage() {
   const rolesQuery = useStaffRoles(hasAccess)
 
   const [activeTab, setActiveTab] = useState("members")
+  const membersRef = useRef<MembersTabHandle>(null)
 
   // ── Permission gate ──────────────────────────────────────────────────────────
   if (!hasAccess) {
@@ -56,6 +57,10 @@ export default function StaffPage() {
       <main className="space-y-6">
         <PageHeader
           title="Staff Management"
+          onRefresh={() => {
+            void rolesQuery.refetch()
+            membersRef.current?.refetch()
+          }}
           actions={
             <TabsList>
               <TabsTrigger value="members" className="gap-2">
@@ -71,7 +76,7 @@ export default function StaffPage() {
         />
 
         <TabsContent value="members">
-          <MembersTab roles={rolesQuery.data ?? []} />
+          <MembersTab ref={membersRef} roles={rolesQuery.data ?? []} />
         </TabsContent>
 
         <TabsContent value="roles">

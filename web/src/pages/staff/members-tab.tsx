@@ -15,7 +15,7 @@
  *  - staff:deactivate — Toggle Active/Inactive action
  */
 
-import { useState } from "react"
+import { useState, forwardRef, useImperativeHandle } from "react"
 import { Plus, Search, UserCog, KeyRound, MoreHorizontal } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -51,6 +51,11 @@ interface MembersTabProps {
   roles: StaffRole[]
 }
 
+export interface MembersTabHandle {
+  /** Refetches the staff list — main's header Refresh button lives one level up. */
+  refetch: () => void
+}
+
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
 function getInitials(name: string): string {
@@ -84,11 +89,18 @@ const STATUS_OPTIONS = [
 
 // ─── Component ────────────────────────────────────────────────────────────────
 
-export function MembersTab({ roles }: MembersTabProps) {
+export const MembersTab = forwardRef<MembersTabHandle, MembersTabProps>(function MembersTab(
+  { roles },
+  ref,
+) {
   const { can } = usePermissions()
 
   // ── Data ──────────────────────────────────────────────────────────────────
   const { data: members = [], isLoading, isError, error, refetch } = useStaffMembers()
+
+  useImperativeHandle(ref, () => ({
+    refetch: () => void refetch(),
+  }))
 
   // ── Filters ───────────────────────────────────────────────────────────────
   const [search, setSearch] = useState("")
@@ -481,4 +493,4 @@ export function MembersTab({ roles }: MembersTabProps) {
       </Dialog>
     </div>
   )
-}
+})
