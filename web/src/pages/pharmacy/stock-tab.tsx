@@ -6,8 +6,14 @@
  */
 
 import { useState } from "react"
-import { Plus } from "lucide-react"
+import { Plus, MoreHorizontal, Pencil } from "lucide-react"
 import { toast } from "sonner"
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
 import {
   StatCard,
   DataTable,
@@ -219,16 +225,26 @@ export function StockTab() {
     columns.push({
       key: "actions",
       header: "",
-      align: "right",
+      align: "center",
       cell: (row) => (
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={() => setEditingStock(row)}
-          aria-label={`Edit stock for ${row.medicine.name}`}
-        >
-          Edit
-        </Button>
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button
+              variant="ghost"
+              size="sm"
+              className="h-7 w-7 p-0"
+              aria-label={`Actions for ${row.medicine.name}`}
+            >
+              <MoreHorizontal className="h-4 w-4" aria-hidden />
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end">
+            <DropdownMenuItem onSelect={() => setEditingStock(row)}>
+              <Pencil className="h-3.5 w-3.5 mr-2" aria-hidden />
+              Edit
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
       ),
     })
   }

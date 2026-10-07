@@ -9,9 +9,15 @@
  */
 
 import { useState, useEffect } from "react"
-import { Plus, Package, AlertTriangle } from "lucide-react"
+import { Plus, Package, AlertTriangle, MoreHorizontal, Pencil } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import {
   DataTable,
@@ -369,15 +375,26 @@ export function StockTab({ canEdit }: StockTabProps) {
           {
             key: "id",
             header: "",
+            align: "center",
             cell: (s: OpticalStockEntry) => (
-              <Button
-                variant="ghost"
-                size="sm"
-                aria-label={`Edit stock for ${s.product.name}`}
-                onClick={() => setEditing(s)}
-              >
-                Edit
-              </Button>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="h-7 w-7 p-0"
+                    aria-label={`Actions for ${s.product.name}`}
+                  >
+                    <MoreHorizontal className="h-4 w-4" aria-hidden />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  <DropdownMenuItem onSelect={() => setEditing(s)}>
+                    <Pencil className="h-3.5 w-3.5 mr-2" aria-hidden />
+                    Edit
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
             ),
           } satisfies ColumnDef<OpticalStockEntry>,
         ]

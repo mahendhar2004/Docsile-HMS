@@ -4,7 +4,7 @@
  */
 
 import { useState } from "react"
-import { Plus } from "lucide-react"
+import { Plus, MoreHorizontal, Pencil, Trash2 } from "lucide-react"
 import { toast } from "sonner"
 import {
   DataTable,
@@ -15,6 +15,12 @@ import {
 } from "@/components/patterns"
 import type { ColumnDef } from "@/components/patterns"
 import { Button } from "@/components/ui/button"
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
 import { Badge } from "@/components/ui/badge"
 import { Skeleton } from "@/components/ui/skeleton"
 import { usePermissions } from "@/hooks/usePermissions"
@@ -122,30 +128,38 @@ export function MedicinesTab() {
     columns.push({
       key: "actions",
       header: "",
-      align: "right",
+      align: "center",
       cell: (row) => (
-        <div className="flex items-center gap-2 justify-end">
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => {
-              setEditing(row)
-              setShowForm(true)
-            }}
-            aria-label={`Edit ${row.name}`}
-          >
-            Edit
-          </Button>
-          <Button
-            variant="ghost"
-            size="sm"
-            className="text-destructive hover:text-destructive"
-            onClick={() => setDeletingId(row.id)}
-            aria-label={`Delete ${row.name}`}
-          >
-            Delete
-          </Button>
-        </div>
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button
+              variant="ghost"
+              size="sm"
+              className="h-7 w-7 p-0"
+              aria-label={`Actions for ${row.name}`}
+            >
+              <MoreHorizontal className="h-4 w-4" aria-hidden />
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end">
+            <DropdownMenuItem
+              onSelect={() => {
+                setEditing(row)
+                setShowForm(true)
+              }}
+            >
+              <Pencil className="h-3.5 w-3.5 mr-2" aria-hidden />
+              Edit
+            </DropdownMenuItem>
+            <DropdownMenuItem
+              className="text-destructive focus:text-destructive"
+              onSelect={() => setDeletingId(row.id)}
+            >
+              <Trash2 className="h-3.5 w-3.5 mr-2" aria-hidden />
+              Delete
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
       ),
     })
   }
