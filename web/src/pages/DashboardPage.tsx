@@ -1,289 +1,238 @@
 /**
- * DashboardPage — landing page with today's metrics and period summaries.
+ * DashboardPage — static module-navigation grid, matching main's
+ * DashboardClient.tsx exactly (src/app/(hospital)/dashboard/DashboardClient.tsx
+ * + page.tsx on main). No live data: a greeting banner (time-of-day based) +
+ * a rotating medical quote, followed by a grouped grid of module nav cards.
  *
- * Endpoints:
- *   - GET /dashboard/summary      → TodaySummary
- *   - GET /dashboard/quick-stats  → QuickStats
- * Permission: reports:view
+ * Main's `enabledModules` admin-config gate doesn't exist in this app (no
+ * equivalent hospital-wide module-enablement system was migrated), so
+ * per-tile visibility uses the same permission keys as the Sidebar instead
+ * — main's own comment notes permission checks are "currently disabled at
+ * the app level" there anyway, so this is at least as permissive as main.
  */
 
-import { useQuery } from "@tanstack/react-query"
+import { useEffect, useState } from "react"
+import { Link } from "react-router-dom"
 import {
   Users,
-  Activity,
-  IndianRupee,
-  AlertCircle,
+  Eye,
+  Stethoscope,
+  BedDouble,
+  Pill,
+  Glasses,
+  FlaskConical,
+  Shield,
   ClipboardList,
-  Clock,
-  TrendingUp,
+  Wallet,
+  BarChart3,
+  FileBarChart,
+  DatabaseZap,
+  ScrollText,
+  UserCog,
+  Settings,
+  ArrowRight,
+  Quote,
+  Heart,
+  type LucideIcon,
 } from "lucide-react"
-import {
-  PageHeader,
-  StatCard,
-  ChartContainer,
-  ThemedDonutChart,
-  ThemedBarChart,
-  ErrorState,
-} from "@/components/patterns"
-import type { DonutChartSlice } from "@/components/patterns"
-import { apiClient } from "@/lib/api-client"
 import { usePermissions } from "@/hooks/usePermissions"
 
-// ─── Types (mirroring supabase/functions/dashboard/types.ts) ─────────────────
+// ─── Rotating quotes (verbatim from main) ────────────────────────────────────
 
-/** Today's summary snapshot. */
-interface TodaySummary {
-  /** IST calendar date this snapshot covers (YYYY-MM-DD). */
-  date: string
-  /** Patients with an appointmentDate in today's IST window. */
-  newPatientsToday: number
-  /** Non-cancelled Prescriptions issued today. */
-  totalPrescriptions: number
-  /** Aggregate revenue across all billing sources for today. */
-  totalRevenue: number
-  /** Aggregate collected amounts for today. */
-  totalCollected: number
-  /** Aggregate outstanding dues for today. */
-  totalDues: number
-  /** InPatients whose status is not DISCHARGED (across all admission dates). */
-  activeInpatients: number
-  /**
-   * Approximate count of OPD patients today who have not yet had an eye reading.
-   * Computed as max(0, newPatientsToday - eyeReadingsToday).
-   */
-  pendingWorkup: number
+const quotes = [
+  { text: "The good physician treats the disease; the great physician treats the patient who has the disease.", author: "Sir William Osler" },
+  { text: "Wherever the art of medicine is loved, there is also a love of humanity.", author: "Hippocrates" },
+  { text: "The art of medicine consists of amusing the patient while nature cures the disease.", author: "Voltaire" },
+  { text: "Medicine is not only a science; it is also an art. It does not consist of compounding pills and plasters; it deals with the very processes of life.", author: "Paracelsus" },
+  { text: "The best doctor gives the least medicines.", author: "Benjamin Franklin" },
+  { text: "Healing is a matter of time, but it is sometimes also a matter of opportunity.", author: "Hippocrates" },
+  { text: "Let food be thy medicine and medicine be thy food.", author: "Hippocrates" },
+  { text: "The doctor of the future will give no medicine, but will instruct his patients in care of the human frame.", author: "Thomas Edison" },
+  { text: "People pay the doctor for his trouble; for his kindness they still remain in his debt.", author: "Seneca" },
+  { text: "A doctor who cannot take a good history and a patient who cannot give one are in danger of giving and receiving bad treatment.", author: "Paul Dudley White" },
+]
+
+// ─── Module sections (labels/descriptions/icon tints verbatim from main) ────
+
+type DashboardModule = {
+  href: string
+  icon: LucideIcon
+  label: string
+  description: string
+  iconBg: string
+  iconColor: string
+  permission?: string
 }
 
-/** Revenue + collection totals for a calendar period. */
-interface PeriodStats {
-  totalPatients: number
-  totalRevenue: number
-  totalCollected: number
+type DashboardSection = {
+  label: string
+  items: DashboardModule[]
 }
 
-/** Quick stats for the dashboard header widgets. */
-interface QuickStats {
-  /** Year-to-date stats (Jan 1 of current year to now). */
-  ytd: PeriodStats
-  /** Month-to-date stats (1st of current month to now). */
-  mtd: PeriodStats
-  /** InPatients whose status is not DISCHARGED (across all admission dates). */
-  activeInpatients: number
+const sections: DashboardSection[] = [
+  {
+    label: "Clinical",
+    items: [
+      { href: "/patients",   icon: Users,       label: "Patients",        description: "Register and manage OPD & IPD patient visits, appointments and billing", iconBg: "bg-blue-50",    iconColor: "text-blue-500",   permission: "patients:view" },
+      { href: "/workup",     icon: Eye,         label: "Refraction",      description: "Pre-consultation eye assessment with refraction and clinical findings",    iconBg: "bg-sky-50",     iconColor: "text-sky-500",    permission: "workup:view" },
+      { href: "/doctor",     icon: Stethoscope, label: "Doctor Console",  description: "Diagnosis, prescriptions, vitals recording and follow-up notes",            iconBg: "bg-indigo-50",  iconColor: "text-indigo-500", permission: "doctor:view" },
+      { href: "/inpatients", icon: BedDouble,   label: "In-Patients",     description: "Patient admissions, surgery tracking, billing and discharge",               iconBg: "bg-violet-50",  iconColor: "text-violet-500", permission: "inpatients:view" },
+    ],
+  },
+  {
+    label: "Services",
+    items: [
+      { href: "/pharmacy", icon: Pill,         label: "Pharmacy", description: "Medicine inventory, billing, suppliers and purchase orders",        iconBg: "bg-emerald-50", iconColor: "text-emerald-600", permission: "pharmacy:view" },
+      { href: "/optical",  icon: Glasses,      label: "Optical",  description: "Frames, lenses and contact lens inventory with AR readings",         iconBg: "bg-blue-50",    iconColor: "text-blue-600",     permission: "optical:view" },
+      { href: "/labs",     icon: FlaskConical, label: "Labs",     description: "Lab investigations, test billing and report configuration",          iconBg: "bg-teal-50",    iconColor: "text-teal-600",     permission: "labs:view" },
+    ],
+  },
+  {
+    label: "Finance",
+    items: [
+      { href: "/insurance",       icon: Shield,        label: "Insurance",           description: "TPA insurance claims, preauth tracking and settlements",            iconBg: "bg-cyan-50",  iconColor: "text-cyan-600",  permission: "insurance:view" },
+      { href: "/dues-followups",  icon: ClipboardList, label: "Dues & Follow-Ups",   description: "Track pending dues and schedule patient follow-up reminders",        iconBg: "bg-amber-50", iconColor: "text-amber-600", permission: "dues:view" },
+      { href: "/expenses",        icon: Wallet,        label: "Expenses",            description: "Record and categorize hospital expenses and expenditures",          iconBg: "bg-orange-50", iconColor: "text-orange-500", permission: "expenses:view" },
+    ],
+  },
+  {
+    label: "Insights",
+    items: [
+      { href: "/analytics",       icon: BarChart3,    label: "Analytics",   description: "Comprehensive dashboard with trends, financials and insights",       iconBg: "bg-rose-50",   iconColor: "text-rose-500" },
+      { href: "/reports",         icon: FileBarChart, label: "Reports",     description: "Patient history, visit records, prescriptions and billing reports", iconBg: "bg-sky-50",    iconColor: "text-sky-600",   permission: "reports:view" },
+      { href: "/data",            icon: DatabaseZap,  label: "Data Export", description: "Select, filter and export hospital data in CSV or Excel",           iconBg: "bg-cyan-50",   iconColor: "text-cyan-700",  permission: "data:export" },
+      { href: "/license-tracker", icon: ScrollText,   label: "Licenses",    description: "Track hospital licenses, registrations and renewal dates",          iconBg: "bg-indigo-50", iconColor: "text-indigo-600", permission: "licenses:view" },
+    ],
+  },
+  {
+    label: "Administration",
+    items: [
+      { href: "/staff",    icon: UserCog,  label: "Staff",          description: "Manage staff members, roles and module-level permissions",      iconBg: "bg-purple-50", iconColor: "text-purple-600", permission: "staff:view" },
+      { href: "/settings", icon: Settings, label: "Configurations", description: "Hospital profile, service templates and user management",         iconBg: "bg-slate-100", iconColor: "text-slate-600",  permission: "settings:view" },
+    ],
+  },
+]
+
+function getGreeting(hour: number): string {
+  if (hour < 12) return "Good morning"
+  if (hour < 17) return "Good afternoon"
+  return "Good evening"
 }
-
-// ─── Formatting helpers ───────────────────────────────────────────────────────
-
-function formatINR(amount: number): string {
-  return new Intl.NumberFormat("en-IN", {
-    style: "currency",
-    currency: "INR",
-    maximumFractionDigits: 0,
-  }).format(amount)
-}
-
-function formatCount(n: number): string {
-  return new Intl.NumberFormat("en-IN").format(n)
-}
-
-// ─── DashboardPage ────────────────────────────────────────────────────────────
 
 export default function DashboardPage() {
   const { can } = usePermissions()
-  const hasAccess = can("reports:view")
 
-  // All hooks called unconditionally — early return comes after.
-  const summaryQuery = useQuery({
-    queryKey: ["dashboard", "summary"] as const,
-    queryFn: () =>
-      apiClient.get<TodaySummary>("/dashboard/summary").then((e) => e.data),
-    enabled: hasAccess,
-  })
+  const visibleSections = sections
+    .map((s) => ({
+      ...s,
+      items: s.items.filter((item) => !item.permission || can(item.permission)),
+    }))
+    .filter((s) => s.items.length > 0)
 
-  const quickStatsQuery = useQuery({
-    queryKey: ["dashboard", "quick-stats"] as const,
-    queryFn: () =>
-      apiClient.get<QuickStats>("/dashboard/quick-stats").then((e) => e.data),
-    enabled: hasAccess,
-  })
+  const [quoteIndex, setQuoteIndex] = useState(0)
 
-  // ── Permission gate ──────────────────────────────────────────────────────────
-  if (!hasAccess) {
-    return (
-      <main>
-        <ErrorState
-          title="Access denied"
-          description="You need the reports:view permission to view the dashboard. Contact your administrator."
-        />
-      </main>
-    )
-  }
+  useEffect(() => {
+    setQuoteIndex(Math.floor(Math.random() * quotes.length))
+  }, [])
 
-  // Destructure after all hooks and the permission gate.
-  const {
-    data: summary,
-    isLoading: summaryLoading,
-    error: summaryError,
-    refetch: refetchSummary,
-  } = summaryQuery
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setQuoteIndex((prev) => (prev + 1) % quotes.length)
+    }, 10000)
+    return () => clearInterval(interval)
+  }, [])
 
-  const {
-    data: quickStats,
-    isLoading: quickStatsLoading,
-    error: quickStatsError,
-    refetch: refetchQuickStats,
-  } = quickStatsQuery
+  const quote = quotes[quoteIndex]
+  const greeting = getGreeting(new Date().getHours())
 
-  // ── Derived chart data ───────────────────────────────────────────────────────
-
-  // Donut: today's revenue split into collected vs outstanding dues.
-  const revenueDonutData: DonutChartSlice[] = summary
-    ? [
-        {
-          name: "Collected",
-          value: summary.totalCollected,
-          color: "var(--color-success)",
-        },
-        {
-          name: "Outstanding",
-          value: summary.totalDues,
-          color: "var(--color-error)",
-        },
-      ]
-    : []
-
-  const revenueDonutIsEmpty =
-    !summaryLoading &&
-    summary != null &&
-    summary.totalCollected === 0 &&
-    summary.totalDues === 0
-
-  // Bar chart: month-to-date vs year-to-date patient counts.
-  // Typed as Record<string, unknown>[] to match ThemedBarChart's data prop signature.
-  const periodBarData: Record<string, unknown>[] = quickStats
-    ? [
-        { period: "MTD", Patients: quickStats.mtd.totalPatients },
-        { period: "YTD", Patients: quickStats.ytd.totalPatients },
-      ]
-    : []
-
-  // ── Render ───────────────────────────────────────────────────────────────────
   return (
-    <main className="space-y-6">
-      <PageHeader
-        title="Dashboard"
-        description="Today's patient activity, revenue snapshot, and period summaries."
-      />
-
-      {/* Error states — shown inline so working sections remain visible */}
-      {summaryError && !summaryLoading && (
-        <ErrorState
-          title="Could not load today's summary"
-          error={summaryError}
-          onRetry={() => void refetchSummary()}
-        />
-      )}
-      {quickStatsError && !quickStatsLoading && (
-        <ErrorState
-          title="Could not load period stats"
-          error={quickStatsError}
-          onRetry={() => void refetchQuickStats()}
-        />
-      )}
-
-      {/* ── Stat tiles ────────────────────────────────────────────────────────── */}
-      {!summaryError && (
-        <section aria-label="Today's metrics">
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
-            <StatCard
-              label="New Patients Today"
-              value={summary ? formatCount(summary.newPatientsToday) : "—"}
-              icon={<Users size={20} aria-hidden="true" />}
-              loading={summaryLoading}
-            />
-            <StatCard
-              label="Active Inpatients"
-              value={summary ? formatCount(summary.activeInpatients) : "—"}
-              icon={<Activity size={20} aria-hidden="true" />}
-              loading={summaryLoading}
-            />
-            <StatCard
-              label="Total Revenue"
-              value={summary ? formatINR(summary.totalRevenue) : "—"}
-              icon={<IndianRupee size={20} aria-hidden="true" />}
-              loading={summaryLoading}
-            />
-            <StatCard
-              label="Amount Collected"
-              value={summary ? formatINR(summary.totalCollected) : "—"}
-              icon={<TrendingUp size={20} aria-hidden="true" />}
-              loading={summaryLoading}
-            />
-            <StatCard
-              label="Outstanding Dues"
-              value={summary ? formatINR(summary.totalDues) : "—"}
-              icon={<AlertCircle size={20} aria-hidden="true" />}
-              loading={summaryLoading}
-            />
-            <StatCard
-              label="Prescriptions Issued"
-              value={summary ? formatCount(summary.totalPrescriptions) : "—"}
-              icon={<ClipboardList size={20} aria-hidden="true" />}
-              loading={summaryLoading}
-            />
-            <StatCard
-              label="Pending Workup"
-              value={summary ? formatCount(summary.pendingWorkup) : "—"}
-              icon={<Clock size={20} aria-hidden="true" />}
-              loading={summaryLoading}
-            />
+    <div className="-mx-3 -my-4 md:-mx-4 md:-my-6 lg:-mx-6 lg:-mb-8 min-h-[calc(100vh-4rem)] bg-white">
+      <div className="max-w-6xl mx-auto px-3 py-4 md:px-4 md:py-6 lg:px-6 lg:pt-6 lg:pb-8">
+        {/* Greeting + Quote Banner */}
+        <div className="relative overflow-hidden rounded-2xl bg-slate-50 border border-slate-200/70 px-4 sm:px-8 py-5 sm:py-7 mt-8 md:mt-0 mb-6 sm:mb-10">
+          <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3 sm:gap-8">
+            <div>
+              <h1 className="text-xl sm:text-2xl font-semibold text-foreground tracking-tight">
+                {greeting}
+              </h1>
+              <p className="text-xs sm:text-sm text-muted-foreground mt-1">
+                Here&apos;s your hospital overview for today
+              </p>
+            </div>
+            <div className="flex items-center gap-2 text-xs text-muted-foreground">
+              <Heart className="h-3.5 w-3.5 text-rose-400" aria-hidden="true" />
+              <span>
+                {new Date().toLocaleDateString("en-IN", {
+                  weekday: "long",
+                  day: "numeric",
+                  month: "long",
+                  year: "numeric",
+                })}
+              </span>
+            </div>
           </div>
-        </section>
-      )}
 
-      {/* ── Charts ────────────────────────────────────────────────────────────── */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/*
-         * Revenue breakdown donut — chosen because the data is a two-slice split
-         * (collected vs dues) which is the canonical donut use case. A line/area
-         * chart would require time-series data that this endpoint does not return.
-         */}
-        {!summaryError && (
-          <ChartContainer
-            title="Today's Revenue Breakdown"
-            description="Collected vs outstanding dues"
-            loading={summaryLoading}
-            empty={revenueDonutIsEmpty}
-            emptyMessage="No revenue recorded today."
-            height={260}
-          >
-            <ThemedDonutChart data={revenueDonutData} height={260} />
-          </ChartContainer>
-        )}
+          {/* Inspirational Quote */}
+          <div className="mt-5 flex items-start gap-3">
+            <Quote className="h-4 w-4 text-primary/40 shrink-0 mt-0.5" aria-hidden="true" />
+            <div>
+              <p className="text-sm text-foreground/70 italic leading-relaxed">
+                &ldquo;{quote?.text}&rdquo;
+              </p>
+              <p className="text-xs text-muted-foreground mt-1">&mdash; {quote?.author}</p>
+            </div>
+          </div>
+        </div>
 
-        {/*
-         * Patient volume bar chart — MTD and YTD are two discrete periods, so
-         * a bar chart is the most natural comparison (not a line/area which implies
-         * a continuous time axis).
-         */}
-        {!quickStatsError && (
-          <ChartContainer
-            title="Patient Volume"
-            description="Month-to-date vs year-to-date"
-            loading={quickStatsLoading}
-            empty={!quickStatsLoading && quickStats == null}
-            emptyMessage="No period data available."
-            height={260}
-          >
-            <ThemedBarChart
-              data={periodBarData}
-              series={[{ dataKey: "Patients", name: "Patients" }]}
-              xAxisKey="period"
-              height={260}
-              yTickFormatter={(v) => formatCount(Number(v))}
-            />
-          </ChartContainer>
-        )}
+        {/* Sectioned Modules */}
+        <div className="space-y-8 sm:space-y-10">
+          {visibleSections.map((section) => (
+            <section key={section.label} aria-label={section.label}>
+              <div className="flex items-center gap-3 mb-4">
+                <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground shrink-0">
+                  {section.label}
+                </p>
+                <div className="h-px flex-1 bg-border/60" />
+                <span className="text-xs text-muted-foreground/70 shrink-0">
+                  {section.items.length}
+                </span>
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                {section.items.map((mod) => (
+                  <Link
+                    key={mod.href}
+                    to={mod.href}
+                    className="group relative overflow-hidden rounded-2xl border border-slate-200/80 bg-white p-5 shadow-sm ring-1 ring-slate-900/[0.02] hover:shadow-md hover:border-slate-300 hover:ring-slate-900/[0.04]"
+                  >
+                    <div
+                      aria-hidden="true"
+                      className={`pointer-events-none absolute -top-8 -right-8 h-24 w-24 rounded-full ${mod.iconBg} opacity-40 blur-2xl`}
+                    />
+                    <div className="relative">
+                      <div className="flex items-start justify-between mb-4">
+                        <div
+                          className={`h-11 w-11 rounded-xl ${mod.iconBg} ring-1 ring-inset ring-white/60 shadow-sm flex items-center justify-center`}
+                        >
+                          <mod.icon className={`h-5 w-5 ${mod.iconColor}`} aria-hidden="true" />
+                        </div>
+                        <div className="h-7 w-7 rounded-full bg-slate-100 text-slate-400 group-hover:bg-slate-900 group-hover:text-white flex items-center justify-center">
+                          <ArrowRight className="h-3.5 w-3.5" aria-hidden="true" />
+                        </div>
+                      </div>
+                      <h3 className="text-[15px] font-semibold text-slate-900 tracking-tight mb-1">
+                        {mod.label}
+                      </h3>
+                      <p className="text-xs text-slate-500 leading-relaxed line-clamp-2">
+                        {mod.description}
+                      </p>
+                    </div>
+                  </Link>
+                ))}
+              </div>
+            </section>
+          ))}
+        </div>
       </div>
-    </main>
+    </div>
   )
 }
