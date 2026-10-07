@@ -18,7 +18,6 @@ const PharmacyPage = React.lazy(() => import("@/pages/PharmacyPage"))
 const LabsPage = React.lazy(() => import("@/pages/LabsPage"))
 const OpticalPage = React.lazy(() => import("@/pages/OpticalPage"))
 const InsurancePage = React.lazy(() => import("@/pages/InsurancePage"))
-const QueuePage = React.lazy(() => import("@/pages/QueuePage"))
 const DoctorPage = React.lazy(() => import("@/pages/DoctorPage"))
 const StaffPage = React.lazy(() => import("@/pages/StaffPage"))
 const SettingsPage = React.lazy(() => import("@/pages/SettingsPage"))
@@ -96,7 +95,6 @@ const router = createBrowserRouter([
       { path: "labs", element: <LabsPage /> },
       { path: "optical", element: <OpticalPage /> },
       { path: "insurance", element: <InsurancePage /> },
-      { path: "queue", element: <QueuePage /> },
       { path: "doctor", element: <DoctorPage /> },
       { path: "workup", element: <WorkupPage /> },
 

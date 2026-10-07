@@ -150,12 +150,6 @@ export const ALL_PERMISSIONS = {
       { key: "billing:delete", label: "Void Payments (Admin Only)" },
     ],
   },
-  queue: {
-    label: "Queue",
-    permissions: [
-      { key: "queue:view", label: "View Queue Boards" },
-    ],
-  },
   call_logs: {
     label: "Call Logs",
     permissions: [

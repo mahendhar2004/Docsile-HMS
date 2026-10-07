@@ -21,8 +21,8 @@
 | 3 | Dashboard module grid | ✅ done |
 | 4 | Split Patients → `/patients` + new `/inpatients` | ⚠️ done (backend-limited stat badges, see ledger) |
 | 5 | Fold Billing into Patients, delete `/billing` | ✅ done |
-| 6 | Delete standalone Queue page | 🔄 in progress |
-| 7 | Rework Doctor page (queue-table-takeover) | ⬜ not started |
+| 6 | Delete standalone Queue page | ✅ done |
+| 7 | Rework Doctor page (queue-table-takeover) | 🔄 in progress |
 | 8 | Rework Workup page (Refraction) | ⬜ not started |
 | 9 | Pharmacy — consolidate to 4 tabs + stat badges | ⬜ not started |
 | 10 | Optical — consolidate to 3 tabs + stat badges | ⬜ not started |
