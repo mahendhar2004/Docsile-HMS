@@ -10,6 +10,49 @@
 export type PatientGender = "Male" | "Female" | "Other"
 
 /**
+ * One payment against a patient's latest prescription (nested under
+ * PatientLatestPrescription.payments) — not in openapi.yaml (the schema only
+ * documents the bare Patient row), but genuinely returned by GET
+ * /patient-care/patients: service.ts's listPatients() attaches the latest
+ * prescription (with its payments/items) to every row for display purposes.
+ */
+export interface PatientPrescriptionPayment {
+  amount: number
+  paymentMode: string | null
+}
+
+/** One billed line item on a patient's latest prescription. */
+export interface PatientPrescriptionItem {
+  description: string
+  sortOrder: number | null
+}
+
+/**
+ * The patient's single latest prescription, as attached by listPatients()
+ * (sliced to the most recent one; full fields documented in the Prescription
+ * schema, but only these are selected for the list endpoint).
+ */
+export interface PatientLatestPrescription {
+  id: string
+  status: string
+  doctorName: string | null
+  createdAt: string
+  prescriptionDate: string
+  total: number
+  balanceDue: number
+  amountPaid: number
+  payments: PatientPrescriptionPayment[]
+  items: PatientPrescriptionItem[]
+}
+
+/** The patient's single latest eye reading, as attached by listPatients(). */
+export interface PatientLatestEyeReading {
+  id: string
+  readingDate: string
+  createdAt: string
+}
+
+/**
  * Patient record — mirrors the Patient schema in openapi.yaml.
  * Status values: REGISTERED | IN_WORKUP | WORKUP_DONE | WITH_DOCTOR |
  *   VISITED | COMPLETED | MEDICAL_ONLY | MOVED | CANCELLED | NO_SHOW
@@ -32,6 +75,13 @@ export interface Patient {
   hospitalId: string
   createdAt: string
   updatedAt: string
+  /**
+   * Latest prescription only (0 or 1 items), attached by listPatients() for
+   * the OPD table's Doctor/Services/Receipt columns — not in openapi.yaml.
+   */
+  prescriptions?: PatientLatestPrescription[]
+  /** Latest eye reading only (0 or 1 items), attached by listPatients(). */
+  eyeReadings?: PatientLatestEyeReading[]
 }
 
 /**
@@ -76,7 +126,11 @@ export interface MovePatientDateBody {
 export type InPatientStatus = "admitted" | "discharged"
 
 /**
- * InPatient record — mirrors the InPatient schema in openapi.yaml.
+ * InPatient record — mirrors the InPatient schema in openapi.yaml, plus real
+ * DB columns openapi.yaml under-documents (confirmed in
+ * db/create-hospital-db.sql's InPatient table DDL): `operationName` (TEXT)
+ * and `balanceAmount` (DOUBLE PRECISION), both already returned by
+ * `.select('*')` in repository.ts, just never declared here before.
  * `onDutyDoctors`, `paymentRecords`, `prescriptions` are JSON-encoded arrays.
  */
 export interface InPatient {
@@ -91,14 +145,22 @@ export interface InPatient {
   onDutyDoctors: string
   paymentRecords: string
   prescriptions: string
+  operationName?: string | null
+  balanceAmount?: number
   hospitalId: string
   createdById?: string | null
   createdAt: string
-  /** Backend may join patient fields for display purposes. */
+  /**
+   * Joined from Patient (InPatient.patientId -> Patient.id) by
+   * listInPatients/getInPatientById in the backend — previously undeclared
+   * here even though the comment said "backend may join," and in fact the
+   * backend never did, so every row fell back to a truncated UUID.
+   */
   firstName?: string
   lastName?: string
   phone?: string
   gender?: string
+  dateOfBirth?: string | null
 }
 
 /**
