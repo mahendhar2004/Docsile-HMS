@@ -291,6 +291,21 @@ const columns: ColumnDef<InPatient>[] = [
         : ip.patientId.slice(0, 8) + "…",
   },
   {
+    key: "doctors",
+    header: "Doctor(s)",
+    cell: (ip) => {
+      if (!ip.onDutyDoctors || ip.onDutyDoctors === "[]") {
+        return <span className="text-[var(--color-muted-foreground)]">—</span>
+      }
+      try {
+        const doctors = JSON.parse(ip.onDutyDoctors) as string[]
+        return <span className="text-sm">{doctors.join(", ") || "—"}</span>
+      } catch {
+        return <span className="text-[var(--color-muted-foreground)]">—</span>
+      }
+    },
+  },
+  {
     key: "admissionDate",
     header: "Admitted",
     cell: (ip) => format(new Date(ip.admissionDate), "dd MMM yyyy"),
