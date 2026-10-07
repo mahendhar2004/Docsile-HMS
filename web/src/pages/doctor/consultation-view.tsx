@@ -4,9 +4,18 @@
  * Main consultation panel — shown when the doctor selects a patient from
  * the queue. Displays:
  *   - Patient info header (name, ID, phone, gender, status)
- *   - Today's eye reading summary (from consultation.eyeReadings[0])
- *   - PrescriptionForm (with reference data)
+ *   - Tabs: "Workup Data" (editable EyeReadingForm) + "Prescription"
+ *     (PrescriptionForm) — matches main's consultation layout
+ *     (src/app/(hospital)/doctor/components/DoctorPage.tsx on main).
  *   - Print receipt button (billing:view)
+ *
+ * The Workup Data tab reuses workup/eye-reading-form.tsx and fetches via
+ * useWorkupPatient (GET /workup/patients/{id}) rather than the consultation
+ * endpoint's own ConsultationEyeReading — that type is a trimmed read-only
+ * summary (missing previousPrescription/glassesReading/etc fields the real
+ * edit form needs), so editing requires the full EyeReadingRecord shape
+ * from the workup endpoint instead. hasCreate is wired to doctor:consult
+ * (not workup:create) since this edit surface lives in the Doctor module.
  *
  * Handles loading/error states for the consultation query and reference data.
  * Sets this patient as Sitha AI's global context (see @/store/ai-context) so
@@ -15,15 +24,17 @@
  */
 
 import { useEffect } from "react"
-import { Printer, Eye } from "lucide-react"
+import { Printer } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Skeleton } from "@/components/ui/skeleton"
 import { ScrollArea } from "@/components/ui/scroll-area"
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs"
 import { StatusPill, ErrorState } from "@/components/patterns"
 import { useConsultation, useReferenceData } from "./hooks"
 import { PrescriptionForm } from "./prescription-form"
+import { useWorkupPatient } from "../workup/use-workup"
+import { EyeReadingForm } from "../workup/eye-reading-form"
 import { useAiContextStore } from "@/store/ai-context"
-import type { ConsultationEyeReading } from "./types"
 
 // ─── Props ────────────────────────────────────────────────────────────────────
 
@@ -35,49 +46,6 @@ interface ConsultationViewProps {
   canEdit: boolean
   canViewBilling: boolean
   apiBaseUrl: string
-}
-
-// ─── Eye reading summary ──────────────────────────────────────────────────────
-
-function EyeReadingSummary({ reading }: { reading: ConsultationEyeReading }) {
-  // Parse clinical findings for quick IOP/VA display
-  let iopLine: string | null = null
-  let vaLine: string | null = null
-  if (reading.clinicalFindings) {
-    try {
-      const cf = JSON.parse(reading.clinicalFindings) as {
-        iop?: { right?: string; left?: string }
-        va?: { right?: string; left?: string }
-        remarks?: string
-      }
-      if (cf.iop?.right || cf.iop?.left) {
-        iopLine = `IOP: RE ${cf.iop.right ?? "—"} / LE ${cf.iop.left ?? "—"} mmHg`
-      }
-      if (cf.va?.right || cf.va?.left) {
-        vaLine = `VA: RE ${cf.va.right ?? "—"} / LE ${cf.va.left ?? "—"}`
-      }
-    } catch {
-      // Ignore parse error — reading may have been recorded before this schema
-    }
-  }
-
-  return (
-    <div className="flex items-start gap-2 p-3 rounded-md bg-muted/50 text-sm">
-      <Eye size={16} className="text-muted-foreground shrink-0 mt-0.5" aria-hidden="true" />
-      <div className="flex-1">
-        <p className="font-medium text-muted-foreground text-xs uppercase tracking-wide mb-1">
-          Eye Reading (today)
-        </p>
-        <div className="flex flex-wrap gap-x-4 gap-y-0.5 text-foreground">
-          {iopLine && <span>{iopLine}</span>}
-          {vaLine && <span>{vaLine}</span>}
-          {!iopLine && !vaLine && (
-            <span className="text-muted-foreground">Reading recorded — no IOP/VA data to show.</span>
-          )}
-        </div>
-      </div>
-    </div>
-  )
 }
 
 // ─── Component ────────────────────────────────────────────────────────────────
@@ -103,6 +71,12 @@ export function ConsultationView({
 
   const consultationQuery = useConsultation(patientId)
   const referenceDataQuery = useReferenceData()
+  // Full-fidelity eye reading record for the editable Workup Data tab — the
+  // consultation endpoint's own ConsultationEyeReading is read-only-trimmed
+  // (see file header). Always called (rules of hooks), independent loading
+  // state handled inside the tab itself so it doesn't block the Prescription
+  // tab from rendering.
+  const workupPatientQuery = useWorkupPatient(patientId)
 
   // Loading state — both queries must be ready
   if (consultationQuery.isLoading || referenceDataQuery.isLoading) {
@@ -153,7 +127,7 @@ export function ConsultationView({
   if (!consultation || !referenceData) return null
 
   const fullName = `${consultation.firstName} ${consultation.lastName}`.trim()
-  const eyeReading = consultation.eyeReadings[0] ?? null
+  const existingReading = workupPatientQuery.data?.eyeReadings[0] ?? null
 
   function handlePrintReceipt() {
     // Opens receipt in a new tab — same pattern as Patient Care page
@@ -200,20 +174,39 @@ export function ConsultationView({
           )}
         </div>
 
-        {/* ── Eye reading summary ─────────────────────────────────────────────── */}
-        {eyeReading && <EyeReadingSummary reading={eyeReading} />}
+        {/* ── Workup Data / Prescription tabs ──────────────────────────────────── */}
+        <Tabs defaultValue="workup" variant="underline">
+          <TabsList aria-label="Consultation sections">
+            <TabsTrigger value="workup">Workup Data</TabsTrigger>
+            <TabsTrigger value="prescription">Prescription</TabsTrigger>
+          </TabsList>
 
-        {/* ── Prescription form ───────────────────────────────────────────────── */}
-        <PrescriptionForm
-          consultation={consultation}
-          referenceData={referenceData}
-          canConsult={canConsult}
-          canEdit={canEdit}
-          doctorName={doctorName}
-          onSaved={() => {
-            void consultationQuery.refetch()
-          }}
-        />
+          <TabsContent value="workup">
+            {workupPatientQuery.isLoading ? (
+              <Skeleton className="h-40 w-full rounded-md" />
+            ) : (
+              <EyeReadingForm
+                patientId={patientId}
+                patientName={fullName}
+                existingReading={existingReading}
+                hasCreate={canConsult}
+              />
+            )}
+          </TabsContent>
+
+          <TabsContent value="prescription">
+            <PrescriptionForm
+              consultation={consultation}
+              referenceData={referenceData}
+              canConsult={canConsult}
+              canEdit={canEdit}
+              doctorName={doctorName}
+              onSaved={() => {
+                void consultationQuery.refetch()
+              }}
+            />
+          </TabsContent>
+        </Tabs>
       </div>
     </ScrollArea>
   )
