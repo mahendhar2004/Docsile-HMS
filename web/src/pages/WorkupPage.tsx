@@ -31,11 +31,12 @@
 
 import * as React from "react"
 import type { UseQueryResult } from "@tanstack/react-query"
-import { ArrowLeft } from "lucide-react"
+import { ArrowLeft, Sparkles } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Skeleton } from "@/components/ui/skeleton"
 import { PageHeader, SearchBar, StatBadge, ErrorState, StatusPill } from "@/components/patterns"
 import { usePermissions } from "@/hooks/usePermissions"
+import { useAiContextStore } from "@/store/ai-context"
 import { EyeReadingForm } from "./workup/eye-reading-form"
 import { WorkupQueue } from "./workup/workup-queue"
 import { useWorkupQueue, useWorkupPatient } from "./workup/use-workup"
@@ -102,6 +103,18 @@ export default function WorkupPage() {
 
   const [selectedPatient, setSelectedPatient] = React.useState<WorkupQueuePatient | null>(null)
   const [search, setSearch] = React.useState("")
+
+  // Sitha's global panel switches into this patient's workup context while
+  // selected — matches main's AskSithaAI(patientId, module: "workup") in the
+  // detail view's sidebar; cleared on deselect/unmount.
+  const setAiContext = useAiContextStore((s) => s.setAiContext)
+  const clearAiContext = useAiContextStore((s) => s.clearAiContext)
+  const toggleSitha = useAiContextStore((s) => s.toggleOpen)
+  React.useEffect(() => {
+    if (!selectedPatient) return
+    setAiContext({ patientId: selectedPatient.patientId, module: "workup" })
+    return () => clearAiContext()
+  }, [selectedPatient, setAiContext, clearAiContext])
 
   // All hooks called unconditionally — early return comes after.
   const queueQuery = useWorkupQueue()
@@ -194,6 +207,16 @@ export default function WorkupPage() {
               {selectedPatient.gender && <> · {selectedPatient.gender}</>}
             </span>
             <StatusPill status={selectedPatient.status} dot />
+            <Button
+              variant="outline"
+              size="sm"
+              className="ml-auto"
+              onClick={toggleSitha}
+              aria-label="Ask Sitha AI"
+            >
+              <Sparkles className="h-3.5 w-3.5 mr-1.5" aria-hidden />
+              Ask Sitha
+            </Button>
           </div>
           <PatientWorkupDetail patientId={selectedPatient.patientId} hasCreate={hasCreate} />
         </div>
