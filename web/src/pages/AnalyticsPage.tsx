@@ -20,7 +20,7 @@ import type { DateRange } from "react-day-picker"
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs"
 import {
   PageHeader,
-  SingleSelect,
+  SegmentedControl,
   DateRangePicker,
   ErrorState,
 } from "@/components/patterns"
@@ -104,11 +104,10 @@ export default function AnalyticsPage() {
         description="Hospital analytics — revenue, patient trends, doctor performance, and operational insights."
         toolbar={
           <>
-            <SingleSelect
+            <SegmentedControl
               options={FILTER_OPTIONS}
               value={filter}
-              onChange={(v) => setFilter(v as TimeFilter)}
-              placeholder="Select period"
+              onValueChange={(v) => setFilter(v as TimeFilter)}
               aria-label="Select time filter"
             />
 
