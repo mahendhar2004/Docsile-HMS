@@ -166,7 +166,10 @@ export const hospitalProfile: HospitalProfile = {
   address: "123 Main Road, Hyderabad - 500001",
   phone: "+914012345678",
   email: "info@docsile.in",
+  website: null,
   logoUrl: null,
+  registrationNo: null,
+  gstin: null,
 }
 
 // ─── Patient AR reading fixtures ───────────────────────────────────────────────

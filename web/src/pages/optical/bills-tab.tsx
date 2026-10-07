@@ -8,7 +8,7 @@
  */
 
 import { useState } from "react"
-import { Plus, ChevronDown } from "lucide-react"
+import { Plus, ChevronDown, Printer } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet"
@@ -26,6 +26,7 @@ import {
 } from "@/components/patterns"
 import type { ColumnDef } from "@/components/patterns"
 import { OpticalBillForm } from "./optical-bill-form"
+import { OpticalBillPrintModal } from "./optical-bill-print-modal"
 import { useOpticalBills, useUpdateBillStatus } from "./hooks"
 import type { OpticalBillRow } from "./types"
 import { OPTICAL_BILL_STATUSES } from "./types"
@@ -51,6 +52,7 @@ export function BillsTab({ canCreate, canEdit }: BillsTabProps) {
   const [dateFilter, setDateFilter] = useState("")
   const [statusFilter, setStatusFilter] = useState("")
   const [showCreate, setShowCreate] = useState(false)
+  const [printBill, setPrintBill] = useState<OpticalBillRow | null>(null)
 
   const {
     data,
@@ -136,6 +138,22 @@ export function BillsTab({ canCreate, canEdit }: BillsTabProps) {
       key: "status",
       header: "Status",
       cell: (b) => <StatusPill status={b.status} />,
+    },
+    {
+      key: "print",
+      header: "",
+      align: "center",
+      cell: (b) => (
+        <Button
+          variant="ghost"
+          size="sm"
+          className="h-7 w-7 p-0 text-muted-foreground hover:text-primary"
+          onClick={() => setPrintBill(b)}
+          aria-label={`Print bill ${b.billNumber}`}
+        >
+          <Printer className="h-3.5 w-3.5" aria-hidden />
+        </Button>
+      ),
     },
     ...(canEdit
       ? [
@@ -273,6 +291,13 @@ export function BillsTab({ canCreate, canEdit }: BillsTabProps) {
           />
         </SheetContent>
       </Sheet>
+
+      {/* Print preview */}
+      <OpticalBillPrintModal
+        open={printBill != null}
+        onClose={() => setPrintBill(null)}
+        bill={printBill}
+      />
     </div>
   )
 }

@@ -231,7 +231,10 @@ export interface OpticalSettings {
 }
 
 // ─── GET /optical/hospital-profile ───────────────────────────────────────────
-// Repository getHospitalProfile() returns full HospitalProfile row.
+// Repository getHospitalProfile() does `.select('*')` on HospitalProfile, so
+// every real column comes back — website/registrationNo/gstin were missing
+// here even though the backend already returns them (needed for the optical
+// bill print receipt's hospital header).
 
 export interface HospitalProfile {
   id: string
@@ -240,7 +243,10 @@ export interface HospitalProfile {
   address: string | null
   phone: string | null
   email: string | null
+  website: string | null
   logoUrl: string | null
+  registrationNo: string | null
+  gstin: string | null
 }
 
 // ─── Enum / option lists ──────────────────────────────────────────────────────
