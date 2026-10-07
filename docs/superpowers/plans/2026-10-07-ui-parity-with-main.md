@@ -31,8 +31,8 @@
 | 13 | Dues & Follow-Ups — label fixes | ✅ done |
 | 14 | Call Logs / Expenses — padding/skin pass | ✅ done (no changes needed) |
 | 15 | Analytics — filter pills, sticky header | ✅ done |
-| 16 | Split Data Export out of Reports | 🔄 in progress |
-| 17 | License Tracker / Staff — confirm copy | ⬜ not started |
+| 16 | Split Data Export out of Reports | ✅ done |
+| 17 | License Tracker / Staff — confirm copy | 🔄 in progress |
 | 18 | Settings — flatten tabs, add Users, drop Inpatient Templates | ⬜ not started |
 | 19 | Add missing Unauthorized page | ⬜ not started |
 | 20 | Whole-branch verification sweep | ⬜ not started |
