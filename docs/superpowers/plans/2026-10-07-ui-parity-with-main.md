@@ -19,8 +19,8 @@
 | 1 | Revert shared visual tokens/primitives (radius, Card, Table, Tabs, Button) | ✅ done (005674d) |
 | 2 | Rework AppShell + Sidebar (hover-reveal, nav items, logout) | ✅ done |
 | 3 | Dashboard module grid | ✅ done |
-| 4 | Split Patients → `/patients` + new `/inpatients` | 🔄 in progress |
-| 5 | Fold Billing into Patients, delete `/billing` | ⬜ not started |
+| 4 | Split Patients → `/patients` + new `/inpatients` | ⚠️ done (backend-limited stat badges, see ledger) |
+| 5 | Fold Billing into Patients, delete `/billing` | 🔄 in progress |
 | 6 | Delete standalone Queue page | ⬜ not started |
 | 7 | Rework Doctor page (queue-table-takeover) | ⬜ not started |
 | 8 | Rework Workup page (Refraction) | ⬜ not started |

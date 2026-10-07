@@ -1,17 +1,21 @@
 /**
  * IpdTab
  *
- * IPD inpatient management:
+ * Lightweight embedded In-Patients view on the Patients page, matching
+ * main's /patients page's own IPD tab (src/app/(hospital)/patients/
+ * components/PatientsPage.tsx) — a quick-glance table with status update,
+ * not an admission entry point. Admitting a new patient, and the richer
+ * stat-badge view, live on the separate /inpatients route (InPatientsPage)
+ * now, matching main's separate fuller page.
+ *
  * - Date filter + status filter (admitted / discharged / all)
  * - Offset-paginated inpatient table via PaginatedDataTable
- * - Admit new patient (InpatientAdmissionForm)
  * - Inpatient detail panel (Sheet)
  * - Status update (admitted / discharged)
- * - Edit & delete with ConfirmationModal
+ * - Delete with ConfirmationModal
  *
  * Permissions:
  *   inpatients:view    — always required (caller gates the whole tab)
- *   inpatients:create  — shows Admit button
  *   inpatients:edit    — shows edit/status actions
  *   inpatients:delete  — shows delete action
  *   inpatients:discharge — shows discharge action
@@ -19,7 +23,7 @@
 
 import { useState } from "react"
 import { format } from "date-fns"
-import { Plus, Trash2, RefreshCw } from "lucide-react"
+import { Trash2, RefreshCw } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import {
   Sheet,
@@ -47,7 +51,6 @@ import {
   useUpdateInPatientStatus,
   useDeleteInPatient,
 } from "./hooks"
-import { InpatientAdmissionForm } from "./inpatient-admission-form"
 import type { InPatient } from "./types"
 
 // ─── Static options ───────────────────────────────────────────────────────────
@@ -312,18 +315,16 @@ const columns: ColumnDef<InPatient>[] = [
 // ─── IpdTab component ─────────────────────────────────────────────────────────
 
 export interface IpdTabProps {
-  canCreate: boolean
   canEdit: boolean
   canDelete: boolean
   canDischarge: boolean
 }
 
-export function IpdTab({ canCreate, canEdit, canDelete, canDischarge }: IpdTabProps) {
+export function IpdTab({ canEdit, canDelete, canDischarge }: IpdTabProps) {
   const [filterDate, setFilterDate] = useState<Date | undefined>()
   const [filterStatus, setFilterStatus] = useState<string>("")
   const [selectedInPatientId, setSelectedInPatientId] = useState<string | null>(null)
   const [showDetail, setShowDetail] = useState(false)
-  const [showAdmit, setShowAdmit] = useState(false)
 
   const dateStr = filterDate ? format(filterDate, "yyyy-MM-dd") : null
 
@@ -374,13 +375,6 @@ export function IpdTab({ canCreate, canEdit, canDelete, canDischarge }: IpdTabPr
             Clear date
           </Button>
         )}
-
-        {canCreate && (
-          <Button onClick={() => setShowAdmit(true)} className="ml-auto">
-            <Plus className="h-4 w-4 mr-1.5" aria-hidden />
-            Admit Patient
-          </Button>
-        )}
       </PageToolbar>
 
       {/* ── Inpatient table ───────────────────────────────────────────────── */}
@@ -412,11 +406,6 @@ export function IpdTab({ canCreate, canEdit, canDelete, canDischarge }: IpdTabPr
                 ? "Try adjusting the filters above."
                 : "Admitted patients will appear here."
             }
-            action={
-              canCreate
-                ? { label: "Admit Patient", onClick: () => setShowAdmit(true) }
-                : undefined
-            }
           />
         }
       />
@@ -430,13 +419,6 @@ export function IpdTab({ canCreate, canEdit, canDelete, canDischarge }: IpdTabPr
         canDelete={canDelete}
         canDischarge={canDischarge}
         onDeleted={refetch}
-      />
-
-      {/* ── Admission form ─────────────────────────────────────────────────── */}
-      <InpatientAdmissionForm
-        open={showAdmit}
-        onOpenChange={setShowAdmit}
-        onSuccess={() => void refetch()}
       />
     </div>
   )

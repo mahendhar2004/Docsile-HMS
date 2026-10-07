@@ -12,7 +12,8 @@ import { AppShell } from "@/components/layout/app-shell"
 // Lazy-load all page components (route-level code splitting)
 const LoginPage = React.lazy(() => import("@/pages/LoginPage"))
 const DashboardPage = React.lazy(() => import("@/pages/DashboardPage"))
-const PatientCarePage = React.lazy(() => import("@/pages/PatientCarePage"))
+const PatientsPage = React.lazy(() => import("@/pages/PatientsPage"))
+const InPatientsPage = React.lazy(() => import("@/pages/InPatientsPage"))
 const BillingPage = React.lazy(() => import("@/pages/BillingPage"))
 const PharmacyPage = React.lazy(() => import("@/pages/PharmacyPage"))
 const LabsPage = React.lazy(() => import("@/pages/LabsPage"))
@@ -90,7 +91,8 @@ const router = createBrowserRouter([
       { path: "dashboard", element: <DashboardPage /> },
 
       // Clinical modules
-      { path: "patients", element: <PatientCarePage /> },
+      { path: "patients", element: <PatientsPage /> },
+      { path: "inpatients", element: <InPatientsPage /> },
       { path: "billing", element: <BillingPage /> },
       { path: "pharmacy", element: <PharmacyPage /> },
       { path: "labs", element: <LabsPage /> },

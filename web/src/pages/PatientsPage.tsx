@@ -1,19 +1,20 @@
 /**
- * PatientCarePage — thin composition root for the patient-care module.
- *
- * Renders an OPD/IPD tabbed view. Each tab is a self-contained module with
- * its own state, data fetching, and action dialogs.
+ * PatientsPage — thin composition root for the Patients module, matching
+ * main's /patients route (src/app/(hospital)/patients/components/
+ * PatientsPage.tsx): "Out-Patients" / "In-Patients" tabs. The In-Patients
+ * tab here is the lightweight quick-glance view — full admission lives on
+ * the separate /inpatients route (InPatientsPage), matching main's
+ * separate, fuller /inpatients page.
  *
  * Permissions:
- *   patients:view    — gate for the OPD tab
- *   inpatients:view  — gate for the IPD tab
+ *   patients:view    — gate for the Out-Patients tab
+ *   inpatients:view  — gate for the In-Patients tab
  *   patients:create  — register new patients
  *   patients:edit    — edit, status update, date move
  *   patients:delete  — delete patients
- *   inpatients:create   — admit patients
- *   inpatients:edit     — edit inpatients, status update
- *   inpatients:delete   — delete inpatient records
- *   inpatients:discharge — discharge action
+ *   inpatients:edit     — edit inpatients, status update (this tab)
+ *   inpatients:delete   — delete inpatient records (this tab)
+ *   inpatients:discharge — discharge action (this tab)
  *   billing:create  — add services
  *   billing:view    — print receipt
  */
@@ -30,7 +31,7 @@ import { usePermissions } from "@/hooks/usePermissions"
 import { OpdTab } from "./patient-care/opd-tab"
 import { IpdTab } from "./patient-care/ipd-tab"
 
-export default function PatientCarePage() {
+export default function PatientsPage() {
   const { can } = usePermissions()
 
   // Resolve all permissions up front (all hooks called unconditionally).
@@ -39,7 +40,6 @@ export default function PatientCarePage() {
   const canCreatePatient = can("patients:create")
   const canEditPatient = can("patients:edit")
   const canDeletePatient = can("patients:delete")
-  const canCreateInPatient = can("inpatients:create")
   const canEditInPatient = can("inpatients:edit")
   const canDeleteInPatient = can("inpatients:delete")
   const canDischargeInPatient = can("inpatients:discharge")
@@ -64,14 +64,14 @@ export default function PatientCarePage() {
   return (
     <main className="space-y-5">
       <PageHeader
-        title="Patient Care"
-        description="OPD registrations and in-patient admissions."
+        title="Patients"
+        description="Registration & management"
       />
 
       <Tabs defaultValue={defaultTab} variant="underline">
         <TabsList>
           {canViewOPD && (
-            <TabsTrigger value="opd">OPD Patients</TabsTrigger>
+            <TabsTrigger value="opd">Out-Patients</TabsTrigger>
           )}
           {canViewIPD && (
             <TabsTrigger value="ipd">In-Patients</TabsTrigger>
@@ -93,7 +93,6 @@ export default function PatientCarePage() {
         {canViewIPD && (
           <TabsContent value="ipd">
             <IpdTab
-              canCreate={canCreateInPatient}
               canEdit={canEditInPatient}
               canDelete={canDeleteInPatient}
               canDischarge={canDischargeInPatient}

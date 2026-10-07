@@ -48,8 +48,8 @@ export { SingleSelect, MultiSelect } from "./selection"
 export type { SingleSelectProps, SelectOption, MultiSelectProps, MultiSelectOption } from "./selection"
 
 // Status, chips & badges
-export { StatusPill, FilterChip, RemovableChip, STATUS_MAP, resolveStatus } from "./status"
-export type { StatusPillProps, FilterChipProps, RemovableChipProps, SemanticBucket, StatusEntry } from "./status"
+export { StatusPill, StatBadge, FilterChip, RemovableChip, STATUS_MAP, resolveStatus } from "./status"
+export type { StatusPillProps, StatBadgeProps, FilterChipProps, RemovableChipProps, SemanticBucket, StatusEntry } from "./status"
 
 // Modals & overlays
 export { ConfirmationModal, DataModal } from "./modals"
