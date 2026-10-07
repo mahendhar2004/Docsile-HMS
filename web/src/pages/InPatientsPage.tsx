@@ -23,6 +23,7 @@
 import { useState } from "react"
 import { format } from "date-fns"
 import { Plus, Trash2, RefreshCw } from "lucide-react"
+import { calculateAge, formatCurrency, cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 import {
   Sheet,
@@ -280,7 +281,19 @@ const columns: ColumnDef<InPatient>[] = [
   {
     key: "patient",
     header: "Patient",
-    cell: (ip) => (ip.firstName ? `${ip.firstName} ${ip.lastName ?? ""}`.trim() : ip.patientId.slice(0, 8) + "…"),
+    cell: (ip) =>
+      ip.firstName ? (
+        <div>
+          <div className="font-semibold text-sm">{`${ip.firstName} ${ip.lastName ?? ""}`.trim()}</div>
+          <div className="text-xs text-muted-foreground mt-0.5">
+            {ip.dateOfBirth && <>{calculateAge(ip.dateOfBirth)}y · </>}
+            {ip.gender && <>{ip.gender.charAt(0)} · </>}
+            <span className="tabular-nums">{ip.phone}</span>
+          </div>
+        </div>
+      ) : (
+        ip.patientId.slice(0, 8) + "…"
+      ),
   },
   {
     key: "doctors",
@@ -295,10 +308,31 @@ const columns: ColumnDef<InPatient>[] = [
       }
     },
   },
+  {
+    key: "operation",
+    header: "Operation",
+    cell: (ip) =>
+      ip.operationName ?? <span className="text-muted-foreground/50 italic text-xs">Not assigned</span>,
+  },
   { key: "admissionDate", header: "Admitted", cell: (ip) => format(new Date(ip.admissionDate), "dd MMM yyyy") },
   { key: "ward", header: "Ward", cell: (ip) => ip.ward ?? "—" },
   { key: "bedNumber", header: "Bed", cell: (ip) => ip.bedNumber ?? "—" },
   { key: "status", header: "Status", cell: (ip) => <StatusPill status={ip.status.toUpperCase()} size="sm" /> },
+  {
+    key: "balance",
+    header: "Balance",
+    align: "right",
+    cell: (ip) => (
+      <span
+        className={cn(
+          "font-semibold text-sm tabular-nums",
+          (ip.balanceAmount ?? 0) > 0 ? "text-orange-600" : "text-green-600",
+        )}
+      >
+        {formatCurrency(ip.balanceAmount ?? 0)}
+      </span>
+    ),
+  },
 ]
 
 // ─── InPatientsPage ────────────────────────────────────────────────────────────
