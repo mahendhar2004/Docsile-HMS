@@ -50,7 +50,7 @@ import {
 } from "@/components/ui/table"
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { toast } from "@/components/ui/sonner"
-import { PageToolbar, SearchBar } from "@/components/patterns"
+import { SearchBar } from "@/components/patterns"
 import { formatDate, formatCurrency } from "@/lib/utils"
 import { useExportData } from "./hooks"
 import {
@@ -466,8 +466,9 @@ export function ExportSection() {
         </div>
       </Tabs>
 
-      {/* Filters bar */}
-      <PageToolbar>
+      {/* Filters bar — plain flex row, not the sticky PageToolbar/FilterBar;
+          main's filter row here has no border/background of its own. */}
+      <div className="flex flex-wrap items-center gap-3">
         {/* Search */}
         <SearchBar
           variant="standalone"
@@ -618,7 +619,7 @@ export function ExportSection() {
             </DropdownMenuContent>
           </DropdownMenu>
         )}
-      </PageToolbar>
+      </div>
 
       {/* Data table */}
       <div className="border rounded-xl bg-white overflow-hidden">
