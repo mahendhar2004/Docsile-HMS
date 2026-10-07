@@ -32,9 +32,9 @@
 | 14 | Call Logs / Expenses — padding/skin pass | ✅ done (no changes needed) |
 | 15 | Analytics — filter pills, sticky header | ✅ done |
 | 16 | Split Data Export out of Reports | ✅ done |
-| 17 | License Tracker / Staff — confirm copy | 🔄 in progress |
-| 18 | Settings — flatten tabs, add Users, drop Inpatient Templates | ⬜ not started |
-| 19 | Add missing Unauthorized page | ⬜ not started |
+| 17 | License Tracker / Staff — confirm copy | ✅ done (no changes needed) |
+| 18 | Settings — flatten tabs, add Users, drop Inpatient Templates | ⚠️ done (no Users tab — no backend endpoint, see ledger) |
+| 19 | Add missing Unauthorized page | 🔄 in progress |
 | 20 | Whole-branch verification sweep | ⬜ not started |
 
 Legend: ⬜ not started · 🔄 in progress · ✅ done · ⚠️ done with a flagged issue
