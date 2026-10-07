@@ -1,11 +1,10 @@
 /**
- * LabsPage — thin root page for the labs module.
- *
- * Tabs (sub-sections):
- *   - Labs          → lab CRUD + investigation configuration
- *   - Investigations → investigation master management
- *   - Bills         → bill generation (patient search + bill cards) + history
- *   - Pending       → pending lab investigations queue
+ * LabsPage — thin root page for the labs module, matching main's exact
+ * 2-tab structure (src/app/(hospital)/labs/components/LabsPage.tsx):
+ * "Lab Billing & History" and "Lab Configuration" — default Billing.
+ * Main's single LabBillingTab combines bill generation + the pending
+ * queue; LabConfigTab combines lab CRUD + investigation master
+ * management (see labs/billing-tab.tsx, labs/config-tab.tsx).
  *
  * Permission gate: labs:view (all read access)
  * Individual action gates are enforced per-component:
@@ -22,15 +21,17 @@
 
 import { usePermissions } from "@/hooks/usePermissions"
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs"
-import { PageHeader, ErrorState } from "@/components/patterns"
-import { LabsTab } from "./labs/labs-tab"
-import { InvestigationsTab } from "./labs/investigations-tab"
-import { BillsTab } from "./labs/bills-tab"
-import { PendingTab } from "./labs/pending-tab"
+import { PageHeader, StatBadge, ErrorState } from "@/components/patterns"
+import { BillingTab } from "./labs/billing-tab"
+import { ConfigTab } from "./labs/config-tab"
+import { useLabsList } from "./labs/hooks"
 
 export default function LabsPage() {
   const { can } = usePermissions()
   const hasAccess = can("labs:view")
+
+  const { data: labs } = useLabsList(hasAccess)
+  const activeLabsCount = (labs ?? []).filter((l) => l.isActive).length
 
   // ── Permission gate ────────────────────────────────────────────────────────────
   if (!hasAccess) {
@@ -49,54 +50,26 @@ export default function LabsPage() {
     <main className="space-y-4">
       <PageHeader
         title="Labs"
-        description="Lab billing, investigations, and configuration"
+        description="Billing, history & configuration."
+        toolbar={
+          labs ? (
+            <StatBadge value={activeLabsCount} label="Active Labs" variant="info" />
+          ) : undefined
+        }
       />
 
-      <Tabs defaultValue="bills" className="w-full">
-        <TabsList
-          className="w-full justify-start border-b border-border rounded-none bg-transparent h-auto p-0 gap-1"
-          aria-label="Labs navigation"
-        >
-          <TabsTrigger
-            value="bills"
-            className="rounded-none px-3 py-2.5 text-sm font-medium border-b-2 border-transparent text-muted-foreground hover:text-foreground transition-colors data-[state=active]:border-primary data-[state=active]:text-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none"
-          >
-            Bills
-          </TabsTrigger>
-          <TabsTrigger
-            value="pending"
-            className="rounded-none px-3 py-2.5 text-sm font-medium border-b-2 border-transparent text-muted-foreground hover:text-foreground transition-colors data-[state=active]:border-primary data-[state=active]:text-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none"
-          >
-            Pending
-          </TabsTrigger>
-          <TabsTrigger
-            value="labs"
-            className="rounded-none px-3 py-2.5 text-sm font-medium border-b-2 border-transparent text-muted-foreground hover:text-foreground transition-colors data-[state=active]:border-primary data-[state=active]:text-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none"
-          >
-            Lab Config
-          </TabsTrigger>
-          <TabsTrigger
-            value="investigations"
-            className="rounded-none px-3 py-2.5 text-sm font-medium border-b-2 border-transparent text-muted-foreground hover:text-foreground transition-colors data-[state=active]:border-primary data-[state=active]:text-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none"
-          >
-            Investigations
-          </TabsTrigger>
+      <Tabs defaultValue="billing" className="w-full">
+        <TabsList aria-label="Labs navigation">
+          <TabsTrigger value="billing">Lab Billing &amp; History</TabsTrigger>
+          <TabsTrigger value="config">Lab Configuration</TabsTrigger>
         </TabsList>
 
-        <TabsContent value="bills" className="mt-0 pt-5 space-y-5">
-          <BillsTab />
+        <TabsContent value="billing">
+          <BillingTab />
         </TabsContent>
 
-        <TabsContent value="pending" className="mt-0 pt-5 space-y-5">
-          <PendingTab />
-        </TabsContent>
-
-        <TabsContent value="labs" className="mt-0 pt-5 space-y-4">
-          <LabsTab />
-        </TabsContent>
-
-        <TabsContent value="investigations" className="mt-0 pt-5 space-y-4">
-          <InvestigationsTab />
+        <TabsContent value="config">
+          <ConfigTab />
         </TabsContent>
       </Tabs>
     </main>
