@@ -109,7 +109,7 @@ export default function DashboardPage() {
   // ── Permission gate ──────────────────────────────────────────────────────────
   if (!hasAccess) {
     return (
-      <main className="p-6">
+      <main>
         <ErrorState
           title="Access denied"
           description="You need the reports:view permission to view the dashboard. Contact your administrator."
@@ -168,7 +168,7 @@ export default function DashboardPage() {
 
   // ── Render ───────────────────────────────────────────────────────────────────
   return (
-    <main className="p-6 space-y-6">
+    <main className="space-y-6">
       <PageHeader
         title="Dashboard"
         description="Today's patient activity, revenue snapshot, and period summaries."

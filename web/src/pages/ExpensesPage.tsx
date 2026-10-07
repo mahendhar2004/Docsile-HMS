@@ -51,7 +51,7 @@ export default function ExpensesPage() {
   // ── Permission gate ──────────────────────────────────────────────────────────
   if (!hasAccess) {
     return (
-      <main className="p-6">
+      <main>
         <ErrorState
           title="Access denied"
           description="You need the expenses:view permission to view this page. Contact your administrator."
@@ -80,7 +80,7 @@ export default function ExpensesPage() {
   // ─────────────────────────────────────────────────────────────────────────────
 
   return (
-    <main className="p-6 space-y-0">
+    <main className="space-y-0">
       <PageHeader
         title="Expenses"
         description="Track and manage hospital expenses by category and date range."

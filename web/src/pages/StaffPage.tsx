@@ -42,7 +42,7 @@ export default function StaffPage() {
   // ── Permission gate ──────────────────────────────────────────────────────────
   if (!hasAccess) {
     return (
-      <main className="p-6">
+      <main>
         <ErrorState
           title="Access denied"
           description="You need the staff:view permission to access this page. Contact your administrator."
@@ -52,7 +52,7 @@ export default function StaffPage() {
   }
 
   return (
-    <main className="p-6 space-y-6">
+    <main className="space-y-6">
       <PageHeader
         title="Staff Management"
         description="Manage staff members, roles, and permission assignments."

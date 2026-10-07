@@ -34,7 +34,7 @@ export default function InsurancePage() {
 
   if (!hasAccess) {
     return (
-      <main className="p-6">
+      <main>
         <ErrorState
           title="Access denied"
           description="You need the insurance:view permission to access this page. Contact your administrator."
@@ -44,7 +44,7 @@ export default function InsurancePage() {
   }
 
   return (
-    <main className="p-6 space-y-6">
+    <main className="space-y-6">
       <PageHeader
         title="Insurance"
         description="TPA company management, claim filing, status tracking, and patient payment management."

@@ -29,7 +29,7 @@ export default function DuesFollowupsPage() {
   // ── Permission gate ──────────────────────────────────────────────────────────
   if (!hasAccess) {
     return (
-      <main className="p-6">
+      <main>
         <ErrorState
           title="Access denied"
           description="You need the dues:view permission to view this page. Contact your administrator."
@@ -40,7 +40,7 @@ export default function DuesFollowupsPage() {
 
   // ── Render ───────────────────────────────────────────────────────────────────
   return (
-    <main className="p-6 space-y-6">
+    <main className="space-y-6">
       <PageHeader
         title="Dues & Follow-ups"
         description="Track outstanding payments and manage patient follow-up communications."

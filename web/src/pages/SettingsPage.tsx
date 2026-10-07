@@ -83,7 +83,7 @@ export default function SettingsPage() {
   // ── Permission gate ──────────────────────────────────────────────────────────
   if (!canView) {
     return (
-      <main className="p-6">
+      <main>
         <ErrorState
           title="Access denied"
           description="You need the settings:view permission to access configurations. Contact your administrator."
@@ -93,7 +93,7 @@ export default function SettingsPage() {
   }
 
   return (
-    <main className="p-6 space-y-6">
+    <main className="space-y-6">
       <PageHeader
         title="Settings"
         description="Hospital configuration, service templates, print settings, prescription templates, and master data management."

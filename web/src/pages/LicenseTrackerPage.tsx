@@ -33,7 +33,7 @@ export default function LicenseTrackerPage() {
   // ── Permission gate ───────────────────────────────────────────────────────────
   if (!hasAccess) {
     return (
-      <main className="p-6">
+      <main>
         <ErrorState
           title="Access denied"
           description="You need the licenses:view permission to access License Tracker. Contact your administrator."
@@ -43,7 +43,7 @@ export default function LicenseTrackerPage() {
   }
 
   return (
-    <main className="p-6 space-y-4">
+    <main className="space-y-4">
       <PageHeader
         title="License Tracker"
         description="Track hospital license expiry dates and manage compliance documents."

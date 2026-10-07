@@ -16,9 +16,9 @@
 
 | # | Task | Status |
 |---|------|--------|
-| 1 | Revert shared visual tokens/primitives (radius, Card, Table, Tabs, Button) | 🔄 in progress |
-| 2 | Rework AppShell + Sidebar (hover-reveal, nav items, logout) | ⬜ not started |
-| 3 | Dashboard module grid | ⬜ not started |
+| 1 | Revert shared visual tokens/primitives (radius, Card, Table, Tabs, Button) | ✅ done (005674d) |
+| 2 | Rework AppShell + Sidebar (hover-reveal, nav items, logout) | ✅ done |
+| 3 | Dashboard module grid | 🔄 in progress |
 | 4 | Split Patients → `/patients` + new `/inpatients` | ⬜ not started |
 | 5 | Fold Billing into Patients, delete `/billing` | ⬜ not started |
 | 6 | Delete standalone Queue page | ⬜ not started |

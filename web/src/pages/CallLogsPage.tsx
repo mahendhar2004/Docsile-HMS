@@ -48,7 +48,7 @@ export default function CallLogsPage() {
   // ── Permission gate ──────────────────────────────────────────────────────────
   if (!canView) {
     return (
-      <main className="p-6">
+      <main>
         <ErrorState
           title="Access denied"
           description="You need the call_logs:view permission to access this page. Contact your administrator."
@@ -59,7 +59,7 @@ export default function CallLogsPage() {
 
   // ── Render ───────────────────────────────────────────────────────────────────
   return (
-    <main className="p-6 space-y-6">
+    <main className="space-y-6">
       <PageHeader
         title="Call Logs"
         description="Exotel call history — search, link to patients, add notes, and view analytics."

@@ -77,7 +77,7 @@ export default function AnalyticsPage() {
   // Permission gate
   if (!hasAccess) {
     return (
-      <main className="p-6">
+      <main>
         <ErrorState
           title="Access denied"
           description="You need the reports:view permission to view analytics. Contact your administrator."
@@ -98,7 +98,7 @@ export default function AnalyticsPage() {
   const tabProps = { filter, customStart, customEnd }
 
   return (
-    <main className="p-6 space-y-6">
+    <main className="space-y-6">
       <PageHeader
         title="Analytics"
         description="Hospital analytics — revenue, patient trends, doctor performance, and operational insights."

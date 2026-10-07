@@ -35,7 +35,7 @@ export default function LabsPage() {
   // ── Permission gate ────────────────────────────────────────────────────────────
   if (!hasAccess) {
     return (
-      <main className="p-6">
+      <main>
         <ErrorState
           title="Access denied"
           description="You need the labs:view permission to access this module. Contact your administrator."
@@ -46,7 +46,7 @@ export default function LabsPage() {
 
   // ── Render ────────────────────────────────────────────────────────────────────
   return (
-    <main className="p-6 space-y-4">
+    <main className="space-y-4">
       <PageHeader
         title="Labs"
         description="Lab billing, investigations, and configuration"

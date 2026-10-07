@@ -101,7 +101,7 @@ export default function WorkupPage() {
   // ── Permission gate ───────────────────────────────────────────────────────
   if (!hasView) {
     return (
-      <main className="p-6">
+      <main>
         <ErrorState
           title="Access denied"
           description="You need the workup:view permission to access this page. Contact your administrator."
@@ -119,7 +119,7 @@ export default function WorkupPage() {
   }
 
   return (
-    <main className="p-6 space-y-6">
+    <main className="space-y-6">
       <PageHeader
         title="Workup"
         description="Pre-consultation eye reading for today's OPD patients."

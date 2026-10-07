@@ -64,7 +64,7 @@ export * from "./date-time"
 
 // Navigation
 export { Sidebar, Breadcrumbs, PageHeader, PageToolbar } from "./navigation"
-export type { SidebarProps, BreadcrumbsProps, BreadcrumbItem, PageHeaderProps, PageToolbarProps } from "./navigation"
+export type { BreadcrumbsProps, BreadcrumbItem, PageHeaderProps, PageToolbarProps } from "./navigation"
 
 // Tables
 export { DataTable, PaginatedDataTable } from "./tables"

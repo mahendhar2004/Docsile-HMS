@@ -49,7 +49,7 @@ export default function PatientCarePage() {
   // Neither OPD nor IPD is accessible — show access denied.
   if (!canViewOPD && !canViewIPD) {
     return (
-      <main className="p-6">
+      <main>
         <ErrorState
           title="Access denied"
           description="You need patients:view or inpatients:view permission to access this module. Contact your administrator."
@@ -62,7 +62,7 @@ export default function PatientCarePage() {
   const defaultTab = canViewOPD ? "opd" : "ipd"
 
   return (
-    <main className="p-6 space-y-5">
+    <main className="space-y-5">
       <PageHeader
         title="Patient Care"
         description="OPD registrations and in-patient admissions."

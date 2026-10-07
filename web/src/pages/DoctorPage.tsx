@@ -54,7 +54,7 @@ export default function DoctorPage() {
   // ── Permission gate ──────────────────────────────────────────────────────────
   if (!hasView) {
     return (
-      <main className="p-6">
+      <main>
         <ErrorState
           title="Access denied"
           description="You need the doctor:view permission to access the doctor module. Contact your administrator."

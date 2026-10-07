@@ -35,7 +35,7 @@ export default function PharmacyPage() {
 
   if (!hasAccess) {
     return (
-      <main className="p-6">
+      <main>
         <ErrorState
           title="Access denied"
           description="You need the pharmacy:view permission to access the pharmacy module. Contact your administrator."
@@ -45,7 +45,7 @@ export default function PharmacyPage() {
   }
 
   return (
-    <main className="p-6 space-y-6">
+    <main className="space-y-6">
       <PageHeader
         title="Pharmacy"
         description="Medicine master, stock management, suppliers, purchase orders, and billing."
