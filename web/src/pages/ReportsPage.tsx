@@ -15,9 +15,12 @@
  *   GET /reports/patients/{id}/billing
  */
 
-import { useState } from "react"
+import { useEffect, useState } from "react"
+import { ClipboardList, Sparkles } from "lucide-react"
+import { Button } from "@/components/ui/button"
 import { PageHeader, ErrorState } from "@/components/patterns"
 import { usePermissions } from "@/hooks/usePermissions"
+import { useAiContextStore } from "@/store/ai-context"
 import { PatientSearchSection } from "./reports/patient-search-section"
 import { PatientReportView } from "./reports/patient-report-view"
 import { usePatientSummary } from "./reports/hooks"
@@ -27,6 +30,14 @@ export default function ReportsPage() {
   const { can } = usePermissions()
   const [selectedPatient, setSelectedPatient] =
     useState<PatientSearchResult | null>(null)
+
+  const setAiContext = useAiContextStore((s) => s.setAiContext)
+  const clearAiContext = useAiContextStore((s) => s.clearAiContext)
+  const toggleSitha = useAiContextStore((s) => s.toggleOpen)
+  useEffect(() => {
+    setAiContext({ patientId: selectedPatient?.patientId ?? null, module: null })
+    return () => clearAiContext()
+  }, [selectedPatient, setAiContext, clearAiContext])
 
   // Called unconditionally — null-safe (hook returns null when patientId is null)
   const {
@@ -49,6 +60,18 @@ export default function ReportsPage() {
     <div className="flex flex-col gap-6">
       <PageHeader
         title="Patient Reports"
+        actions={
+          <>
+            <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+              <ClipboardList className="h-3.5 w-3.5" aria-hidden />
+              <span>Complete Patient History</span>
+            </div>
+            <Button variant="outline" size="sm" onClick={toggleSitha} aria-label="Ask Sitha AI">
+              <Sparkles className="h-3.5 w-3.5 mr-1.5" aria-hidden />
+              Ask Sitha
+            </Button>
+          </>
+        }
       />
 
       {/* ── Patient Report Viewer ──────────────────────────────────────────── */}
