@@ -16,12 +16,12 @@
  *   licenses:delete — delete action
  */
 
-import { useState } from "react"
+import { useRef, useState } from "react"
 import { Plus } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { ErrorState, PageHeader } from "@/components/patterns"
 import { usePermissions } from "@/hooks/usePermissions"
-import { LicensesList } from "./license-tracker/licenses-list"
+import { LicensesList, type LicensesListHandle } from "./license-tracker/licenses-list"
 
 export default function LicenseTrackerPage() {
   const { can } = usePermissions()
@@ -29,6 +29,7 @@ export default function LicenseTrackerPage() {
   const hasAccess = can("licenses:view")
 
   const [createOpen, setCreateOpen] = useState(false)
+  const listRef = useRef<LicensesListHandle>(null)
 
   // ── Permission gate ───────────────────────────────────────────────────────────
   if (!hasAccess) {
@@ -46,6 +47,7 @@ export default function LicenseTrackerPage() {
     <main className="space-y-4">
       <PageHeader
         title="License Tracker"
+        onRefresh={() => listRef.current?.refetch()}
         actions={
           can("licenses:create") ? (
             <Button size="sm" onClick={() => setCreateOpen(true)}>
@@ -56,7 +58,7 @@ export default function LicenseTrackerPage() {
         }
       />
 
-      <LicensesList createOpen={createOpen} onCreateOpenChange={setCreateOpen} />
+      <LicensesList ref={listRef} createOpen={createOpen} onCreateOpenChange={setCreateOpen} />
     </main>
   )
 }

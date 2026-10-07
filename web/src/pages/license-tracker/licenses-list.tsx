@@ -17,7 +17,7 @@
  * `status` column may be stale. Threshold = per-license `reminderDays`.
  */
 
-import { useMemo, useRef, useState } from "react"
+import { useMemo, useRef, useState, forwardRef, useImperativeHandle } from "react"
 import { format } from "date-fns"
 import {
   AlertTriangle,
@@ -98,14 +98,24 @@ interface LicensesListProps {
   onCreateOpenChange: (open: boolean) => void
 }
 
+export interface LicensesListHandle {
+  /** Refetches the license list — main's header Refresh button lives one level up. */
+  refetch: () => void
+}
+
 // ─── LicensesList ─────────────────────────────────────────────────────────────
 
-export function LicensesList({ createOpen, onCreateOpenChange }: LicensesListProps) {
+export const LicensesList = forwardRef<LicensesListHandle, LicensesListProps>(
+  function LicensesList({ createOpen, onCreateOpenChange }, ref) {
   const { can } = usePermissions()
 
   // ── Data ──────────────────────────────────────────────────────────────────────
   const { data: licenses = [], isLoading, error, refetch } = useLicenses()
   const deleteLicense = useDeleteLicense()
+
+  useImperativeHandle(ref, () => ({
+    refetch: () => void refetch(),
+  }))
   const saveDocUrl = useSaveDocumentUrl()
   const removeDoc = useRemoveDocument()
 
@@ -679,4 +689,4 @@ export function LicensesList({ createOpen, onCreateOpenChange }: LicensesListPro
       />
     </>
   )
-}
+})

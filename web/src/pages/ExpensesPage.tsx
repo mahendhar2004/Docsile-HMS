@@ -18,7 +18,7 @@
  * Use expenses:edit for category management and expenses:delete for expense deletion.
  */
 
-import { useState } from "react"
+import { useRef, useState } from "react"
 import { Settings2, Plus } from "lucide-react"
 import { toast } from "sonner"
 import { Button } from "@/components/ui/button"
@@ -27,7 +27,7 @@ import { usePermissions } from "@/hooks/usePermissions"
 import { useDeleteExpense } from "./expenses/hooks"
 import { CategoryManagerDialog } from "./expenses/category-manager"
 import { ExpenseFormDialog } from "./expenses/expense-form"
-import { ExpensesSection } from "./expenses/expenses-section"
+import { ExpensesSection, type ExpensesSectionHandle } from "./expenses/expenses-section"
 import type { ExpenseWithCategory } from "./expenses/types"
 
 export default function ExpensesPage() {
@@ -47,6 +47,7 @@ export default function ExpensesPage() {
   const [deleteTarget, setDeleteTarget] = useState<ExpenseWithCategory | null>(null)
 
   const deleteMutation = useDeleteExpense()
+  const sectionRef = useRef<ExpensesSectionHandle>(null)
 
   // ── Permission gate ──────────────────────────────────────────────────────────
   if (!hasAccess) {
@@ -83,6 +84,7 @@ export default function ExpensesPage() {
     <main className="space-y-0">
       <PageHeader
         title="Expenses"
+        onRefresh={() => sectionRef.current?.refetch()}
         actions={
           <div className="flex items-center gap-2">
             <Button
@@ -110,6 +112,7 @@ export default function ExpensesPage() {
 
       <div className="mt-4">
         <ExpensesSection
+          ref={sectionRef}
           canEdit={canEdit}
           canDelete={canDelete}
           onEdit={(expense) => setExpenseFormTarget(expense)}

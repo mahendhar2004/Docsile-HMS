@@ -15,7 +15,7 @@
  *   canDelete — show delete button per row (expenses:delete)
  */
 
-import { useState, useMemo } from "react"
+import { useState, useMemo, forwardRef, useImperativeHandle } from "react"
 import { Search, Pencil, Trash2 } from "lucide-react"
 import {
   Select,
@@ -66,14 +66,15 @@ export interface ExpensesSectionProps {
   onDelete: (expense: ExpenseWithCategory) => void
 }
 
+export interface ExpensesSectionHandle {
+  /** Refetches the current date range — main's header Refresh button lives one level up. */
+  refetch: () => void
+}
+
 // ─── Component ────────────────────────────────────────────────────────────────
 
-export function ExpensesSection({
-  canEdit,
-  canDelete,
-  onEdit,
-  onDelete,
-}: ExpensesSectionProps) {
+export const ExpensesSection = forwardRef<ExpensesSectionHandle, ExpensesSectionProps>(
+  function ExpensesSection({ canEdit, canDelete, onEdit, onDelete }, ref) {
   // ── Filter state ─────────────────────────────────────────────────────────
 
   const [timeFilter, setTimeFilter] = useState<TimeFilter>("today")
@@ -100,6 +101,10 @@ export function ExpensesSection({
     error,
     refetch,
   } = useExpenses(startDate, endDate, customRangeReady)
+
+  useImperativeHandle(ref, () => ({
+    refetch: () => void refetch(),
+  }))
 
   // ── Derived data ─────────────────────────────────────────────────────────
 
@@ -439,4 +444,4 @@ export function ExpensesSection({
       )}
     </div>
   )
-}
+})
