@@ -62,7 +62,7 @@ export default function CallLogsPage() {
     <main className="space-y-6">
       <PageHeader
         title="Call Logs"
-        description="Exotel call history — search, link to patients, add notes, and view analytics."
+        description="Reception call management"
         actions={
           /* Manual sync button — gated on call_logs:sync. Shows pending state
              because this hits an external Exotel API and may take several seconds. */

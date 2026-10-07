@@ -83,7 +83,6 @@ export default function ExpensesPage() {
     <main className="space-y-0">
       <PageHeader
         title="Expenses"
-        description="Track and manage hospital expenses by category and date range."
         actions={
           <div className="flex items-center gap-2">
             <Button

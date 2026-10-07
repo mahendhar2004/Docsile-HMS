@@ -39,27 +39,34 @@ export default function DuesFollowupsPage() {
   }
 
   // ── Render ───────────────────────────────────────────────────────────────────
+  // Tabs embedded in the header's center slot, matching main's placement
+  // (main puts the Dues/Follow-Ups switch directly in the sticky header
+  // bar, not below it). No onRefresh: main wires it to whichever tab is
+  // active via refs into each tab's own refresh function — DuesTab/
+  // FollowupsTab don't currently expose one, so left unwired rather than
+  // forced; a real gap, not silently matched.
   return (
-    <main className="space-y-6">
-      <PageHeader
-        title="Dues & Follow-Ups"
-        description="Track outstanding payments and manage patient follow-up communications."
-      />
+    <Tabs defaultValue="dues">
+      <main className="space-y-6">
+        <PageHeader
+          title="Dues & Follow-Ups"
+          description="Track payments & schedule reminders"
+          center={
+            <TabsList>
+              <TabsTrigger value="dues">Dues</TabsTrigger>
+              <TabsTrigger value="followups">Follow-Ups</TabsTrigger>
+            </TabsList>
+          }
+        />
 
-      <Tabs defaultValue="dues">
-        <TabsList>
-          <TabsTrigger value="dues">Dues</TabsTrigger>
-          <TabsTrigger value="followups">Follow-Ups</TabsTrigger>
-        </TabsList>
-
-        <TabsContent value="dues" className="mt-4">
+        <TabsContent value="dues">
           <DuesTab />
         </TabsContent>
 
-        <TabsContent value="followups" className="mt-4">
+        <TabsContent value="followups">
           <FollowupsTab />
         </TabsContent>
-      </Tabs>
-    </main>
+      </main>
+    </Tabs>
   )
 }
