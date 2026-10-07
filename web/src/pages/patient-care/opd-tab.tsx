@@ -24,7 +24,7 @@ import { useForm, Controller } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { z } from "zod"
 import { format } from "date-fns"
-import { Plus, Pencil, Trash2, ChevronLeft, ChevronRight } from "lucide-react"
+import { Plus, Pencil, Trash2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { IconButton } from "@/components/ui/icon-button"
 import {
@@ -41,6 +41,7 @@ import {
   StatusPill,
   SearchBar,
   DatePicker,
+  DateNavigator,
   FormField,
   FormSection,
   TextInput,
@@ -332,33 +333,21 @@ export function OpdTab({
     <div className="space-y-4">
       {/* ── Toolbar ──────────────────────────────────────────────────────── */}
       <PageToolbar className="items-start sm:items-center">
-        {/* Date navigator */}
-        <div className="flex items-center gap-1" role="group" aria-label="Appointment date navigation">
-          <IconButton
-            aria-label="Previous day"
-            size="sm"
-            variant="outline"
-            onClick={() => navigateDate(-1)}
-          >
-            <ChevronLeft className="h-4 w-4" aria-hidden />
-          </IconButton>
-          <DatePicker
-            value={viewDate}
-            onChange={(d) => {
-              if (d) { setViewDate(d); setPage(1) }
-            }}
-            placeholder="Select date"
-            aria-label="View date"
-          />
-          <IconButton
-            aria-label="Next day"
-            size="sm"
-            variant="outline"
-            onClick={() => navigateDate(1)}
-          >
-            <ChevronRight className="h-4 w-4" aria-hidden />
-          </IconButton>
-        </div>
+        {/* Date navigator — matches main's DateNavigator exactly (prev/date/next + Today) */}
+        <DateNavigator
+          date={dateStr}
+          onDateChange={(iso) => {
+            setViewDate(new Date(iso + "T00:00:00"))
+            setPage(1)
+          }}
+          onPrev={() => navigateDate(-1)}
+          onNext={() => navigateDate(1)}
+          onToday={() => {
+            setViewDate(new Date())
+            setPage(1)
+          }}
+          isToday={dateStr === format(new Date(), "yyyy-MM-dd")}
+        />
 
         {/* Existing patient search */}
         <div className="flex-1 max-w-sm">

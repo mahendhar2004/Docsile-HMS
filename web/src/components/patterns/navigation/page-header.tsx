@@ -50,6 +50,13 @@ export interface PageHeaderProps {
    */
   actions?: ReactNode
   /**
+   * Slot embedded directly in the header bar, between the title and the
+   * actions — used where main embeds a page-level Tabs switcher in the
+   * header itself rather than below it (e.g. Patients' Out-Patients/
+   * In-Patients switch). Omit on pages whose tabs sit below the header.
+   */
+  center?: ReactNode
+  /**
    * Slot for page-level filters/controls (date navigator, search, status
    * filters, etc.) — rendered as a second sticky bar (PageToolbar, matching
    * main's FilterBar) directly under the header row. Omit entirely for
@@ -81,6 +88,7 @@ export function PageHeader({
   description,
   breadcrumbs,
   actions,
+  center,
   toolbar,
   onRefresh,
   className = "",
@@ -140,6 +148,8 @@ export function PageHeader({
             </button>
           )}
         </div>
+
+        {center && <div className="flex md:justify-center">{center}</div>}
 
         {(actions || showBack) && (
           <div className="flex items-center gap-2 sm:gap-2.5 flex-wrap sm:flex-nowrap sm:shrink-0 [&>*]:min-w-0">

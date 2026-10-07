@@ -6,6 +6,11 @@
  * the separate /inpatients route (InPatientsPage), matching main's
  * separate, fuller /inpatients page.
  *
+ * Placement note: main embeds the Out-Patients/In-Patients Tabs switcher
+ * directly in the sticky header bar itself (center column of a 3-column
+ * layout: title+refresh | tabs | actions), not below it — matched here via
+ * PageHeader's `center` slot rather than a separate TabsList row.
+ *
  * Permissions:
  *   patients:view    — gate for the Out-Patients tab
  *   inpatients:view  — gate for the In-Patients tab
@@ -60,23 +65,23 @@ export default function PatientsPage() {
 
   // If only one tab is visible, default to that tab.
   const defaultTab = canViewOPD ? "opd" : "ipd"
+  const showTabSwitch = canViewOPD && canViewIPD
 
   return (
-    <main className="space-y-5">
-      <PageHeader
-        title="Patients"
-        description="Registration & management"
-      />
-
-      <Tabs defaultValue={defaultTab} variant="underline">
-        <TabsList>
-          {canViewOPD && (
-            <TabsTrigger value="opd">Out-Patients</TabsTrigger>
-          )}
-          {canViewIPD && (
-            <TabsTrigger value="ipd">In-Patients</TabsTrigger>
-          )}
-        </TabsList>
+    <Tabs defaultValue={defaultTab} variant="underline">
+      <main className="space-y-5">
+        <PageHeader
+          title="Patients"
+          description="Registration & management"
+          center={
+            showTabSwitch && (
+              <TabsList>
+                <TabsTrigger value="opd">Out-Patients</TabsTrigger>
+                <TabsTrigger value="ipd">In-Patients</TabsTrigger>
+              </TabsList>
+            )
+          }
+        />
 
         {canViewOPD && (
           <TabsContent value="opd">
@@ -99,7 +104,7 @@ export default function PatientsPage() {
             />
           </TabsContent>
         )}
-      </Tabs>
-    </main>
+      </main>
+    </Tabs>
   )
 }
