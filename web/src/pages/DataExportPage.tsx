@@ -26,6 +26,8 @@
  * Permission: data:export
  */
 
+import { useState } from "react"
+import { Badge } from "@/components/ui/badge"
 import { PageHeader, ErrorState } from "@/components/patterns"
 import { usePermissions } from "@/hooks/usePermissions"
 import { ExportSection } from "./reports/export-section"
@@ -33,6 +35,11 @@ import { ExportSection } from "./reports/export-section"
 export default function DataExportPage() {
   const { can } = usePermissions()
   const canExport = can("data:export")
+
+  const [counts, setCounts] = useState<{ total: number | null; selected: number }>({
+    total: null,
+    selected: 0,
+  })
 
   if (!canExport) {
     return (
@@ -50,8 +57,22 @@ export default function DataExportPage() {
       <PageHeader
         title="Data Export"
         description="Select, filter and export hospital data in CSV or Excel format"
+        actions={
+          <div className="flex items-center gap-2">
+            {counts.selected > 0 && (
+              <Badge variant="secondary" className="text-xs">
+                {counts.selected} selected
+              </Badge>
+            )}
+            {counts.total != null && (
+              <Badge variant="outline" className="text-xs">
+                {counts.total} records
+              </Badge>
+            )}
+          </div>
+        }
       />
-      <ExportSection />
+      <ExportSection onCountsChange={setCounts} />
     </main>
   )
 }

@@ -38,7 +38,6 @@ import {
   DropdownMenuSeparator,
   DropdownMenuLabel,
 } from "@/components/ui/dropdown-menu"
-import { Badge } from "@/components/ui/badge"
 import { Skeleton } from "@/components/ui/skeleton"
 import {
   Table,
@@ -231,7 +230,20 @@ function downloadBlob(blob: Blob, filename: string) {
 
 // ─── Component ────────────────────────────────────────────────────────────────
 
-export function ExportSection() {
+export interface ExportSectionProps {
+  /**
+   * Reports the current tab's record/selection counts up to the parent so
+   * it can render them as badges in the page's real PageHeader — matches
+   * main's DataExportPage, which keeps `data`/`selectedIds` at the same
+   * component level as the header badges (this component used to render
+   * its own duplicate "Data Export" title+badges block instead).
+   * `total: null` means "no fetch yet" (hide the records badge) — matches
+   * main's `fetchEnabled &&` condition, distinct from a genuine 0-row result.
+   */
+  onCountsChange?: (counts: { total: number | null; selected: number }) => void
+}
+
+export function ExportSection({ onCountsChange }: ExportSectionProps = {}) {
   const [activeTab, setActiveTab] = useState<ExportEndpoint>("patients")
   const [search, setSearch] = useState("")
   const [debouncedSearch, setDebouncedSearch] = useState("")
@@ -273,6 +285,13 @@ export function ExportSection() {
   } = useExportData(activeTab, params, fetchEnabled)
 
   const data: ExportRow[] = fetchedData ?? []
+
+  useEffect(() => {
+    onCountsChange?.({
+      total: fetchEnabled ? data.length : null,
+      selected: selectedIds.size,
+    })
+  }, [data.length, selectedIds.size, fetchEnabled, onCountsChange])
 
   // Reset on tab change
   function handleTabChange(tab: ExportEndpoint) {
@@ -425,26 +444,10 @@ export function ExportSection() {
 
   return (
     <div className="space-y-5">
-      <div className="flex items-center justify-between">
-        <div>
-          <h2 className="text-base font-semibold text-foreground">Data Export</h2>
-          <p className="text-sm text-muted-foreground mt-0.5">
-            Select, filter, and export hospital data as CSV or Excel
-          </p>
-        </div>
-        <div className="flex items-center gap-2">
-          {selectedIds.size > 0 && (
-            <Badge variant="secondary" className="text-xs">
-              {selectedIds.size} selected
-            </Badge>
-          )}
-          {fetchEnabled && (
-            <Badge variant="outline" className="text-xs">
-              {data.length} records
-            </Badge>
-          )}
-        </div>
-      </div>
+      {/* No inline title/subtitle/badges here — the page's real PageHeader
+          (DataExportPage.tsx) owns those now via onCountsChange, matching
+          main exactly (this used to be a visible duplicate "Data Export"
+          heading rendered under the real one). */}
 
       {/* Export type tabs */}
       <Tabs
