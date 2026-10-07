@@ -25,6 +25,7 @@ import {
 import { usePermissions } from "@/hooks/usePermissions"
 import { useSessionStore } from "@/store/session"
 import { apiClient } from "@/lib/api-client"
+import { queryClient } from "@/lib/query-client"
 import { UserMenuCard } from "@/components/layout/user-menu-card"
 
 // ─── Types ──────────────────────────────────────────────────────────────────
@@ -148,6 +149,10 @@ export function Sidebar() {
       // which never surfaces a failure to the user.
     })
     clearSession()
+    // Drop every cached query — otherwise the next login (possibly as a
+    // different user) could briefly render stale data from this session
+    // before each query refetches. Added during final review.
+    queryClient.clear()
     navigate("/login", { replace: true })
   }, [clearSession, navigate])
 
@@ -178,6 +183,11 @@ export function Sidebar() {
       <aside
         onMouseEnter={showSidebar}
         onMouseLeave={hideSidebar}
+        onFocusCapture={showSidebar}
+        // When hidden, `inert` removes the whole subtree from the tab order
+        // and from find-in-page/AT traversal — without it, Tab could move
+        // focus into links the user can't see (fixed during final review).
+        inert={!visible}
         aria-label="Application sidebar"
         className={[
           "fixed left-0 top-0 z-50 flex h-full w-64 flex-col",

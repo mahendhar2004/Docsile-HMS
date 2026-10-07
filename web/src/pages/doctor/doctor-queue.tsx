@@ -89,7 +89,11 @@ export function DoctorQueue({
       aria-label="Doctor's patient queue"
     >
       {patients.map((patient) => {
-        const isSelected = patient.id === selectedId
+        // Selection is keyed by the sequential patientId, not the UUID id —
+        // GET /doctor/patients/{patientId}/consultation and friends filter
+        // on the Patient table's patientId column server-side (verified
+        // against supabase/functions/doctor/repository.ts), not the UUID.
+        const isSelected = patient.patientId === selectedId
         const fullName = `${patient.firstName} ${patient.lastName}`.trim()
         const hasWorkup = patient.eyeReadings.length > 0
         const hasPrescription = patient.prescriptions.length > 0
@@ -100,7 +104,7 @@ export function DoctorQueue({
               type="button"
               aria-pressed={isSelected}
               aria-label={`Select patient ${fullName}`}
-              onClick={() => onSelectPatient(patient.id)}
+              onClick={() => onSelectPatient(patient.patientId)}
               className={cn(
                 "w-full text-left px-3 py-3 flex flex-col gap-1",
                 "hover:bg-muted/60 focus-visible:outline-none focus-visible:bg-muted/60",

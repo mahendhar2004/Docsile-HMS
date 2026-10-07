@@ -49,7 +49,7 @@ export default function DataExportPage() {
     <main className="space-y-6">
       <PageHeader
         title="Data Export"
-        description="Select, filter and export hospital data in CSV or Excel."
+        description="Select, filter and export hospital data in CSV or Excel format"
       />
       <ExportSection />
     </main>

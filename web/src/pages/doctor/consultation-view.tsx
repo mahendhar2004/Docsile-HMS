@@ -10,14 +10,19 @@
  *   - Print receipt button (billing:view)
  *
  * The Workup Data tab reuses workup/eye-reading-form.tsx and fetches via
- * useWorkupPatient (GET /workup/patients/{id}) rather than the consultation
- * endpoint's own ConsultationEyeReading — that type is a trimmed read-only
- * summary (missing previousPrescription/glassesReading/etc fields the real
- * edit form needs), so editing requires the full EyeReadingRecord shape
- * from the workup endpoint instead. hasCreate is wired to doctor:consult
- * (not workup:create) since this edit surface lives in the Doctor module.
+ * useWorkupPatient (GET /workup/patients/{patientId}) rather than the
+ * consultation endpoint's own ConsultationEyeReading — that type is a
+ * trimmed read-only summary (missing previousPrescription/glassesReading/
+ * etc fields the real edit form needs), so editing requires the full
+ * EyeReadingRecord shape from the workup endpoint instead. hasCreate is
+ * gated on workup:create (not doctor:consult) — fixed during final
+ * review: POST /workup/patients/:id/eye-readings actually requires
+ * workup:create server-side (supabase/functions/workup/index.ts), so a
+ * doctor without it would get an editable form whose save 403s.
  *
- * Handles loading/error states for the consultation query and reference data.
+ * Handles loading/error states for the consultation query, reference data,
+ * and the workup patient query (a failed load previously rendered a blank
+ * form indistinguishable from "no reading yet" — fixed during final review).
  * Sets this patient as Sitha AI's global context (see @/store/ai-context) so
  * the floating "Ask Sitha" widget knows to include them — Sitha lives in
  * AppShell now, not inline here.
@@ -30,6 +35,7 @@ import { Skeleton } from "@/components/ui/skeleton"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs"
 import { StatusPill, ErrorState } from "@/components/patterns"
+import { usePermissions } from "@/hooks/usePermissions"
 import { useConsultation, useReferenceData } from "./hooks"
 import { PrescriptionForm } from "./prescription-form"
 import { useWorkupPatient } from "../workup/use-workup"
@@ -39,7 +45,14 @@ import { useAiContextStore } from "@/store/ai-context"
 // ─── Props ────────────────────────────────────────────────────────────────────
 
 interface ConsultationViewProps {
-  /** UUID of the patient (id, not patientId). */
+  /**
+   * Sequential display patientId (not the UUID row id) — GET
+   * /doctor/patients/{patientId}/consultation and friends filter on the
+   * Patient table's patientId column server-side (verified against
+   * supabase/functions/doctor/repository.ts), not the UUID. Fixed during
+   * final review: this prop previously held the UUID, which 404s against
+   * the real backend (MSW mocks had been keying on the UUID too, masking it).
+   */
   patientId: string
   doctorName: string
   canConsult: boolean
@@ -69,18 +82,17 @@ export function ConsultationView({
     return () => clearAiContext()
   }, [patientId, setAiContext, clearAiContext])
 
+  const { can } = usePermissions()
+  const hasWorkupCreate = can("workup:create")
+
   const consultationQuery = useConsultation(patientId)
   const referenceDataQuery = useReferenceData()
   // Full-fidelity eye reading record for the editable Workup Data tab — the
   // consultation endpoint's own ConsultationEyeReading is read-only-trimmed
-  // (see file header). GET /workup/patients/{patientId} keys off the
-  // sequential display patientId, NOT the UUID `id` this view receives as
-  // its own `patientId` prop (confirmed against workup/types.ts — easy to
-  // mix up since both are called "patientId" in their own module) — so this
-  // reads consultation.patientId once that query resolves, not the prop.
-  // Always called (rules of hooks); the hook's own `enabled: patientId !=
-  // null` gates the fetch until consultation data is in.
-  const workupPatientQuery = useWorkupPatient(consultationQuery.data?.patientId ?? null)
+  // (see file header). `patientId` is already the sequential display ID
+  // (same convention GET /workup/patients/{patientId} expects), so no
+  // separate derivation is needed here.
+  const workupPatientQuery = useWorkupPatient(patientId)
 
   // Loading state — both queries must be ready
   if (consultationQuery.isLoading || referenceDataQuery.isLoading) {
@@ -188,12 +200,18 @@ export function ConsultationView({
           <TabsContent value="workup">
             {workupPatientQuery.isLoading ? (
               <Skeleton className="h-40 w-full rounded-md" />
+            ) : workupPatientQuery.error ? (
+              <ErrorState
+                title="Could not load workup data"
+                error={workupPatientQuery.error}
+                onRetry={() => void workupPatientQuery.refetch()}
+              />
             ) : (
               <EyeReadingForm
                 patientId={consultation.patientId}
                 patientName={fullName}
                 existingReading={existingReading}
-                hasCreate={canConsult}
+                hasCreate={hasWorkupCreate}
               />
             )}
           </TabsContent>

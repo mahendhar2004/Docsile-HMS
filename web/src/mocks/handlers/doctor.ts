@@ -62,13 +62,16 @@ export const doctorHandlers = [
 
   // ── Save (upsert) prescription ───────────────────────────────────────────────
   http.post("/doctor/patients/:id/prescriptions", async ({ params, request }) => {
-    const patientUuid = String(params.id)
+    // Despite the route param's name (:id), this is the sequential display
+    // patientId (e.g. "P-0001"), matching the real backend's convention —
+    // see buildConsultation's header comment in fixtures/doctor.ts.
+    const patientId = String(params.id)
     const body = await request.json() as Record<string, unknown>
 
     // Check if there's already a today prescription for this patient.
     const today = new Date().toISOString().slice(0, 10)
     const existingIdx = prescriptionRecords.findIndex(
-      (rx) => rx.patientId === patientUuid && rx.prescriptionDate === today,
+      (rx) => rx.patientId === patientId && rx.prescriptionDate === today,
     )
 
     const rxId = existingIdx >= 0
@@ -77,7 +80,7 @@ export const doctorHandlers = [
 
     const record = {
       id: rxId,
-      patientId: patientUuid,
+      patientId,
       patientType: String(body.patientType ?? "OPD"),
       status: "ACTIVE",
       doctorId: null as string | null,
@@ -108,7 +111,7 @@ export const doctorHandlers = [
     }
 
     // Update patient status in the queue.
-    const queuePatient = doctorQueue.find((p) => p.id === patientUuid)
+    const queuePatient = doctorQueue.find((p) => p.patientId === patientId)
     if (queuePatient) {
       queuePatient.status = "VISITED"
       queuePatient.prescriptions = [

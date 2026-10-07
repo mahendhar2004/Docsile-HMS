@@ -253,7 +253,7 @@ export let doctorQueue: DoctorQueueRow[] = [
 export let prescriptionRecords: PrescriptionRow[] = [
   {
     id: "rx-005",
-    patientId: "pat-005",
+    patientId: "P-0005",
     patientType: "OPD",
     status: "ACTIVE",
     doctorId: null,
@@ -281,7 +281,7 @@ export let prescriptionRecords: PrescriptionRow[] = [
   },
   {
     id: "rx-006",
-    patientId: "pat-006",
+    patientId: "P-0006",
     patientType: "OPD",
     status: "ACTIVE",
     doctorId: null,
@@ -309,7 +309,7 @@ export let prescriptionRecords: PrescriptionRow[] = [
   },
   {
     id: "rx-009",
-    patientId: "pat-009",
+    patientId: "P-0009",
     patientType: "Medical",
     status: "ACTIVE",
     doctorId: null,
@@ -342,21 +342,25 @@ export function nextPrescriptionId(): string {
   return `rx-${String(_rxSeq++).padStart(3, "0")}`
 }
 
-// ─── Consultation data by patient internal UUID ────────────────────────────────
+// ─── Consultation data by sequential display patientId ─────────────────────────
+// Keyed by patientId (e.g. "P-0001"), matching the real backend's
+// GET /doctor/patients/{patientId}/consultation convention — NOT the
+// internal UUID `id` this previously (incorrectly) matched on, which
+// masked a real patientId-vs-UUID bug in the frontend.
 
-export function buildConsultation(patientUuid: string) {
-  const queueEntry = doctorQueue.find((p) => p.id === patientUuid)
+export function buildConsultation(patientId: string) {
+  const queueEntry = doctorQueue.find((p) => p.patientId === patientId)
   if (!queueEntry) return null
 
   const todayRx = prescriptionRecords.find(
-    (rx) => rx.patientId === patientUuid && rx.prescriptionDate === "2026-09-22",
+    (rx) => rx.patientId === patientId && rx.prescriptionDate === "2026-09-22",
   ) ?? null
 
   const pastRx = prescriptionRecords.filter(
-    (rx) => rx.patientId === patientUuid && rx.prescriptionDate !== "2026-09-22",
+    (rx) => rx.patientId === patientId && rx.prescriptionDate !== "2026-09-22",
   )
 
-  const allRx = prescriptionRecords.filter((rx) => rx.patientId === patientUuid)
+  const allRx = prescriptionRecords.filter((rx) => rx.patientId === patientId)
 
   // Build ConsultationEyeReading[] from the queue entry's eyeReadings
   const consultEyeReadings = queueEntry.eyeReadings.map((er) => ({

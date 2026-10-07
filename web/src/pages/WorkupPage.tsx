@@ -16,13 +16,17 @@
  * No DateNavigator: GET /workup/queue has no `date` query param at all
  * (confirmed against .sde/schemas/openapi.yaml — always "today"
  * server-side, same limitation as the Doctor queue) — would be a
- * decorative control with nothing to change. Stat badges show Total and
- * Completed only (computed client-side from the already-fetched queue,
- * grouping by the real `status` field) — main's exact 4-way Optometrist/
- * Doctor/Visited/Completed split needs a backend-side status taxonomy this
- * plan can't verify without reading Supabase function source, which is
- * outside this plan's remit (web/ only); showing only the countable,
- * unambiguous buckets avoids guessing at a label-to-status mapping.
+ * decorative control with nothing to change.
+ *
+ * Stat badges: main's exact 4-way split (Total / Optometrist / Doctor /
+ * Completed), verified against both main's WorkupPage.tsx bucket check
+ * and this backend's actual computeStatus() (supabase/functions/workup/
+ * repository.ts) during final review — Optometrist = REGISTERED +
+ * IN_WORKUP, Doctor = WORKUP_DONE + WITH_DOCTOR, Completed = COMPLETED +
+ * MEDICAL_ONLY (this backend's computeStatus never actually emits
+ * IN_WORKUP/WITH_DOCTOR, only REGISTERED/WORKUP_DONE/MEDICAL_ONLY/
+ * COMPLETED or a manual override, but checking for the extra values is
+ * harmless and keeps the mapping faithful to main's own logic).
  */
 
 import * as React from "react"
@@ -102,8 +106,15 @@ export default function WorkupPage() {
   // All hooks called unconditionally — early return comes after.
   const queueQuery = useWorkupQueue()
 
-  const completedCount = (queueQuery.data ?? []).filter(
-    (p) => p.status === "COMPLETED" || p.status === "VISITED",
+  const queueData = queueQuery.data ?? []
+  const optometristCount = queueData.filter(
+    (p) => p.status === "REGISTERED" || p.status === "IN_WORKUP",
+  ).length
+  const doctorCount = queueData.filter(
+    (p) => p.status === "WORKUP_DONE" || p.status === "WITH_DOCTOR",
+  ).length
+  const completedCount = queueData.filter(
+    (p) => p.status === "COMPLETED" || p.status === "MEDICAL_ONLY",
   ).length
 
   // Client-side search filter — WorkupQueue takes the whole UseQueryResult
@@ -141,7 +152,7 @@ export default function WorkupPage() {
     <main className="space-y-4">
       <PageHeader
         title="Refraction"
-        description="Pre-consultation eye assessment with refraction and clinical findings."
+        description="Pre-consultation assessment"
         toolbar={
           !selectedPatient ? (
             <>
@@ -152,7 +163,9 @@ export default function WorkupPage() {
                 placeholder="Search by name, ID, or phone…"
                 aria-label="Search workup queue"
               />
-              <StatBadge value={queueQuery.data?.length ?? 0} label="Total" variant="info" />
+              <StatBadge value={queueData.length} label="Total" variant="default" />
+              <StatBadge value={optometristCount} label="Optometrist" variant="destructive" />
+              <StatBadge value={doctorCount} label="Doctor" variant="warning" />
               <StatBadge value={completedCount} label="Completed" variant="success" />
             </>
           ) : (

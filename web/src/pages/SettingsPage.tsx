@@ -63,7 +63,7 @@ type SectionId =
   | "surgeries"
   | "discharges"
   | "hospital"
-  | "print-config"
+  | "print-defaults"
 
 const SECTIONS: { id: SectionId; label: string }[] = [
   { id: "services",      label: "Service Templates" },
@@ -73,7 +73,7 @@ const SECTIONS: { id: SectionId; label: string }[] = [
   { id: "surgeries",     label: "Predefined Surgeries" },
   { id: "discharges",    label: "Discharge Templates" },
   { id: "hospital",      label: "Hospital Profile" },
-  { id: "print-config",  label: "Print Defaults" },
+  { id: "print-defaults", label: "Print Defaults" },
 ]
 
 const DEFAULT_SECTION: SectionId = "services"
@@ -109,7 +109,7 @@ export default function SettingsPage() {
     <main className="space-y-6">
       <PageHeader
         title="Configurations"
-        description="Hospital configuration, service templates, print settings, prescription templates, and master data management."
+        description="Configurations"
       />
 
       <Tabs
@@ -145,7 +145,7 @@ export default function SettingsPage() {
         <TabsContent value="hospital">
           <HospitalProfileSection canEdit={canEdit} />
         </TabsContent>
-        <TabsContent value="print-config">
+        <TabsContent value="print-defaults">
           <PrintConfigSection canEdit={canEdit} />
         </TabsContent>
       </Tabs>

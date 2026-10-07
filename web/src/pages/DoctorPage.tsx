@@ -89,8 +89,8 @@ export default function DoctorPage() {
   return (
     <main className="space-y-4" aria-label="Doctor module">
       <PageHeader
-        title="Doctor"
-        description="Patient consultation, prescription writing, and clinical assistance."
+        title="Doctor Console"
+        description="Patient queue & consultation"
         toolbar={
           !selectedPatientId ? (
             <>
@@ -101,7 +101,7 @@ export default function DoctorPage() {
                 placeholder="Search by name, ID, or phone…"
                 aria-label="Search doctor queue"
               />
-              <StatBadge value={queueQuery.data?.length ?? 0} label="In queue" variant="info" />
+              <StatBadge value={queueQuery.data?.length ?? 0} label="in queue" variant="info" />
             </>
           ) : (
             <Button variant="outline" size="sm" onClick={() => setSelectedPatientId(null)}>

@@ -5,20 +5,23 @@
  * main's single-list-page layout (src/app/(hospital)/insurance/components/
  * InsurancePage.tsx):
  * - 3 header StatBadges (Active, Preauth Pending, Awaiting Settlement)
- * - Search input + status filter + "Companies" button (opens a Sheet,
- *   not a tab) + "+ New Claim" button
+ * - Status filter + "Companies" button (opens a Sheet, not a tab) +
+ *   "+ New Claim" button (no search input — see note further down)
  * - PaginatedDataTable with StatusPill using the real 13-value InsuranceClaimStatus enum
  * - Click row to open ClaimDetailPanel (Sheet)
  *
- * Stat badges: this backend's InsuranceClaimStatus enum is the same exact
- * 13 values as main's (confirmed in types.ts), so the buckets are real,
- * not approximated — "Active" = everything except SETTLED/CLOSED/
- * CLAIM_REJECTED, "Preauth Pending" = PREAUTH_SUBMITTED + PREAUTH_QUERY,
- * "Awaiting Settlement" = FINAL_BILL_SUBMITTED + PARTIALLY_SETTLED. Since
- * GET /insurance/claims only filters by one status at a time, computed via
- * a handful of extra lightweight calls to the same hook (pageSize
- * irrelevant, only `.total` is read) rather than fetching the whole list
- * client-side (claims aren't bounded to "today" like other modules' queues).
+ * Stat badges: verified against main's actual aggregation
+ * (src/app/(hospital)/insurance/actions.ts getInsuranceClaims stats, and
+ * InsurancePage.tsx's StatBadge wiring) rather than approximated — "Active"
+ * = all claims except CLOSED (stats.totalClaims — main does NOT also
+ * exclude SETTLED/CLAIM_REJECTED, corrected during final review),
+ * "Preauth Pending" = PREAUTH_SUBMITTED + PREAUTH_QUERY, "Awaiting
+ * Settlement" = FINAL_BILL_SUBMITTED only (main does NOT include
+ * PARTIALLY_SETTLED here, corrected during final review). Since GET
+ * /insurance/claims only filters by one status at a time, computed via a
+ * few extra lightweight calls to the same hook (only `.total` is read)
+ * rather than fetching the whole list client-side (claims aren't bounded
+ * to "today" like other modules' queues).
  *
  * Endpoints:
  *   GET /insurance/claims?page=N&pageSize=N&status=... — insurance:view
@@ -41,7 +44,6 @@ import {
   StatBadge,
   EmptyState,
   SingleSelect,
-  SearchBar,
   PageToolbar,
 } from "@/components/patterns"
 import type { ColumnDef } from "@/components/patterns"
@@ -52,7 +54,7 @@ import { ClaimDetailPanel } from "./claim-detail-panel"
 import { CompaniesTab } from "./companies-tab"
 import { CLAIM_STATUS_FILTER_OPTIONS } from "./types"
 import type { InsuranceClaim } from "./types"
-import { formatDate, formatCurrency } from "@/lib/utils"
+import { formatCurrency } from "@/lib/utils"
 
 // ─── ClaimsTab ────────────────────────────────────────────────────────────────
 
@@ -60,8 +62,7 @@ export function ClaimsTab() {
   const { can } = usePermissions()
   const canCreate = can("insurance:create")
 
-  // ── Search + status filter ───────────────────────────────────────────────────
-  const [search, setSearch] = useState("")
+  // ── Status filter ────────────────────────────────────────────────────────────
   const [statusFilter, setStatusFilter] = useState("")
 
   // ── Paginated claim list ─────────────────────────────────────────────────────
@@ -81,31 +82,17 @@ export function ClaimsTab() {
 
   // ── Header stat badges (real, status-bucketed — see file header) ────────────
   const grandTotalQuery = useInsuranceClaims("")
+  const closedQuery = useInsuranceClaims("CLOSED")
   const preauthSubmittedQuery = useInsuranceClaims("PREAUTH_SUBMITTED")
   const preauthQueryQuery = useInsuranceClaims("PREAUTH_QUERY")
   const finalBillQuery = useInsuranceClaims("FINAL_BILL_SUBMITTED")
-  const partiallySettledQuery = useInsuranceClaims("PARTIALLY_SETTLED")
-  const settledQuery = useInsuranceClaims("SETTLED")
-  const closedQuery = useInsuranceClaims("CLOSED")
-  const rejectedQuery = useInsuranceClaims("CLAIM_REJECTED")
-  const activeCount =
-    grandTotalQuery.total -
-    settledQuery.total -
-    closedQuery.total -
-    rejectedQuery.total
+  // Matches main's getInsuranceClaims() stats exactly: totalClaims excludes
+  // only CLOSED (not SETTLED/CLAIM_REJECTED too), settlementPending is
+  // FINAL_BILL_SUBMITTED only (not + PARTIALLY_SETTLED) — corrected during
+  // final review, also cutting the extra queries from 8 to 4.
+  const activeCount = grandTotalQuery.total - closedQuery.total
   const preauthPendingCount = preauthSubmittedQuery.total + preauthQueryQuery.total
-  const awaitingSettlementCount = finalBillQuery.total + partiallySettledQuery.total
-
-  // ── Client-side search (name/claim number — list is server-paginated by
-  //    status only, so search narrows within the currently loaded page) ──────
-  const q = search.trim().toLowerCase()
-  const visibleData = q
-    ? (data ?? []).filter(
-        (c) =>
-          c.patientName.toLowerCase().includes(q) ||
-          c.claimNumber.toLowerCase().includes(q),
-      )
-    : data
+  const awaitingSettlementCount = finalBillQuery.total
 
   // ── Create claim ─────────────────────────────────────────────────────────────
   const [showCreate, setShowCreate] = useState(false)
@@ -117,10 +104,12 @@ export function ClaimsTab() {
   const [selectedClaimId, setSelectedClaimId] = useState<string | null>(null)
 
   // ── Table columns ────────────────────────────────────────────────────────────
+  // Main's exact 10 columns (InsurancePage.tsx claims table), in order —
+  // ported during final review, the original only had 7.
   const columns: ColumnDef<InsuranceClaim>[] = [
     {
       key: "claimNumber",
-      header: "Claim #",
+      header: "Claim No",
       cell: (row) => (
         <span className="font-mono text-xs bg-muted px-1.5 py-0.5 rounded">
           {row.claimNumber}
@@ -130,7 +119,7 @@ export function ClaimsTab() {
     },
     {
       key: "patientName",
-      header: "Patient",
+      header: "Patient / IP",
       cell: (row) => (
         <div>
           <p className="font-medium text-sm">{row.patientName}</p>
@@ -143,7 +132,7 @@ export function ClaimsTab() {
     },
     {
       key: "insuranceCompanyName",
-      header: "Insurer",
+      header: "Insurance Company",
       cell: (row) => (
         <div>
           <p className="text-sm">{row.insuranceCompanyName}</p>
@@ -154,13 +143,8 @@ export function ClaimsTab() {
       ),
     },
     {
-      key: "status",
-      header: "Status",
-      cell: (row) => <StatusPill status={row.status} />,
-    },
-    {
       key: "totalBillAmount",
-      header: "Bill Amount",
+      header: "Total Claimed",
       align: "right",
       cell: (row) => (
         <span className="text-sm font-medium">
@@ -169,8 +153,40 @@ export function ClaimsTab() {
       ),
     },
     {
+      key: "preauthAmount",
+      header: "Preauth",
+      align: "right",
+      cell: (row) => (
+        <span className="text-sm">{formatCurrency(row.preauthAmount)}</span>
+      ),
+    },
+    {
+      key: "enhancementApproved",
+      header: "Enhancement",
+      align: "right",
+      cell: (row) => (
+        <span className="text-sm">{formatCurrency(row.enhancementApproved)}</span>
+      ),
+    },
+    {
+      key: "totalApprovedAmount",
+      header: "Total Approved",
+      align: "right",
+      cell: (row) => (
+        <span className="text-sm">{formatCurrency(row.totalApprovedAmount)}</span>
+      ),
+    },
+    {
+      key: "finalSettledAmount",
+      header: "Settled",
+      align: "right",
+      cell: (row) => (
+        <span className="text-sm">{formatCurrency(row.finalSettledAmount)}</span>
+      ),
+    },
+    {
       key: "patientBalance",
-      header: "Balance",
+      header: "Patient Due",
       align: "right",
       cell: (row) => (
         <span
@@ -183,13 +199,9 @@ export function ClaimsTab() {
       ),
     },
     {
-      key: "admissionDate",
-      header: "Admitted",
-      cell: (row) => (
-        <span className="text-sm text-muted-foreground">
-          {row.admissionDate ? formatDate(row.admissionDate) : "—"}
-        </span>
-      ),
+      key: "status",
+      header: "Status",
+      cell: (row) => <StatusPill status={row.status} />,
     },
   ]
 
@@ -199,19 +211,17 @@ export function ClaimsTab() {
       <div className="flex flex-wrap items-center gap-2">
         <StatBadge value={activeCount} label="Active" variant="info" />
         <StatBadge value={preauthPendingCount} label="Preauth Pending" variant="warning" />
-        <StatBadge value={awaitingSettlementCount} label="Awaiting Settlement" variant="warning" />
+        <StatBadge value={awaitingSettlementCount} label="Awaiting Settlement" variant="success" />
       </div>
 
       {/* ── Toolbar ──────────────────────────────────────────────────────────── */}
+      {/* No search input: main's search is a server-side DB filter (getInsuranceClaims'
+          `search` param on the old Next.js app's direct Supabase query) — this backend's
+          GET /insurance/claims has no search query param at all (confirmed in
+          openapi.yaml), and a client-side filter over just the current page would
+          silently miss matches on other pages, which is worse than no search.
+          Corrected during final review (previously shipped a misleading version). */}
       <PageToolbar>
-        <SearchBar
-          variant="standalone"
-          value={search}
-          onChange={setSearch}
-          placeholder="Search by patient or claim number…"
-          aria-label="Search claims"
-        />
-
         {/* Status filter */}
         <div className="w-52">
           <SingleSelect
@@ -242,7 +252,7 @@ export function ClaimsTab() {
       {/* ── Claims table ─────────────────────────────────────────────────────── */}
       <PaginatedDataTable
         mode="offset"
-        data={visibleData}
+        data={data}
         columns={columns}
         isLoading={isLoading}
         isFetching={isFetching}

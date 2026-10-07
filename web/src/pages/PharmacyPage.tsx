@@ -54,11 +54,11 @@ export default function PharmacyPage() {
     <main className="space-y-6">
       <PageHeader
         title="Pharmacy"
-        description="Billing, inventory & suppliers."
+        description="Billing, inventory & suppliers"
         toolbar={
           summary ? (
             <>
-              <StatBadge value={summary.lowStock} label="Low Stock" variant="warning" />
+              <StatBadge value={summary.lowStock} label="Low Stock" variant="destructive" />
               <StatBadge value={summary.nearExpiry} label="Near Expiry" variant="warning" />
               <StatBadge value={summary.totalItems} label="Items in Stock" variant="info" />
             </>

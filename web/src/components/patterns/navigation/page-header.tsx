@@ -119,7 +119,11 @@ export function PageHeader({
   const hasBreadcrumbs = breadcrumbs && breadcrumbs.length > 0
 
   return (
-    <header className={className}>
+    // pl-10 reserves space for the Sidebar's mobile-only hamburger button
+    // (fixed top-2 left-2, h-8 w-8) so it doesn't sit on top of the title on
+    // small screens — added during final review, main handles this per-page
+    // instead of centrally, this does the same job in one place.
+    <header className={["pl-10 md:pl-0", className].filter(Boolean).join(" ")}>
       <div className="flex items-start justify-between gap-4">
         {/* Left: breadcrumbs + title + description */}
         <div className="min-w-0 flex-1">

@@ -50,7 +50,7 @@ export default function LabsPage() {
     <main className="space-y-4">
       <PageHeader
         title="Labs"
-        description="Billing, history & configuration."
+        description="Billing, history & configuration"
         toolbar={
           labs ? (
             <StatBadge value={activeLabsCount} label="Active Labs" variant="info" />

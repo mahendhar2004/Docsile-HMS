@@ -62,11 +62,11 @@ export default function OpticalPage() {
     <main className="space-y-6">
       <PageHeader
         title="Optical"
-        description="Frames, lenses & contact lens."
+        description="Frames, lenses & contact lens"
         toolbar={
           summary ? (
             <>
-              <StatBadge value={summary.lowStock} label="Low Stock" variant="warning" />
+              <StatBadge value={summary.lowStock} label="Low Stock" variant="destructive" />
               <StatBadge value={summary.totalItems} label="Items in Stock" variant="info" />
             </>
           ) : undefined

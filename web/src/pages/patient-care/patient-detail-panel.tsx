@@ -10,6 +10,12 @@
  *   no patientId filter on GET /billing/prescriptions (date-only), so this
  *   queries by the patient's own appointmentDate and filters client-side to
  *   this patient's patientId — bounded and correctly wired, not fabricated.
+ *   Fixed during final review: the hook is paginated (default pageSize 25),
+ *   and only page 1 was ever read — on a date with >25 billed prescriptions
+ *   across all patients, a patient near the end of the list silently showed
+ *   no billing at all. Now bumps pageSize to cover the real `total` once
+ *   it's known, so every prescription for that date is actually loaded
+ *   before the client-side patientId filter runs.
  * - Add services (billing:create)
  * - Print receipt (billing:view)
  * - Edit (patients:edit)
@@ -18,7 +24,7 @@
  * Uses DataModal pattern internally for the Sheet-based fetch.
  */
 
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import { format } from "date-fns"
 import { Printer, Pencil, Trash2, Plus, Calendar, RefreshCw, Receipt } from "lucide-react"
 import {
@@ -137,8 +143,23 @@ export function PatientDetailPanel({
   const {
     data: billingData,
     isLoading: billingLoading,
+    total: billingTotal,
+    pageSize: billingPageSize,
+    setPageSize: setBillingPageSize,
     refetch: refetchBilling,
   } = useBillingPrescriptions(patient?.appointmentDate ?? null)
+  // The endpoint is paginated (default pageSize 25) and only page 1 was
+  // ever read — on a date with more billed prescriptions than that across
+  // ALL patients, a patient near the end of the list would silently show
+  // no billing. Once the real total is known, widen pageSize to cover it
+  // so the client-side patientId filter below sees every record for the date.
+  useEffect(() => {
+    // Only once the patient (and therefore a real date, not the hook's
+    // unbounded "all dates" mode) has actually loaded.
+    if (patient?.appointmentDate && billingTotal > billingPageSize) {
+      setBillingPageSize(billingTotal)
+    }
+  }, [patient?.appointmentDate, billingTotal, billingPageSize, setBillingPageSize])
   const billedPrescriptions = (billingData ?? []).filter(
     (p) => p.patientId === patient?.patientId && p.status !== "CANCELLED",
   )
