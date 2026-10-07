@@ -36,6 +36,7 @@ import {
   Loader2,
   FlaskConical,
   RefreshCw,
+  Printer,
 } from "lucide-react"
 import { usePermissions } from "@/hooks/usePermissions"
 import { Button } from "@/components/ui/button"
@@ -52,6 +53,7 @@ import {
 import { PaginatedDataTable, EmptyState } from "@/components/patterns"
 import type { ColumnDef } from "@/components/patterns"
 import { usePatientInvestigations, useCreateLabBills, useLabBills } from "./hooks"
+import { LabBillPrintModal } from "./lab-bill-print-modal"
 import {
   PAYMENT_MODES,
   BILL_STATUS_BADGE,
@@ -462,6 +464,7 @@ export function BillsTab() {
 
   // ── Bill history columns ──────────────────────────────────────────────────────
   const [expandedBillId, setExpandedBillId] = useState<string | null>(null)
+  const [printBill, setPrintBill] = useState<LabBillRow | null>(null)
 
   const billColumns: ColumnDef<LabBillRow>[] = [
     {
@@ -548,6 +551,25 @@ export function BillsTab() {
         <Badge variant={BILL_STATUS_BADGE[bill.status] ?? "secondary"}>
           {bill.status}
         </Badge>
+      ),
+    },
+    {
+      key: "print",
+      header: "",
+      align: "center",
+      cell: (bill) => (
+        <Button
+          variant="ghost"
+          size="sm"
+          className="h-7 w-7 p-0 text-muted-foreground hover:text-primary"
+          onClick={(e) => {
+            e.stopPropagation()
+            setPrintBill(bill)
+          }}
+          aria-label={`Print bill ${bill.billNumber}`}
+        >
+          <Printer className="h-3.5 w-3.5" aria-hidden />
+        </Button>
       ),
     },
   ]
@@ -873,6 +895,13 @@ export function BillsTab() {
           )
         })()}
       </section>
+
+      {/* Print preview */}
+      <LabBillPrintModal
+        open={printBill != null}
+        onClose={() => setPrintBill(null)}
+        bill={printBill}
+      />
     </div>
   )
 }
