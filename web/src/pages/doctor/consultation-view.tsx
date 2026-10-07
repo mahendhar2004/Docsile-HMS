@@ -73,10 +73,14 @@ export function ConsultationView({
   const referenceDataQuery = useReferenceData()
   // Full-fidelity eye reading record for the editable Workup Data tab — the
   // consultation endpoint's own ConsultationEyeReading is read-only-trimmed
-  // (see file header). Always called (rules of hooks), independent loading
-  // state handled inside the tab itself so it doesn't block the Prescription
-  // tab from rendering.
-  const workupPatientQuery = useWorkupPatient(patientId)
+  // (see file header). GET /workup/patients/{patientId} keys off the
+  // sequential display patientId, NOT the UUID `id` this view receives as
+  // its own `patientId` prop (confirmed against workup/types.ts — easy to
+  // mix up since both are called "patientId" in their own module) — so this
+  // reads consultation.patientId once that query resolves, not the prop.
+  // Always called (rules of hooks); the hook's own `enabled: patientId !=
+  // null` gates the fetch until consultation data is in.
+  const workupPatientQuery = useWorkupPatient(consultationQuery.data?.patientId ?? null)
 
   // Loading state — both queries must be ready
   if (consultationQuery.isLoading || referenceDataQuery.isLoading) {
@@ -186,7 +190,7 @@ export function ConsultationView({
               <Skeleton className="h-40 w-full rounded-md" />
             ) : (
               <EyeReadingForm
-                patientId={patientId}
+                patientId={consultation.patientId}
                 patientName={fullName}
                 existingReading={existingReading}
                 hasCreate={canConsult}
