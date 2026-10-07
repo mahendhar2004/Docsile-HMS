@@ -16,15 +16,31 @@
  *   - dues:edit  — mark-paid + send-email actions
  */
 
+import { useEffect, useRef, useState } from "react"
+import { Sparkles } from "lucide-react"
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs"
+import { Button } from "@/components/ui/button"
 import { PageHeader, ErrorState } from "@/components/patterns"
 import { usePermissions } from "@/hooks/usePermissions"
-import { DuesTab } from "./dues-followups/dues-tab"
-import { FollowupsTab } from "./dues-followups/followups-tab"
+import { useAiContextStore } from "@/store/ai-context"
+import { DuesTab, type DuesTabHandle } from "./dues-followups/dues-tab"
+import { FollowupsTab, type FollowupsTabHandle } from "./dues-followups/followups-tab"
 
 export default function DuesFollowupsPage() {
   const { can } = usePermissions()
   const hasAccess = can("dues:view")
+
+  const [activeTab, setActiveTab] = useState<"dues" | "followups">("dues")
+  const duesRef = useRef<DuesTabHandle>(null)
+  const followupsRef = useRef<FollowupsTabHandle>(null)
+
+  const setAiContext = useAiContextStore((s) => s.setAiContext)
+  const clearAiContext = useAiContextStore((s) => s.clearAiContext)
+  const toggleSitha = useAiContextStore((s) => s.toggleOpen)
+  useEffect(() => {
+    setAiContext({ patientId: null, module: "duesFollowups" })
+    return () => clearAiContext()
+  }, [setAiContext, clearAiContext])
 
   // ── Permission gate ──────────────────────────────────────────────────────────
   if (!hasAccess) {
@@ -41,30 +57,41 @@ export default function DuesFollowupsPage() {
   // ── Render ───────────────────────────────────────────────────────────────────
   // Tabs embedded in the header's center slot, matching main's placement
   // (main puts the Dues/Follow-Ups switch directly in the sticky header
-  // bar, not below it). No onRefresh: main wires it to whichever tab is
-  // active via refs into each tab's own refresh function — DuesTab/
-  // FollowupsTab don't currently expose one, so left unwired rather than
-  // forced; a real gap, not silently matched.
+  // bar, not below it). onRefresh and Ask Sitha now wired, matching main —
+  // previously documented as an accepted gap; fixed via the same
+  // forwardRef-per-tab pattern used by Patients' OPD/IPD tabs.
   return (
-    <Tabs defaultValue="dues">
+    <Tabs
+      value={activeTab}
+      onValueChange={(v) => setActiveTab(v as "dues" | "followups")}
+    >
       <main className="space-y-6">
         <PageHeader
           title="Dues & Follow-Ups"
           description="Track payments & schedule reminders"
+          onRefresh={() =>
+            activeTab === "dues" ? duesRef.current?.refetch() : followupsRef.current?.refetch()
+          }
           center={
             <TabsList>
               <TabsTrigger value="dues">Dues</TabsTrigger>
               <TabsTrigger value="followups">Follow-Ups</TabsTrigger>
             </TabsList>
           }
+          actions={
+            <Button variant="outline" size="sm" onClick={toggleSitha} aria-label="Ask Sitha AI">
+              <Sparkles className="h-3.5 w-3.5 mr-1.5" aria-hidden />
+              Ask Sitha
+            </Button>
+          }
         />
 
         <TabsContent value="dues">
-          <DuesTab />
+          <DuesTab ref={duesRef} />
         </TabsContent>
 
         <TabsContent value="followups">
-          <FollowupsTab />
+          <FollowupsTab ref={followupsRef} />
         </TabsContent>
       </main>
     </Tabs>

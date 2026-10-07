@@ -19,11 +19,13 @@ import {
   Plus,
   Trash2,
   FileText,
+  Printer,
   ChevronDown,
   ChevronUp,
   RefreshCw,
   ClipboardList,
   X,
+  Loader2,
 } from "lucide-react"
 import { toast } from "sonner"
 import {
@@ -46,6 +48,9 @@ import {
   useStockSearch,
 } from "./hooks"
 import { apiClient } from "@/lib/api-client"
+import { printReceiptsHtml } from "@/lib/print-receipts"
+import { useHospitalProfile } from "@/pages/settings/hooks"
+import type { HospitalProfile } from "@/pages/settings/types"
 import type {
   BillItemRow,
   PharmacyBill,
@@ -69,6 +74,153 @@ function formatDate(iso: string): string {
     month: "short",
     year: "numeric",
   })
+}
+
+/** Escape HTML special characters before inlining into a print template — matches main's BillingTab.tsx esc(). */
+function esc(s: string | null | undefined): string {
+  if (s == null) return ""
+  return String(s)
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;")
+}
+
+/**
+ * Build a single-page A4 HTML receipt for a pharmacy bill, fed to
+ * printReceiptsHtml. Ported verbatim from main's BillingTab.tsx
+ * buildPharmacyBillHtml — a real missing feature (history rows had no print
+ * action at all), not a styling gap.
+ */
+function buildPharmacyBillHtml(bill: PharmacyBill, hp: HospitalProfile | null): string {
+  const hospitalName = hp?.displayName || hp?.name || "Hospital"
+  const billDate = new Date(bill.billDate).toLocaleDateString("en-IN", {
+    day: "2-digit",
+    month: "short",
+    year: "numeric",
+  })
+
+  const itemsRows = bill.items
+    .map(
+      (it, i) => `
+    <tr>
+      <td class="border border-black p-1 text-center">${i + 1}</td>
+      <td class="border border-black p-1">${esc(it.medicineName)}</td>
+      <td class="border border-black p-1">${esc(it.batchNumber)}</td>
+      <td class="border border-black p-1 text-right">${it.quantity}</td>
+      <td class="border border-black p-1 text-right">${(it.mrp ?? 0).toFixed(2)}</td>
+      <td class="border border-black p-1 text-right">${(it.discountPercent ?? 0).toFixed(2)}</td>
+      <td class="border border-black p-1 text-right">${(it.gstPercent ?? 0).toFixed(2)}</td>
+      <td class="border border-black p-1 text-right">${(it.amount ?? 0).toFixed(2)}</td>
+    </tr>
+  `,
+    )
+    .join("")
+
+  return `
+    <div class="receipt-page">
+      <div class="border-b-2 border-black pb-2 mb-3 text-center">
+        ${hp?.logoUrl ? `<img src="${esc(hp.logoUrl)}" alt="" style="height:48px;margin:0 auto 4px;" />` : ""}
+        <h1 class="text-lg font-bold tracking-tight">${esc(hospitalName)}</h1>
+        ${hp?.address ? `<p class="text-[10px]">${esc(hp.address)}</p>` : ""}
+        ${
+          hp?.phone || hp?.email
+            ? `<p class="text-[10px]">${[hp?.phone && `Phone: ${esc(hp.phone)}`, hp?.email && `Email: ${esc(hp.email)}`].filter(Boolean).join(" · ")}</p>`
+            : ""
+        }
+        ${hp?.registrationNo ? `<p class="text-[10px]">Reg No: ${esc(hp.registrationNo)}</p>` : ""}
+      </div>
+
+      <h2 class="text-sm text-center font-bold py-1 mb-3 border border-black">PHARMACY BILL</h2>
+
+      <div class="grid grid-cols-2 gap-3 text-[11px] mb-3 border-b border-black pb-2">
+        <div class="space-y-0.5">
+          <div><strong>Bill #:</strong> ${esc(bill.billNumber)}</div>
+          <div><strong>Patient:</strong> ${esc(bill.patientName)}</div>
+          <div><strong>Phone:</strong> ${esc(bill.patientPhone) || "—"}</div>
+          ${bill.gender ? `<div><strong>Gender:</strong> ${esc(bill.gender)}</div>` : ""}
+        </div>
+        <div class="space-y-0.5 text-right">
+          <div><strong>Date:</strong> ${esc(billDate)}</div>
+          <div><strong>Doctor:</strong> ${esc(bill.referredDoctor) || "—"}</div>
+          <div><strong>Payment:</strong> ${esc(bill.paymentMode)}${bill.paymentRef ? ` · ${esc(bill.paymentRef)}` : ""}</div>
+          <div><strong>Status:</strong> ${esc(bill.status)}</div>
+        </div>
+      </div>
+
+      <table class="w-full border-collapse text-[10px] mb-3">
+        <thead>
+          <tr>
+            <th class="border border-black p-1 text-center font-bold w-[5%]">#</th>
+            <th class="border border-black p-1 text-left font-bold">MEDICINE</th>
+            <th class="border border-black p-1 text-left font-bold w-[14%]">BATCH</th>
+            <th class="border border-black p-1 text-right font-bold w-[7%]">QTY</th>
+            <th class="border border-black p-1 text-right font-bold w-[10%]">MRP</th>
+            <th class="border border-black p-1 text-right font-bold w-[8%]">DISC%</th>
+            <th class="border border-black p-1 text-right font-bold w-[8%]">GST%</th>
+            <th class="border border-black p-1 text-right font-bold w-[12%]">AMOUNT</th>
+          </tr>
+        </thead>
+        <tbody>${itemsRows}</tbody>
+      </table>
+
+      <div class="flex justify-end">
+        <table class="border-collapse text-[11px]" style="min-width:250px;">
+          <tbody>
+            <tr>
+              <td class="p-1 pr-4 font-medium">Subtotal</td>
+              <td class="p-1 text-right tabular-nums">${(bill.subtotal ?? 0).toFixed(2)}</td>
+            </tr>
+            ${
+              (bill.discountAmount ?? 0) > 0
+                ? `<tr>
+              <td class="p-1 pr-4 font-medium">Discount${bill.discountPercent ? ` (${bill.discountPercent}%)` : ""}</td>
+              <td class="p-1 text-right tabular-nums">- ${bill.discountAmount.toFixed(2)}</td>
+            </tr>`
+                : ""
+            }
+            ${
+              (bill.gstAmount ?? 0) > 0
+                ? `<tr>
+              <td class="p-1 pr-4 font-medium">GST</td>
+              <td class="p-1 text-right tabular-nums">${bill.gstAmount.toFixed(2)}</td>
+            </tr>`
+                : ""
+            }
+            ${
+              (bill.roundOff ?? 0) !== 0
+                ? `<tr>
+              <td class="p-1 pr-4 font-medium">Round Off</td>
+              <td class="p-1 text-right tabular-nums">${bill.roundOff.toFixed(2)}</td>
+            </tr>`
+                : ""
+            }
+            <tr class="border-t-2 border-black font-bold">
+              <td class="p-1 pr-4">TOTAL</td>
+              <td class="p-1 text-right tabular-nums">${(bill.billAmount ?? 0).toFixed(2)}</td>
+            </tr>
+            <tr>
+              <td class="p-1 pr-4 font-medium">Paid</td>
+              <td class="p-1 text-right tabular-nums">${(bill.paidAmount ?? 0).toFixed(2)}</td>
+            </tr>
+            ${
+              (bill.balanceDue ?? 0) > 0
+                ? `<tr class="font-bold">
+              <td class="p-1 pr-4">Balance Due</td>
+              <td class="p-1 text-right tabular-nums">${bill.balanceDue.toFixed(2)}</td>
+            </tr>`
+                : ""
+            }
+          </tbody>
+        </table>
+      </div>
+
+      <div class="mt-6 pt-3 border-t border-black text-center text-[10px] text-gray-700">
+        Thank you · ${esc(hospitalName)}
+      </div>
+    </div>
+  `
 }
 
 /**
@@ -164,6 +316,24 @@ export function BillsTab() {
     usePendingMedicines()
 
   const createBill = useCreatePharmacyBill()
+
+  // Bill printing (from history rows) — hospital profile is cached (5 min
+  // staleTime) so this doesn't refetch on every print, matching main's
+  // BillingTab.tsx lazy-load-and-cache behavior.
+  const { data: hospitalProfile } = useHospitalProfile()
+  const [printingBillId, setPrintingBillId] = useState<string | null>(null)
+
+  function handlePrintBill(bill: PharmacyBill) {
+    setPrintingBillId(bill.id)
+    try {
+      const html = buildPharmacyBillHtml(bill, hospitalProfile ?? null)
+      printReceiptsHtml({ title: `Pharmacy Bill ${bill.billNumber}`, contentHtml: html })
+    } catch {
+      toast.error("Could not print bill")
+    } finally {
+      setPrintingBillId(null)
+    }
+  }
 
   // Patient lookup state
   const [patientSearch, setPatientSearch] = useState("")
@@ -876,6 +1046,7 @@ export function BillsTab() {
                     <th className="text-right p-2 text-xs font-medium text-muted-foreground">Paid</th>
                     <th className="text-right p-2 text-xs font-medium text-muted-foreground">Due</th>
                     <th className="text-center p-2 text-xs font-medium text-muted-foreground">Status</th>
+                    <th className="text-center p-2 text-xs font-medium text-muted-foreground w-10">Print</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -914,6 +1085,22 @@ export function BillsTab() {
                             ? "PAID"
                             : bill.status}
                         </Badge>
+                      </td>
+                      <td className="p-2 text-center">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="h-7 w-7 p-0 text-muted-foreground hover:text-foreground"
+                          disabled={printingBillId === bill.id}
+                          onClick={() => handlePrintBill(bill)}
+                          aria-label={`Print bill ${bill.billNumber}`}
+                        >
+                          {printingBillId === bill.id ? (
+                            <Loader2 className="h-3.5 w-3.5 animate-spin" aria-hidden="true" />
+                          ) : (
+                            <Printer className="h-3.5 w-3.5" aria-hidden="true" />
+                          )}
+                        </Button>
                       </td>
                     </tr>
                   ))}

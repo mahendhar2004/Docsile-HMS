@@ -11,7 +11,7 @@
  *              accept doctor/department filter query params)
  */
 
-import { useState } from "react"
+import { useState, forwardRef, useImperativeHandle } from "react"
 import { Mail, CalendarClock } from "lucide-react"
 import { Badge } from "@/components/ui/badge"
 import {
@@ -51,7 +51,12 @@ function parseAdditionalNotes(raw: string): string {
 
 // ─── FollowUpsTab ─────────────────────────────────────────────────────────────
 
-export function FollowupsTab() {
+export interface FollowupsTabHandle {
+  /** Refetches the current page — main's header Refresh button lives one level up. */
+  refetch: () => void
+}
+
+export const FollowupsTab = forwardRef<FollowupsTabHandle>(function FollowupsTab(_props, ref) {
   const { can } = usePermissions()
   const canEdit = can("dues:edit")
 
@@ -69,6 +74,10 @@ export function FollowupsTab() {
     setPage,
     refetch,
   } = useFollowups()
+
+  useImperativeHandle(ref, () => ({
+    refetch: () => void refetch(),
+  }))
 
   // ── Column definitions ────────────────────────────────────────────────────
 
@@ -234,4 +243,4 @@ export function FollowupsTab() {
       )}
     </div>
   )
-}
+})

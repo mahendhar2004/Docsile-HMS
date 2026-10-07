@@ -46,14 +46,22 @@ export interface ServiceTemplateInput {
 
 // ─── Hospital Profile ─────────────────────────────────────────────────────────
 
-/** Verified against supabase/functions/settings/types.ts HospitalProfileSchema. */
+/**
+ * Verified against supabase/functions/settings/types.ts HospitalProfileSchema,
+ * and against the real `HospitalProfile` table DDL (db/create-hospital-db.sql)
+ * for `address`/`logoUrl` — real columns the backend's `.select('*')` already
+ * returns (supabase/functions/settings/repository.ts getHospitalProfile),
+ * just never declared here before (needed for pharmacy/optical bill receipts).
+ */
 export interface HospitalProfile {
   id: string
   name: string
   displayName?: string | null
+  address?: string | null
   phone?: string | null
   email?: string | null
   website?: string | null
+  logoUrl?: string | null
   registrationNo?: string | null
   gstin?: string | null
   registrationFeeEnabled?: boolean

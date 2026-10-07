@@ -9,7 +9,7 @@
  * Mutation:    PATCH /dues-followups/dues/{id}/mark-paid
  */
 
-import { useState } from "react"
+import { useState, forwardRef, useImperativeHandle } from "react"
 import { IndianRupee } from "lucide-react"
 import { Badge } from "@/components/ui/badge"
 import {
@@ -62,7 +62,12 @@ function dueBadgeVariant(
 
 // ─── DuesTab ──────────────────────────────────────────────────────────────────
 
-export function DuesTab() {
+export interface DuesTabHandle {
+  /** Refetches the current page — main's header Refresh button lives one level up. */
+  refetch: () => void
+}
+
+export const DuesTab = forwardRef<DuesTabHandle>(function DuesTab(_props, ref) {
   const { can } = usePermissions()
   const canEdit = can("dues:edit")
 
@@ -80,6 +85,10 @@ export function DuesTab() {
     setPage,
     refetch,
   } = useDues()
+
+  useImperativeHandle(ref, () => ({
+    refetch: () => void refetch(),
+  }))
 
   const markPaid = useMarkPaid(() => setPayTarget(null))
 
@@ -242,4 +251,4 @@ export function DuesTab() {
       )}
     </div>
   )
-}
+})
