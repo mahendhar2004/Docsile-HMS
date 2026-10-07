@@ -8,17 +8,18 @@
  *   - GET  /optical/settings  (settings:view)
  *   - PATCH /optical/settings (settings:edit)
  *
- * Note: HEADER_OPTIONS registry (from old app's @/components/receipts/headers/registry)
- * is not available in the Vite app. The settings field is a free-form string key.
- * The form uses a TextInput for the printHeaderKey value — the user enters the key
- * directly. If/when the header registry is ported, this can be replaced with a Select.
+ * The header registry (@/components/receipts/headers/registry) is now
+ * ported (this session), so the field is a proper Select over
+ * HEADER_OPTIONS, matching main exactly — previously a free-text input
+ * since the registry didn't exist yet.
  */
 
 import { useState, useEffect } from "react"
 import { Settings2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
-import { FormSection, FormField, TextInput, ErrorState } from "@/components/patterns"
+import { FormSection, FormField, SingleSelect, ErrorState } from "@/components/patterns"
 import { Skeleton } from "@/components/ui/skeleton"
+import { HEADER_OPTIONS } from "@/components/receipts/headers/registry"
 import { useOpticalSettings, useUpdateSettings } from "./hooks"
 
 interface SettingsTabProps {
@@ -30,16 +31,16 @@ export function SettingsTab({ canViewSettings, canEditSettings }: SettingsTabPro
   const { data: settings, isLoading, isError, error, refetch } = useOpticalSettings(canViewSettings)
   const updateMutation = useUpdateSettings()
 
-  const [printHeaderKey, setPrintHeaderKey] = useState("")
+  const [printHeaderKey, setPrintHeaderKey] = useState("default")
 
   useEffect(() => {
     if (settings) {
-      setPrintHeaderKey(settings.printHeaderKey ?? "")
+      setPrintHeaderKey(settings.printHeaderKey || "default")
     }
   }, [settings])
 
   function handleSave() {
-    updateMutation.mutate({ printHeaderKey: printHeaderKey || "" })
+    updateMutation.mutate({ printHeaderKey: printHeaderKey === "default" ? "" : printHeaderKey })
   }
 
   if (!canViewSettings) {
@@ -77,14 +78,14 @@ export function SettingsTab({ canViewSettings, canEditSettings }: SettingsTabPro
           <h3 className="text-sm font-semibold">Print Settings</h3>
         </div>
 
-        <FormSection title="" description="Enter the header key that appears on printed optical bills (e.g. 'default').">
-          <FormField label="Receipt Header Key">
-            <TextInput
+        <FormSection title="" description="Choose which letterhead header prints on optical bill receipts.">
+          <FormField label="Receipt Header">
+            <SingleSelect
+              options={HEADER_OPTIONS.map((o) => ({ value: o.key, label: o.label }))}
               value={printHeaderKey}
-              onChange={(e) => setPrintHeaderKey(e.target.value)}
-              placeholder="default"
+              onChange={(v) => setPrintHeaderKey(v ?? "default")}
               disabled={!canEditSettings}
-              aria-label="Print header key"
+              aria-label="Receipt header"
             />
           </FormField>
         </FormSection>
