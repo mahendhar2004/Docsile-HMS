@@ -122,13 +122,18 @@ export function useOpdPatientsStats(date: string, enabled: boolean, search = "")
  * Offset-paginated inpatient list, optionally filtered by date and/or status.
  * Endpoint: GET /patient-care/inpatients?date=YYYY-MM-DD&status=admitted|discharged&page=N&pageSize=N
  */
-export function useIpdInPatients(date: string | null, status: string | null) {
+export function useIpdInPatients(
+  date: string | null,
+  status: string | null,
+  recentDischargesOnly = false,
+) {
   const params = new URLSearchParams()
   if (date) params.set("date", date)
   if (status) params.set("status", status)
+  if (recentDischargesOnly) params.set("recentDischargesOnly", "true")
 
   return usePaginatedQuery<InPatient>({
-    queryKey: patientCareKeys.inpatientList(date, status),
+    queryKey: [...patientCareKeys.inpatientList(date, status), recentDischargesOnly],
     queryFn: ({ page, pageSize }) => {
       const qp = new URLSearchParams(params)
       qp.set("page", String(page))

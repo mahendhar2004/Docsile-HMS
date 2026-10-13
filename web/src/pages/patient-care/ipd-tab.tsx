@@ -8,7 +8,10 @@
  * stat-badge view, live on the separate /inpatients route (InPatientsPage)
  * now, matching main's separate fuller page.
  *
- * - No toolbar/filters — main's embedded IPD tab renders the table directly
+ * - No toolbar/filters — main's embedded IPD tab renders the table directly,
+ *   scoped server-side to currently-admitted patients plus anyone discharged
+ *   today or yesterday (recentDischargesOnly), so old discharge history
+ *   doesn't pile up in this quick-glance view
  * - Offset-paginated inpatient table via PaginatedDataTable
  * - Inpatient detail panel (Sheet)
  * - Status update (admitted / discharged)
@@ -384,7 +387,7 @@ export const IpdTab = forwardRef<IpdTabHandle, IpdTabProps>(function IpdTab(
     setPage,
     setPageSize,
     refetch,
-  } = useIpdInPatients(null, null)
+  } = useIpdInPatients(null, null, true)
 
   useImperativeHandle(ref, () => ({
     refetch: () => void refetch(),

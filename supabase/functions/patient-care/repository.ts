@@ -382,6 +382,7 @@ export class PatientCareRepository {
     status: string | undefined,
     page: number,
     pageSize: number,
+    recentDischargesOnly?: boolean,
   ): Promise<{ data: Record<string, unknown>[]; total: number }> {
     const from = (page - 1) * pageSize;
     const to = from + pageSize - 1;
@@ -401,7 +402,19 @@ export class PatientCareRepository {
         .lte('admissionDate', `${date}T23:59:59+05:30`);
     }
 
-    if (status) {
+    if (recentDischargesOnly) {
+      // Show currently-admitted inpatients plus anyone discharged today or
+      // yesterday (IST) — matches main's quick-glance IPD tab on /patients,
+      // which hides old discharge history instead of listing every
+      // inpatient record ever created.
+      const yesterday = new Date();
+      yesterday.setDate(yesterday.getDate() - 1);
+      const yyyy = yesterday.getFullYear();
+      const mm = String(yesterday.getMonth() + 1).padStart(2, '0');
+      const dd = String(yesterday.getDate()).padStart(2, '0');
+      const yStart = `${yyyy}-${mm}-${dd}T00:00:00+05:30`;
+      query = query.or(`status.neq.DISCHARGED,and(status.eq.DISCHARGED,dischargeDate.gte.${yStart})`);
+    } else if (status) {
       // Map simplified API values ('admitted'/'discharged') to DB enum values.
       // The DB may still use 'ADMITTED'/'DISCHARGED' from the old schema.
       const dbStatus =

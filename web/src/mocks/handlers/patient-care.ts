@@ -206,6 +206,7 @@ export const patientCareHandlers = [
     const url = new URL(request.url)
     const dateFilter = url.searchParams.get("date")
     const statusFilter = url.searchParams.get("status")
+    const recentDischargesOnly = url.searchParams.get("recentDischargesOnly") === "true"
     const page = Number(url.searchParams.get("page") ?? "1")
     const pageSize = Number(url.searchParams.get("pageSize") ?? "50")
 
@@ -213,7 +214,16 @@ export const patientCareHandlers = [
     if (dateFilter) {
       filtered = filtered.filter((ip) => ip.admissionDate.startsWith(dateFilter))
     }
-    if (statusFilter) {
+    if (recentDischargesOnly) {
+      const yesterday = new Date()
+      yesterday.setDate(yesterday.getDate() - 1)
+      yesterday.setHours(0, 0, 0, 0)
+      filtered = filtered.filter(
+        (ip) =>
+          ip.status !== "discharged" ||
+          (ip.dischargeDate && new Date(ip.dischargeDate) >= yesterday),
+      )
+    } else if (statusFilter) {
       filtered = filtered.filter((ip) => ip.status === statusFilter)
     }
 

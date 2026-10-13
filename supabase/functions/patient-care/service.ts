@@ -702,7 +702,13 @@ export async function createPrescriptionWithBilling(
  */
 export async function listInPatients(
   s: Session,
-  query: { date?: string; status?: string; page: number; pageSize: number },
+  query: {
+    date?: string;
+    status?: string;
+    recentDischargesOnly?: boolean;
+    page: number;
+    pageSize: number;
+  },
 ): Promise<{ data: InPatient[]; total: number }> {
   const repo = makeRepo(s);
   const { data, total } = await repo.listInPatients(
@@ -710,6 +716,7 @@ export async function listInPatients(
     query.status,
     query.page,
     query.pageSize,
+    query.recentDischargesOnly,
   );
   return { data: data.map(flattenInPatientPatient) as unknown as InPatient[], total };
 }
