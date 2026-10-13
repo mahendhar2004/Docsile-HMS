@@ -126,14 +126,16 @@ export function useIpdInPatients(
   date: string | null,
   status: string | null,
   recentDischargesOnly = false,
+  search = "",
 ) {
   const params = new URLSearchParams()
   if (date) params.set("date", date)
   if (status) params.set("status", status)
   if (recentDischargesOnly) params.set("recentDischargesOnly", "true")
+  if (search) params.set("search", search)
 
   return usePaginatedQuery<InPatient>({
-    queryKey: [...patientCareKeys.inpatientList(date, status), recentDischargesOnly],
+    queryKey: [...patientCareKeys.inpatientList(date, status), recentDischargesOnly, search],
     queryFn: ({ page, pageSize }) => {
       const qp = new URLSearchParams(params)
       qp.set("page", String(page))

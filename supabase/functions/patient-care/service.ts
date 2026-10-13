@@ -706,6 +706,7 @@ export async function listInPatients(
     date?: string;
     status?: string;
     recentDischargesOnly?: boolean;
+    search?: string;
     page: number;
     pageSize: number;
   },
@@ -717,6 +718,7 @@ export async function listInPatients(
     query.page,
     query.pageSize,
     query.recentDischargesOnly,
+    query.search,
   );
   return { data: data.map(flattenInPatientPatient) as unknown as InPatient[], total };
 }

@@ -383,6 +383,7 @@ export class PatientCareRepository {
     page: number,
     pageSize: number,
     recentDischargesOnly?: boolean,
+    search?: string,
   ): Promise<{ data: Record<string, unknown>[]; total: number }> {
     const from = (page - 1) * pageSize;
     const to = from + pageSize - 1;
@@ -420,6 +421,18 @@ export class PatientCareRepository {
       const dbStatus =
         status === 'admitted' ? 'ADMITTED' : status === 'discharged' ? 'DISCHARGED' : status;
       query = query.eq('status', dbStatus);
+    }
+
+    if (search) {
+      // ipNumber/guardianName/operationName live on InPatient itself (see
+      // db/create-hospital-db.sql); firstName/lastName/phone are matched on
+      // the joined Patient embed instead — InPatient's own name/phone
+      // columns are unreliable (see flattenInPatientPatient), matching
+      // main's "Search by name, IP number, phone..." box across all of
+      // ipNumber/name/phone/guardianName/operationName.
+      query = query.or(
+        `ipNumber.ilike.%${search}%,guardianName.ilike.%${search}%,operationName.ilike.%${search}%,patient.firstName.ilike.%${search}%,patient.lastName.ilike.%${search}%,patient.phone.ilike.%${search}%`,
+      );
     }
 
     const { data, error, count } = await query;

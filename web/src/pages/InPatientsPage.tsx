@@ -47,6 +47,7 @@ import {
   EmptyState,
   ErrorState,
   PageToolbar,
+  SearchBar,
 } from "@/components/patterns"
 import { usePermissions } from "@/hooks/usePermissions"
 import {
@@ -346,6 +347,8 @@ export default function InPatientsPage() {
   const canDischarge = can("inpatients:discharge")
 
   const [filterStatus, setFilterStatus] = useState<string>("")
+  const [searchQ, setSearchQ] = useState("")
+  const [listFilter, setListFilter] = useState("")
   const [selectedInPatientId, setSelectedInPatientId] = useState<string | null>(null)
   const [showDetail, setShowDetail] = useState(false)
   const [showAdmit, setShowAdmit] = useState(false)
@@ -353,7 +356,7 @@ export default function InPatientsPage() {
   const {
     data, total, page, pageSize, isLoading, isFetching, isError, error,
     setPage, setPageSize, refetch,
-  } = useIpdInPatients(null, filterStatus || null)
+  } = useIpdInPatients(null, filterStatus || null, false, listFilter)
 
   // Real backend-derived counts (meta.total from the same endpoint, filtered
   // by status) — not fabricated, but also not main's richer 5-stat
@@ -387,8 +390,22 @@ export default function InPatientsPage() {
       />
 
       {/* No date filter: main's InPatients toolbar is search + status pills
-          only (no DateNavigator) — confirmed against main's actual source. */}
+          only (no DateNavigator) — confirmed against main's actual source.
+          Search matches main's "Search by name, IP number, phone..." box:
+          Enter submits (no live-as-you-type filtering), server-side ilike
+          across ipNumber/guardianName/operationName/patient name+phone. */}
       <PageToolbar className="items-start sm:items-center">
+        <div className="w-full sm:w-64">
+          <SearchBar
+            variant="standalone"
+            value={searchQ}
+            onChange={setSearchQ}
+            onSearch={(v) => { setListFilter(v); setPage(1) }}
+            placeholder="Search by name, IP number, phone..."
+            aria-label="Search inpatients"
+          />
+        </div>
+
         <SegmentedControl
           options={STATUS_FILTER_OPTIONS}
           value={filterStatus}

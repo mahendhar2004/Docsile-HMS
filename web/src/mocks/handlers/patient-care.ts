@@ -207,6 +207,7 @@ export const patientCareHandlers = [
     const dateFilter = url.searchParams.get("date")
     const statusFilter = url.searchParams.get("status")
     const recentDischargesOnly = url.searchParams.get("recentDischargesOnly") === "true"
+    const searchFilter = (url.searchParams.get("search") ?? "").toLowerCase().trim()
     const page = Number(url.searchParams.get("page") ?? "1")
     const pageSize = Number(url.searchParams.get("pageSize") ?? "50")
 
@@ -225,6 +226,15 @@ export const patientCareHandlers = [
       )
     } else if (statusFilter) {
       filtered = filtered.filter((ip) => ip.status === statusFilter)
+    }
+    if (searchFilter) {
+      filtered = filtered.filter(
+        (ip) =>
+          ip.ipNumber.toLowerCase().includes(searchFilter) ||
+          (ip.firstName ?? "").toLowerCase().includes(searchFilter) ||
+          (ip.lastName ?? "").toLowerCase().includes(searchFilter) ||
+          (ip.phone ?? "").includes(searchFilter),
+      )
     }
 
     const { data, meta } = paginate(filtered, page, pageSize)
