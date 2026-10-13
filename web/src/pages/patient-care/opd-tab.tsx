@@ -453,6 +453,13 @@ export interface OpdTabProps {
    */
   viewDate: Date
   onViewDateChange: (date: Date) => void
+  /**
+   * Mirrors the active list-filter search text up to the parent, same
+   * reasoning as viewDate: main's Stats modal reads off the same `patients`
+   * state the search box filters, so when a search is active the header's
+   * Stats button reflects only the filtered subset — not the whole day.
+   */
+  onListFilterChange?: (filter: string) => void
   /** Opens /settings — matches main's Configurations shortcut in the FilterBar. */
   onOpenSettings: () => void
 }
@@ -472,6 +479,7 @@ export const OpdTab = forwardRef<OpdTabHandle, OpdTabProps>(function OpdTab({
   canViewReceipt,
   viewDate,
   onViewDateChange,
+  onListFilterChange,
   onOpenSettings,
 }, ref) {
   const [searchQ, setSearchQ] = useState("")
@@ -527,6 +535,7 @@ export const OpdTab = forwardRef<OpdTabHandle, OpdTabProps>(function OpdTab({
   // straight to that patient's detail panel via handleSearchSelect above.
   function handleListFilterSearch(value: string) {
     setListFilter(value)
+    onListFilterChange?.(value)
     setPage(1)
   }
 

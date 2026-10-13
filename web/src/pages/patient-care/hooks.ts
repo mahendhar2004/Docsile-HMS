@@ -97,16 +97,22 @@ export function useOpdPatients(date: string, search = "") {
 /**
  * Full (unpaginated, single-page-of-many) OPD patient list for a date, used
  * only to compute the header's Stats modal (counts + revenue breakdown) —
- * matches main's PatientsPage, which keeps the whole day's patients in
- * state and reduces over them directly. Disabled until the modal opens, so
- * it doesn't cost an extra request on every page load.
+ * matches main's PatientsPage, which keeps the whole day's (possibly
+ * search-filtered) patients in state and reduces over them directly, so a
+ * search active on the OPD table also scopes the Stats modal. Disabled
+ * until the modal opens, so it doesn't cost an extra request on every page
+ * load.
  */
-export function useOpdPatientsStats(date: string, enabled: boolean) {
+export function useOpdPatientsStats(date: string, enabled: boolean, search = "") {
   return useQuery({
-    queryKey: [...patientCareKeys.patientList(date), "stats"],
+    queryKey: [...patientCareKeys.patientList(date), "stats", search],
     queryFn: () =>
       apiClient
-        .get<Patient[]>(`/patient-care/patients?date=${date}&page=1&pageSize=1000`)
+        .get<Patient[]>(
+          `/patient-care/patients?date=${date}&page=1&pageSize=1000${
+            search ? `&search=${encodeURIComponent(search)}` : ""
+          }`,
+        )
         .then((res) => res.data),
     enabled,
   })

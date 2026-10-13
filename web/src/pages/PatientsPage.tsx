@@ -81,13 +81,17 @@ export default function PatientsPage() {
 
   const [activeTab, setActiveTab] = useState<"opd" | "ipd">(canViewOPD ? "opd" : "ipd")
   const [viewDate, setViewDate] = useState(() => new Date())
+  const [listFilter, setListFilter] = useState("")
   const [showStats, setShowStats] = useState(false)
 
   const opdRef = useRef<OpdTabHandle>(null)
   const ipdRef = useRef<IpdTabHandle>(null)
 
   const dateStr = toLocalDateISO(viewDate)
-  const statsQuery = useOpdPatientsStats(dateStr, showStats)
+  // Matches main: the Stats modal reads off the same (possibly
+  // search-filtered) patient list the OPD table shows, not always the
+  // whole day unfiltered.
+  const statsQuery = useOpdPatientsStats(dateStr, showStats, listFilter)
 
   // Neither OPD nor IPD is accessible — show access denied.
   if (!canViewOPD && !canViewIPD) {
@@ -181,6 +185,7 @@ export default function PatientsPage() {
               canViewReceipt={canViewReceipt}
               viewDate={viewDate}
               onViewDateChange={setViewDate}
+              onListFilterChange={setListFilter}
               onOpenSettings={() => navigate("/settings")}
             />
           </TabsContent>
