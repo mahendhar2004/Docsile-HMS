@@ -933,7 +933,7 @@ function PatientInfoCard({
               patient.age && `${patient.age}y`,
               patient.gender,
               patient.phone,
-              patient.doctorName && `Dr. ${patient.doctorName}`,
+              patient.doctorName,
             ]
               .filter(Boolean)
               .join(" · ")}

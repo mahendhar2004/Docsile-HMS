@@ -140,7 +140,7 @@ export function PendingTab() {
                   {[
                     p.age && `${p.age}y`,
                     p.gender,
-                    p.doctorName && `Dr. ${p.doctorName}`,
+                    p.doctorName,
                   ]
                     .filter(Boolean)
                     .join(" · ")}

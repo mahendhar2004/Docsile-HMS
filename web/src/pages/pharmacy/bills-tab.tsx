@@ -630,7 +630,7 @@ export function BillsTab() {
                     <p className="text-sm font-medium">{p.patientName}</p>
                     <p className="text-xs text-muted-foreground">
                       {p.patientId} &middot; {p.phone}
-                      {p.doctorName && ` · Dr. ${p.doctorName}`}
+                      {p.doctorName && ` · ${p.doctorName}`}
                     </p>
                   </div>
                   <div className="flex items-center gap-2">
@@ -679,7 +679,7 @@ export function BillsTab() {
             {prescriptionMeds.length > 0 && (
               <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
                 <p className="text-xs font-medium text-blue-700 mb-2">
-                  Prescription by Dr. {referredDoctor} ({prescriptionMeds.length} medicines)
+                  Prescription by {referredDoctor} ({prescriptionMeds.length} medicines)
                 </p>
                 <div className="flex flex-wrap gap-1.5">
                   {prescriptionMeds.map((med, i) => {

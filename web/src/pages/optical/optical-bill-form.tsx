@@ -360,7 +360,7 @@ export function OpticalBillForm({ onSuccess, onCancel }: OpticalBillFormProps) {
                   {patient.age && `${patient.age}y`}
                   {patient.gender && ` · ${patient.gender}`}
                   {patient.phone && ` · ${patient.phone}`}
-                  {patient.doctorName && ` · Dr. ${patient.doctorName}`}
+                  {patient.doctorName && ` · ${patient.doctorName}`}
                 </p>
               </div>
               <Button
