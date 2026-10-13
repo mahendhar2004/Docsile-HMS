@@ -15,6 +15,7 @@
  */
 
 import type { SupabaseClient } from '@supabase/supabase-js';
+import { withId } from '../_shared/db-helpers.ts';
 
 export class LabsRepository {
   constructor(
@@ -72,7 +73,7 @@ export class LabsRepository {
     const now = new Date().toISOString();
     const { data: lab, error } = await this.supabase
       .from('Lab')
-      .insert({
+      .insert(withId({
         name: data.name,
         description: data.description ?? null,
         location: data.location ?? null,
@@ -82,7 +83,7 @@ export class LabsRepository {
         hospital_id: this.hospitalId,
         createdAt: now,
         updatedAt: now,
-      })
+      }))
       .select()
       .single();
     if (error) throw error;
@@ -164,7 +165,7 @@ export class LabsRepository {
 
     if (investigations.length === 0) return;
 
-    const rows = investigations.map((inv) => ({
+    const rows = investigations.map((inv) => withId({
       labId,
       investigationId: inv.investigationId,
       amount: inv.amount,
@@ -246,7 +247,7 @@ export class LabsRepository {
     const now = new Date().toISOString();
     const { data: inv, error } = await this.supabase
       .from('InvestigationMaster')
-      .insert({
+      .insert(withId({
         name: data.name,
         category: data.category ?? null,
         description: data.description ?? null,
@@ -256,7 +257,7 @@ export class LabsRepository {
         hospital_id: this.hospitalId,
         createdAt: now,
         updatedAt: now,
-      })
+      }))
       .select()
       .single();
     if (error) throw error;
@@ -413,12 +414,12 @@ export class LabsRepository {
     const now = new Date().toISOString();
     const { data: bill, error } = await this.supabase
       .from('LabBill')
-      .insert({
+      .insert(withId({
         ...data,
         hospital_id: this.hospitalId,
         createdAt: now,
         updatedAt: now,
-      })
+      }))
       .select('*, lab:Lab(*)')
       .single();
     if (error) throw error;
@@ -436,7 +437,7 @@ export class LabsRepository {
     }[],
   ): Promise<void> {
     if (items.length === 0) return;
-    const { error } = await this.supabase.from('LabBillItem').insert(items);
+    const { error } = await this.supabase.from('LabBillItem').insert(items.map(withId));
     if (error) throw error;
   }
 
@@ -447,7 +448,7 @@ export class LabsRepository {
     paymentMode: string;
     receivedBy: string;
   }): Promise<void> {
-    const { error } = await this.supabase.from('LabPayment').insert(payment);
+    const { error } = await this.supabase.from('LabPayment').insert(withId(payment));
     if (error) throw error;
   }
 

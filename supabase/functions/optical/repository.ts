@@ -22,6 +22,7 @@
 
 import type { SupabaseClient } from '@supabase/supabase-js';
 import type { OpticalBillListQuery, StockSearchResult } from './types.ts';
+import { withId } from '../_shared/db-helpers.ts';
 
 export class OpticalRepository {
   constructor(private readonly supabase: SupabaseClient, private readonly hospitalId: string) {}
@@ -55,7 +56,7 @@ export class OpticalRepository {
   async insertProduct(row: Record<string, unknown>) {
     const { data, error } = await this.supabase
       .from('OpticalProduct')
-      .insert({ ...row, hospital_id: this.hospitalId })
+      .insert(withId({ ...row, hospital_id: this.hospitalId }))
       .select()
       .single();
     if (error) throw error;
@@ -131,7 +132,7 @@ export class OpticalRepository {
   async insertStock(row: Record<string, unknown>) {
     const { data, error } = await this.supabase
       .from('OpticalStock')
-      .insert({ ...row, hospital_id: this.hospitalId })
+      .insert(withId({ ...row, hospital_id: this.hospitalId }))
       .select()
       .single();
     if (error) throw error;
@@ -331,7 +332,7 @@ export class OpticalRepository {
   async insertBill(row: Record<string, unknown>) {
     const { data, error } = await this.supabase
       .from('OpticalBill')
-      .insert({ ...row, hospital_id: this.hospitalId })
+      .insert(withId({ ...row, hospital_id: this.hospitalId }))
       .select()
       .single();
     if (error) throw error;
@@ -343,7 +344,7 @@ export class OpticalRepository {
    * 4-datamodel.md exclusion list). Do NOT inject hospital_id here.
    */
   async insertBillItem(row: Record<string, unknown>) {
-    const { error } = await this.supabase.from('OpticalBillItem').insert(row);
+    const { error } = await this.supabase.from('OpticalBillItem').insert(withId(row));
     if (error) throw error;
   }
 

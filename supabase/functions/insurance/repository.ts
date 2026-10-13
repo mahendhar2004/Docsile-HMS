@@ -15,6 +15,7 @@
  */
 import type { SupabaseClient } from '@supabase/supabase-js';
 import type { InsuranceCompany, UpdateClaimDetails } from './types.ts';
+import { withTimestamps, withId } from '../_shared/db-helpers.ts';
 
 export class InsuranceRepository {
   constructor(
@@ -84,7 +85,7 @@ export class InsuranceRepository {
   }): Promise<Record<string, unknown>> {
     const { data, error } = await this.supabase
       .from('InsuranceCompany')
-      .insert({ ...row, isActive: true })
+      .insert(withTimestamps({ ...row, isActive: true }))
       .select()
       .single();
     if (error) throw error;
@@ -175,7 +176,7 @@ export class InsuranceRepository {
   async insertClaim(row: Record<string, unknown>): Promise<Record<string, unknown>> {
     const { data, error } = await this.supabase
       .from('InsuranceClaim')
-      .insert(row)
+      .insert(withId(row))
       .select()
       .single();
     if (error) throw error;

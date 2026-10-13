@@ -22,6 +22,7 @@
  */
 
 import type { SupabaseClient } from '@supabase/supabase-js';
+import { withId } from '../_shared/db-helpers.ts';
 
 export interface DailySummary {
   date: string;
@@ -193,13 +194,13 @@ export class BillingRepository {
   ): Promise<Record<string, unknown>> {
     const { data, error } = await this.supabase
       .from('Payment')
-      .insert({
+      .insert(withId({
         prescriptionId,
         amount,
         paymentMode,
         receivedBy,
         paymentDate: new Date().toISOString(),
-      })
+      }))
       .select('id, prescriptionId, amount, paymentMode, paymentRef, receivedBy, paymentDate, notes')
       .single();
 

@@ -10,6 +10,7 @@
  */
 import type { SupabaseClient } from '@supabase/supabase-js';
 import type { ExpenseCategoryRow, ExpenseRow } from './types.ts';
+import { withId } from '../_shared/db-helpers.ts';
 
 export class ExpensesRepository {
   constructor(
@@ -41,7 +42,7 @@ export class ExpensesRepository {
       updatedAt: string;
     }>,
   ): Promise<void> {
-    const { error } = await this.supabase.from('ExpenseCategory').insert(categories);
+    const { error } = await this.supabase.from('ExpenseCategory').insert(categories.map(withId));
     if (error) throw error;
   }
 
@@ -95,7 +96,7 @@ export class ExpensesRepository {
   }): Promise<ExpenseCategoryRow> {
     const { data, error } = await this.supabase
       .from('ExpenseCategory')
-      .insert(payload)
+      .insert(withId(payload))
       .select()
       .single();
     if (error) throw error;
@@ -206,7 +207,7 @@ export class ExpensesRepository {
   }): Promise<ExpenseRow> {
     const { data, error } = await this.supabase
       .from('Expense')
-      .insert(payload)
+      .insert(withId(payload))
       .select('*, category:ExpenseCategory(*)')
       .single();
     if (error) throw error;

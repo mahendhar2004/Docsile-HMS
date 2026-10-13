@@ -18,6 +18,7 @@
  */
 
 import type { SupabaseClient } from '@supabase/supabase-js';
+import { withId } from '../_shared/db-helpers.ts';
 
 export class PharmacyRepository {
   constructor(
@@ -66,7 +67,7 @@ export class PharmacyRepository {
     const now = new Date().toISOString();
     const { data, error } = await this.supabase
       .from('PharmacyMedicine')
-      .insert({
+      .insert(withId({
         ...row,
         unitOfMeasure: row.unitOfMeasure ?? 'Nos',
         gstPercent: row.gstPercent ?? 12,
@@ -74,7 +75,7 @@ export class PharmacyRepository {
         isActive: true,
         createdAt: now,
         updatedAt: now,
-      })
+      }))
       .select()
       .single();
     if (error) throw error;
@@ -156,14 +157,14 @@ export class PharmacyRepository {
     const now = new Date().toISOString();
     const { data, error } = await this.supabase
       .from('PharmacySupplier')
-      .insert({
+      .insert(withId({
         ...row,
         creditDays: row.creditDays ?? 30,
         hospital_id: this.hospitalId,
         isActive: true,
         createdAt: now,
         updatedAt: now,
-      })
+      }))
       .select()
       .single();
     if (error) throw error;
@@ -249,7 +250,7 @@ export class PharmacyRepository {
     const now = new Date().toISOString();
     const { data, error } = await this.supabase
       .from('PharmacyStock')
-      .insert({
+      .insert(withId({
         ...row,
         gstPercent: row.gstPercent ?? 12,
         unitsPerPack: row.unitsPerPack ?? 1,
@@ -257,7 +258,7 @@ export class PharmacyRepository {
         isActive: true,
         createdAt: now,
         updatedAt: now,
-      })
+      }))
       .select()
       .single();
     if (error) throw error;
@@ -426,12 +427,12 @@ export class PharmacyRepository {
     const now = new Date().toISOString();
     const { data, error } = await this.supabase
       .from('PurchaseOrder')
-      .insert({
+      .insert(withId({
         ...row,
         hospital_id: this.hospitalId,
         createdAt: now,
         updatedAt: now,
-      })
+      }))
       .select()
       .single();
     if (error) throw error;
@@ -453,7 +454,7 @@ export class PharmacyRepository {
   ) {
     const { error } = await this.supabase
       .from('PurchaseOrderItem')
-      .insert(items);
+      .insert(items.map(withId));
     if (error) throw error;
   }
 
@@ -591,12 +592,12 @@ export class PharmacyRepository {
     const now = new Date().toISOString();
     const { data, error } = await this.supabase
       .from('PharmacyBill')
-      .insert({
+      .insert(withId({
         ...row,
         hospital_id: this.hospitalId,
         createdAt: now,
         updatedAt: now,
-      })
+      }))
       .select()
       .single();
     if (error) throw error;
@@ -620,7 +621,7 @@ export class PharmacyRepository {
   ) {
     const { error } = await this.supabase
       .from('PharmacyBillItem')
-      .insert(items);
+      .insert(items.map(withId));
     if (error) throw error;
   }
 

@@ -15,6 +15,7 @@
  */
 
 import type { SupabaseClient } from '@supabase/supabase-js';
+import { withTimestamps } from '../_shared/db-helpers.ts';
 
 // ─── Private module helpers ────────────────────────────────────────────────────
 
@@ -338,7 +339,7 @@ export class WorkupRepository {
   }): Promise<Record<string, unknown>> {
     const { data, error } = await this.supabase
       .from('EyeReading')
-      .insert({ ...row, status: 'COMPLETED' })
+      .insert(withTimestamps({ ...row, status: 'COMPLETED' }))
       .select()
       .single();
 

@@ -31,6 +31,7 @@
 
 import type { SupabaseClient } from '@supabase/supabase-js';
 import { NotFoundError, ServiceUnavailableError } from '../_shared/errors.ts';
+import { withTimestamps, withId } from '../_shared/db-helpers.ts';
 
 export class PatientCareRepository {
   constructor(
@@ -226,7 +227,7 @@ export class PatientCareRepository {
   async insertPatient(payload: Record<string, unknown>): Promise<Record<string, unknown>> {
     const { data, error } = await this.supabase
       .from('Patient')
-      .insert({ ...payload, hospital_id: this.hospitalId })
+      .insert(withTimestamps({ ...payload, hospital_id: this.hospitalId }))
       .select()
       .single();
 
@@ -511,7 +512,7 @@ export class PatientCareRepository {
   async insertInPatient(payload: Record<string, unknown>): Promise<Record<string, unknown>> {
     const { data, error } = await this.supabase
       .from('InPatient')
-      .insert({ ...payload, hospital_id: this.hospitalId })
+      .insert(withTimestamps({ ...payload, hospital_id: this.hospitalId }))
       .select()
       .single();
 
@@ -601,7 +602,7 @@ export class PatientCareRepository {
   ): Promise<Record<string, unknown>> {
     const { data, error } = await this.supabase
       .from('Prescription')
-      .insert({ ...payload, hospital_id: this.hospitalId })
+      .insert(withTimestamps({ ...payload, hospital_id: this.hospitalId }))
       .select()
       .single();
 
@@ -635,13 +636,13 @@ export class PatientCareRepository {
   /** Batch-insert InvoiceItem rows. No-op when items array is empty. */
   async insertInvoiceItems(items: Record<string, unknown>[]): Promise<void> {
     if (items.length === 0) return;
-    const { error } = await this.supabase.from('InvoiceItem').insert(items);
+    const { error } = await this.supabase.from('InvoiceItem').insert(items.map(withId));
     if (error) throw new ServiceUnavailableError('Supabase', error.message);
   }
 
   /** Insert a single Payment record. */
   async insertPayment(payment: Record<string, unknown>): Promise<void> {
-    const { error } = await this.supabase.from('Payment').insert(payment);
+    const { error } = await this.supabase.from('Payment').insert(withId(payment));
     if (error) throw new ServiceUnavailableError('Supabase', error.message);
   }
 
@@ -710,7 +711,7 @@ export class PatientCareRepository {
   ): Promise<Record<string, unknown>> {
     const { data, error } = await this.supabase
       .from('DropdownOption')
-      .insert({ fieldName, value, createdBy, hospital_id: this.hospitalId })
+      .insert(withId({ fieldName, value, createdBy, hospital_id: this.hospitalId }))
       .select()
       .single();
 

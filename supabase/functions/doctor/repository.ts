@@ -21,6 +21,7 @@
  */
 
 import type { SupabaseClient } from '@supabase/supabase-js';
+import { withId } from '../_shared/db-helpers.ts';
 
 // ── Narrow row types ─────────────────────────────────────────────────────────
 
@@ -243,7 +244,7 @@ export class DoctorRepository {
   async insertPrescription(data: InsertPrescriptionData): Promise<PrescriptionRow> {
     const { data: row, error } = await this.supabase
       .from('Prescription')
-      .insert(data)
+      .insert(withId(data))
       .select()
       .single();
 
@@ -285,7 +286,7 @@ export class DoctorRepository {
   async insertMedicine(data: InsertMedicineData): Promise<unknown> {
     const { data: row, error } = await this.supabase
       .from('MedicineMaster')
-      .insert(data)
+      .insert(withId(data))
       .select()
       .single();
 
@@ -366,7 +367,7 @@ export class DoctorRepository {
   }
 
   async insertDropdownOption(data: InsertDropdownOptionData): Promise<void> {
-    const { error } = await this.supabase.from('DropdownOption').insert(data);
+    const { error } = await this.supabase.from('DropdownOption').insert(withId(data));
     if (error) {
       throw new Error(
         `Failed to insert DropdownOption fieldName="${data.fieldName}": ${error.message}`,

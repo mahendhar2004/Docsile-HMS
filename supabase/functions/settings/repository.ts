@@ -16,6 +16,7 @@
  */
 
 import type { SupabaseClient } from '@supabase/supabase-js';
+import { withTimestamps } from '../_shared/db-helpers.ts';
 
 export class SettingsRepository {
   constructor(private readonly supabase: SupabaseClient, private readonly hospitalId: string) {}
@@ -49,7 +50,7 @@ export class SettingsRepository {
   async insertServiceTemplate(row: Record<string, unknown>) {
     const { data, error } = await this.supabase
       .from('ServiceTemplate')
-      .insert({ ...row, hospital_id: this.hospitalId })
+      .insert(withTimestamps({ ...row, hospital_id: this.hospitalId }))
       .select()
       .single();
     if (error) throw error;
@@ -164,7 +165,7 @@ export class SettingsRepository {
   async insertPrescriptionTemplate(row: Record<string, unknown>) {
     const { data, error } = await this.supabase
       .from('PredefinedTemplate')
-      .insert({ ...row, hospital_id: this.hospitalId })
+      .insert(withTimestamps({ ...row, hospital_id: this.hospitalId }))
       .select()
       .single();
     if (error) throw error;
@@ -227,7 +228,7 @@ export class SettingsRepository {
   async insertInpatientTemplate(row: Record<string, unknown>) {
     const { data, error } = await this.supabase
       .from('InpatientTemplate')
-      .insert({ ...row, hospital_id: this.hospitalId })
+      .insert(withTimestamps({ ...row, hospital_id: this.hospitalId }))
       .select()
       .single();
     if (error) throw error;
@@ -290,7 +291,7 @@ export class SettingsRepository {
   async insertPackage(row: Record<string, unknown>) {
     const { data, error } = await this.supabase
       .from('PredefinedPackage')
-      .insert({ ...row, hospital_id: this.hospitalId })
+      .insert(withTimestamps({ ...row, hospital_id: this.hospitalId }))
       .select()
       .single();
     if (error) throw error;
@@ -343,7 +344,7 @@ export class SettingsRepository {
   async insertSurgery(row: Record<string, unknown>) {
     const { data, error } = await this.supabase
       .from('PredefinedSurgery')
-      .insert({ ...row, hospital_id: this.hospitalId })
+      .insert(withTimestamps({ ...row, hospital_id: this.hospitalId }))
       .select()
       .single();
     if (error) throw error;
@@ -397,7 +398,7 @@ export class SettingsRepository {
   async insertDischarge(row: Record<string, unknown>) {
     const { data, error } = await this.supabase
       .from('PredefinedDischarge')
-      .insert({ ...row, hospital_id: this.hospitalId })
+      .insert(withTimestamps({ ...row, hospital_id: this.hospitalId }))
       .select()
       .single();
     if (error) throw error;
@@ -462,7 +463,7 @@ export class SettingsRepository {
   async insertMedicineMaster(row: Record<string, unknown>) {
     const { data, error } = await this.supabase
       .from('MedicineMaster')
-      .insert({ ...row, hospital_id: this.hospitalId })
+      .insert(withTimestamps({ ...row, hospital_id: this.hospitalId }))
       .select()
       .single();
     if (error) throw error;

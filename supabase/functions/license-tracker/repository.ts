@@ -25,6 +25,7 @@
 
 import type { SupabaseClient } from '@supabase/supabase-js';
 import { NotFoundError, ServiceUnavailableError } from '../_shared/errors.ts';
+import { withTimestamps } from '../_shared/db-helpers.ts';
 import type { License } from './types.ts';
 
 const STORAGE_BUCKET = 'license-documents';
@@ -84,7 +85,7 @@ export class LicenseTrackerRepository {
   ): Promise<License> {
     const { data, error } = await this.supabase
       .from('License')
-      .insert({ ...payload, hospital_id: this.hospitalId })
+      .insert(withTimestamps({ ...payload, hospital_id: this.hospitalId }))
       .select()
       .single();
 

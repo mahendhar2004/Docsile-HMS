@@ -13,6 +13,7 @@
  * Role queries carry no hospital_id filter — Role is tenant-global.
  */
 import type { SupabaseClient } from '@supabase/supabase-js';
+import { withId } from '../_shared/db-helpers.ts';
 
 const USER_COLUMNS =
   'id, email, fullName, phone, role, department, designation, employeeId, ' +
@@ -237,7 +238,7 @@ export class StaffRepository {
     const now = new Date().toISOString();
     const { data, error } = await this.supabase
       .from('Role')
-      .insert({
+      .insert(withId({
         name: row.name,
         displayName: row.displayName,
         description: row.description,
@@ -246,7 +247,7 @@ export class StaffRepository {
         isActive: true,
         createdAt: now,
         updatedAt: now,
-      })
+      }))
       .select(ROLE_COLUMNS)
       .single();
     if (error) throw new Error(`Failed to create role "${row.name}": ${error.message}`);
@@ -304,7 +305,7 @@ export class StaffRepository {
         throw new Error(`Failed to update system role "${role.name}": ${error.message}`);
       }
     } else {
-      const { error } = await this.supabase.from('Role').insert({
+      const { error } = await this.supabase.from('Role').insert(withId({
         name: role.name,
         displayName: role.displayName,
         description: role.description,
@@ -313,7 +314,7 @@ export class StaffRepository {
         isActive: true,
         createdAt: now,
         updatedAt: now,
-      });
+      }));
       if (error) {
         throw new Error(`Failed to insert system role "${role.name}": ${error.message}`);
       }
