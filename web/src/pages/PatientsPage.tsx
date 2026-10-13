@@ -8,13 +8,19 @@
  * Header actions match main's exact placement (previously these lived
  * inside the OPD tab's own toolbar, or were missing entirely):
  *   - Refresh (whichever tab is active — via a forwarded ref per tab)
- *   - Stats (OPD only — today's counts + revenue, main's exact modal)
+ *   - Stats — unconditional on both tabs, matching main exactly (main's own
+ *     Stats modal is OPD-scoped regardless of which tab is active too, so
+ *     this isn't a fabricated behavior, just main's own quirk preserved)
  *   - Ask Sitha (toggles the same global panel every page's header button
  *     shares, via useAiContextStore)
- *   - Register Patient (OPD only — IPD admission lives on /inpatients, an
- *     already-established decision; main's own header conditionally shows
- *     this for whichever tab is active, but this app deliberately doesn't
- *     duplicate the IPD admission flow here)
+ *   - Add Patient — unconditional on both tabs (gated per-tab by
+ *     patients:create / inpatients:create, matching main exactly); opens
+ *     OPD's Register dialog inline, or navigates to /inpatients for IPD
+ *     (that page owns the real admission flow — an already-established
+ *     decision not to duplicate it here, main itself opens the same modal
+ *     inline for both, which this doesn't replicate 1:1, but the button's
+ *     constant presence — the part that was actually causing a visible
+ *     layout shift between tabs — now matches)
  *
  * Placement note: main embeds the Out-Patients/In-Patients Tabs switcher
  * directly in the sticky header bar itself (center column of a 3-column
@@ -64,6 +70,7 @@ export default function PatientsPage() {
   const canViewOPD = can("patients:view")
   const canViewIPD = can("inpatients:view")
   const canCreatePatient = can("patients:create")
+  const canCreateInPatient = can("inpatients:create")
   const canEditPatient = can("patients:edit")
   const canDeletePatient = can("patients:delete")
   const canEditInPatient = can("inpatients:edit")
@@ -122,17 +129,20 @@ export default function PatientsPage() {
           }
           actions={
             <>
-              {activeTab === "opd" && (
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setShowStats(true)}
-                  aria-label="View today's stats"
-                >
-                  <BarChart2 className="h-3.5 w-3.5 mr-1.5" aria-hidden />
-                  Stats
-                </Button>
-              )}
+              {/* Stats and Add Patient are unconditional on both tabs in main
+                  (main's own Stats modal is OPD-scoped regardless of which
+                  tab is active too) — previously gated to OPD only here,
+                  which caused the header to visibly shrink/shift on every
+                  tab switch. */}
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setShowStats(true)}
+                aria-label="View today's stats"
+              >
+                <BarChart2 className="h-3.5 w-3.5 mr-1.5" aria-hidden />
+                Stats
+              </Button>
 
               <Button
                 variant={sithaOpen ? "primary" : "outline"}
@@ -144,10 +154,16 @@ export default function PatientsPage() {
                 {sithaOpen ? "Hide Sitha" : "Ask Sitha"}
               </Button>
 
-              {activeTab === "opd" && canCreatePatient && (
-                <Button size="sm" onClick={() => opdRef.current?.openRegister()}>
+              {(activeTab === "opd" ? canCreatePatient : canCreateInPatient) && (
+                <Button
+                  size="sm"
+                  onClick={() => {
+                    if (activeTab === "opd") opdRef.current?.openRegister()
+                    else navigate("/inpatients")
+                  }}
+                >
                   <Plus className="h-4 w-4 mr-1.5" aria-hidden />
-                  Register Patient
+                  Add Patient
                 </Button>
               )}
             </>
