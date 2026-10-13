@@ -20,11 +20,19 @@ function getISTDateString(): string {
   return new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Kolkata' });
 }
 
-/** Return UTC ISO strings for the start and end of the given IST calendar day. */
+/**
+ * Return raw IST day-boundary strings for direct use in Postgres `timestamp`
+ * (no timezone) column comparisons — e.g. Prescription.prescriptionDate.
+ * Postgres ignores any offset on a literal cast to that type, so these raw
+ * "+05:30" strings compare correctly against values stored the same way.
+ * Do NOT convert through `new Date(...).toISOString()` — that performs a
+ * real UTC conversion, shifting the bound back by 5.5 hours and excluding
+ * prescriptions actually written within the intended IST calendar day.
+ */
 function getISTDayBounds(istDate: string): { start: string; end: string } {
   return {
-    start: new Date(`${istDate}T00:00:00+05:30`).toISOString(),
-    end: new Date(`${istDate}T23:59:59+05:30`).toISOString(),
+    start: `${istDate}T00:00:00+05:30`,
+    end: `${istDate}T23:59:59+05:30`,
   };
 }
 

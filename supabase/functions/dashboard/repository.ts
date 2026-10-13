@@ -46,11 +46,31 @@ function getISTDateStr(): string {
  * Matches the identical helper in billing/repository.ts.
  *   IST midnight → UTC 18:30 of the previous calendar day
  *   IST 23:59:59.999 → UTC 18:29:59.999 of the same calendar day
+ *
+ * Only correct for columns whose value is populated by Postgres itself
+ * (`DEFAULT CURRENT_TIMESTAMP`, e.g. billDate, createdAt) — those are always
+ * naive UTC-clock digits, so a real UTC-converted bound compares correctly.
  */
 function istDayBounds(dateStr: string): { from: string; to: string } {
   return {
     from: new Date(`${dateStr}T00:00:00.000+05:30`).toISOString(),
     to:   new Date(`${dateStr}T23:59:59.999+05:30`).toISOString(),
+  };
+}
+
+/**
+ * Raw (non-UTC-converted) IST day bounds, for columns the APPLICATION writes
+ * directly (appointmentDate, prescriptionDate, admissionDate, readingDate —
+ * all TIMESTAMP-without-timezone, written as naive IST-clock digits by
+ * patient-care/doctor/workup's service layers). Postgres ignores any offset
+ * on a literal cast to that column type, so these raw strings — not
+ * `new Date(...).toISOString()`, which performs a real UTC conversion and
+ * shifts the bound back by 5.5 hours — compare correctly against them.
+ */
+function istDayBoundsRaw(dateStr: string): { from: string; to: string } {
+  return {
+    from: `${dateStr}T00:00:00.000+05:30`,
+    to: `${dateStr}T23:59:59.999+05:30`,
   };
 }
 
@@ -116,6 +136,7 @@ export class DashboardRepository {
     const hid = this.hospitalId;
     const dateStr = getISTDateStr();
     const { from, to } = istDayBounds(dateStr);
+    const { from: fromRaw, to: toRaw } = istDayBoundsRaw(dateStr);
 
     const [
       patientsRes,
@@ -132,16 +153,16 @@ export class DashboardRepository {
         .from('Patient')
         .select('*', { count: 'exact', head: true })
         .eq('hospital_id', hid)
-        .gte('appointmentDate', from)
-        .lte('appointmentDate', to),
+        .gte('appointmentDate', fromRaw)
+        .lte('appointmentDate', toRaw),
 
       // 2. Prescriptions today — non-CANCELLED (matches billing module getDailySummary)
       this.supabase
         .from('Prescription')
         .select('total, amountPaid, balanceDue')
         .eq('hospital_id', hid)
-        .gte('prescriptionDate', from)
-        .lte('prescriptionDate', to)
+        .gte('prescriptionDate', fromRaw)
+        .lte('prescriptionDate', toRaw)
         .neq('status', 'CANCELLED'),
 
       // 3. PharmacyBills today — non-CANCELLED (field names from analytics/repository.ts)
@@ -175,8 +196,8 @@ export class DashboardRepository {
         .from('InPatient')
         .select('netAmount, totalReceivedAmount, balanceAmount')
         .eq('hospital_id', hid)
-        .gte('admissionDate', from)
-        .lte('admissionDate', to),
+        .gte('admissionDate', fromRaw)
+        .lte('admissionDate', toRaw),
 
       // 7. Currently active inpatients (not discharged, any admission date)
       this.supabase
@@ -190,8 +211,8 @@ export class DashboardRepository {
         .from('EyeReading')
         .select('*', { count: 'exact', head: true })
         .eq('hospital_id', hid)
-        .gte('readingDate', from)
-        .lte('readingDate', to),
+        .gte('readingDate', fromRaw)
+        .lte('readingDate', toRaw),
     ]);
 
     if (patientsRes.error)  throw new Error(`dashboard.summary patients query failed: ${patientsRes.error.message}`);

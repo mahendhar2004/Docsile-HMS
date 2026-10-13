@@ -488,8 +488,12 @@ export async function getPendingMedicines(s: Session) {
 
   // Today's date in IST (Asia/Kolkata), formatted as YYYY-MM-DD
   const target = new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Kolkata' });
-  const start = new Date(`${target}T00:00:00+05:30`).toISOString();
-  const end = new Date(`${target}T23:59:59+05:30`).toISOString();
+  // Raw strings, not `new Date(...).toISOString()` — Prescription.prescriptionDate
+  // is a TIMESTAMP column with no timezone, so Postgres ignores any offset on a
+  // literal cast; converting through toISOString() instead performs a real UTC
+  // shift, excluding prescriptions actually written within the IST calendar day.
+  const start = `${target}T00:00:00+05:30`;
+  const end = `${target}T23:59:59+05:30`;
 
   const prescriptions = await repo.findPendingPrescriptions(start, end);
   if (prescriptions.length === 0) return [];

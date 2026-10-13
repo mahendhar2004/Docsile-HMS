@@ -228,12 +228,20 @@ export async function createPatient(s: Session, body: CreatePatientBody): Promis
     phone: body.phone,
     email: body.email ?? null,
     gender: body.gender,
+    // appointmentDate/dateOfBirth are TIMESTAMP columns with no timezone —
+    // Postgres silently ignores any offset on a literal cast to that type, so
+    // passing the raw "+05:30" string through unmodified stores exactly the
+    // IST calendar date intended. Wrapping it in `new Date(...).toISOString()`
+    // instead performs a REAL UTC conversion in JS first (shifting the stored
+    // wall-clock value back by 5.5 hours), which silently filed every patient
+    // under the PREVIOUS calendar day and made them invisible in the OPD
+    // table / Stats modal for the date they were actually registered on.
     dateOfBirth: body.dateOfBirth
-      ? new Date(`${body.dateOfBirth}T00:00:00+05:30`).toISOString()
+      ? `${body.dateOfBirth}T00:00:00+05:30`
       : null,
     address: body.address ?? null,
     patientType: body.patientType,
-    appointmentDate: new Date(`${body.appointmentDate}T00:00:00+05:30`).toISOString(),
+    appointmentDate: `${body.appointmentDate}T00:00:00+05:30`,
     status: body.status ?? 'REGISTERED',
     referredBy: body.referredBy ?? null,
     createdById: s.id,
@@ -297,10 +305,10 @@ export async function updatePatient(
   delete patch.hospital_id;
 
   if (body.appointmentDate) {
-    patch.appointmentDate = new Date(`${body.appointmentDate}T00:00:00+05:30`).toISOString();
+    patch.appointmentDate = `${body.appointmentDate}T00:00:00+05:30`;
   }
   if (body.dateOfBirth) {
-    patch.dateOfBirth = new Date(`${body.dateOfBirth}T00:00:00+05:30`).toISOString();
+    patch.dateOfBirth = `${body.dateOfBirth}T00:00:00+05:30`;
   }
 
   const updated = await repo.updatePatientById(id, patch);
@@ -350,7 +358,7 @@ export async function movePatientToDate(
 
   // We need the current appointmentDate to record as movedFromDate
   const patient = await repo.findPatientById(id);
-  const newDate = new Date(`${appointmentDate}T00:00:00+05:30`).toISOString();
+  const newDate = `${appointmentDate}T00:00:00+05:30`;
 
   await repo.updatePatientById(id, {
     appointmentDate: newDate,
@@ -660,7 +668,7 @@ export async function createPrescriptionWithBilling(
       paymentDate: paymentAmount > 0 ? now : null,
       status: 'BILLING_ONLY',
       prescriptionDate: rxFields.prescriptionDate
-        ? new Date(`${rxFields.prescriptionDate}T00:00:00+05:30`).toISOString()
+        ? `${rxFields.prescriptionDate}T00:00:00+05:30`
         : now,
       createdBy: s.id,
     });
@@ -814,8 +822,11 @@ export async function createInPatient(
   const nextNum = await repo.getNextIpNumber();
   const ipNumber = `IP-${String(nextNum).padStart(4, '0')}`;
 
+  // admissionDate/dischargeDate are TIMESTAMP columns with no timezone — see
+  // the note on createPatient's appointmentDate above for why this must NOT
+  // go through `new Date(...).toISOString()`.
   const parseDate = (val: string): string =>
-    new Date(val.includes('T') ? val : `${val}T00:00:00+05:30`).toISOString();
+    val.includes('T') ? val : `${val}T00:00:00+05:30`;
 
   const now = new Date().toISOString();
   const payload: Record<string, unknown> = {

@@ -14,13 +14,19 @@ function toISTDateISO(): string {
 }
 
 /**
- * Get IST day boundaries for a YYYY-MM-DD date string (or today if omitted).
+ * Get IST day boundaries for a YYYY-MM-DD date string (or today if omitted),
+ * as raw strings for direct use in Postgres `timestamp` (no timezone) column
+ * comparisons. Postgres ignores any offset on a literal cast to that type, so
+ * these raw "+05:30" strings compare correctly against values stored the same
+ * way. Do NOT convert these through `new Date(...).toISOString()` — that
+ * performs a real UTC conversion, shifting the bound back by 5.5 hours and
+ * excluding records actually within the intended IST calendar day.
  */
-function getISTDayBounds(dateStr?: string): { start: Date; end: Date } {
+function getISTDayBounds(dateStr?: string): { start: string; end: string } {
   const d = dateStr ?? toISTDateISO();
   return {
-    start: new Date(`${d}T00:00:00+05:30`),
-    end: new Date(`${d}T23:59:59.999+05:30`),
+    start: `${d}T00:00:00+05:30`,
+    end: `${d}T23:59:59.999+05:30`,
   };
 }
 
@@ -103,9 +109,7 @@ export async function saveEyeReading(
       )
     : body.readingDate;
 
-  const { start, end } = getISTDayBounds(readingDateStr);
-  const startISO = start.toISOString();
-  const endISO = end.toISOString();
+  const { start: startISO, end: endISO } = getISTDayBounds(readingDateStr);
 
   // Check for an existing EyeReading today to determine upsert direction
   const existing = await repo.findTodayEyeReading(patientId, startISO, endISO);
@@ -131,9 +135,15 @@ export async function saveEyeReading(
 
   return repo.insertEyeReading({
     patientId,
-    // Convert date-only string to IST midnight UTC timestamp, matching old code:
-    // new Date(data.readingDate + "T00:00:00+05:30").toISOString()
-    readingDate: new Date(`${readingDateStr}T00:00:00+05:30`).toISOString(),
+    // EyeReading.readingDate is a TIMESTAMP column with no timezone. Postgres
+    // ignores any offset on a literal cast to that type, so the raw string
+    // below stores exactly the intended IST calendar date. The old code's
+    // `new Date(...).toISOString()` instead performed a real UTC conversion,
+    // shifting the stored value back by 5.5 hours and filing every reading
+    // under the previous calendar day — invisible in any same-day query
+    // (findUnlinkedPrescription above, the workup queue) that uses the raw
+    // string convention, as this repository's own queries already do.
+    readingDate: `${readingDateStr}T00:00:00+05:30`,
     ...eyeFields,
     createdById: session.id,
     hospital_id: session.hospitalId,

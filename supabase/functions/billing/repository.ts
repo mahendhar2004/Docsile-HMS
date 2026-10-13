@@ -41,14 +41,18 @@ export interface PrescriptionDetail {
 }
 
 /**
- * Convert a YYYY-MM-DD date string (as an IST calendar date) to UTC ISO bounds for DB queries.
- * IST is UTC+5:30 — IST midnight for a given date = UTC 18:30 of the previous calendar day.
- * Example: "2024-01-15" → from: "2024-01-14T18:30:00.000Z", to: "2024-01-15T18:29:59.999Z"
+ * Raw (non-UTC-converted) IST day bounds for a YYYY-MM-DD date string, for use
+ * against Prescription.prescriptionDate — a TIMESTAMP-without-timezone column
+ * written as naive IST-clock digits by patient-care/doctor's service layers.
+ * Postgres ignores any offset on a literal cast to that column type, so this
+ * raw string — not `new Date(...).toISOString()`, which performs a real UTC
+ * conversion and shifts the bound back by 5.5 hours — compares correctly.
  */
 function istDayBounds(dateStr: string): { from: string; to: string } {
-  const from = new Date(`${dateStr}T00:00:00.000+05:30`).toISOString();
-  const to = new Date(`${dateStr}T23:59:59.999+05:30`).toISOString();
-  return { from, to };
+  return {
+    from: `${dateStr}T00:00:00.000+05:30`,
+    to: `${dateStr}T23:59:59.999+05:30`,
+  };
 }
 
 export class BillingRepository {

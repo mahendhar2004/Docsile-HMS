@@ -36,13 +36,25 @@ function toLocalDateISO(): string {
 
 /**
  * Returns IST midnight-to-midnight boundaries for a given YYYY-MM-DD string (or
- * today if omitted), as UTC Date objects. Safe on any server timezone.
+ * today if omitted), as UTC Date objects (start/end, for in-memory millisecond
+ * comparisons against already-fetched records) AND as raw strings (startISO/
+ * endISO, for direct use in Postgres `timestamp`-without-timezone column
+ * queries — appointmentDate/prescriptionDate/readingDate are all this type).
+ * Postgres ignores any offset on a literal cast to that type, so the raw
+ * "+05:30" strings compare correctly against values stored the same way.
+ * Do NOT use `start.toISOString()`/`end.toISOString()` for the DB query bound
+ * — that performs a real UTC conversion, shifting the bound back by 5.5 hours
+ * and excluding patients actually within the intended IST calendar day.
  */
-function getISTDayBounds(dateStr?: string): { start: Date; end: Date } {
+function getISTDayBounds(
+  dateStr?: string,
+): { start: Date; end: Date; startISO: string; endISO: string } {
   const d = dateStr ?? toLocalDateISO();
   return {
     start: new Date(d + 'T00:00:00+05:30'),
     end: new Date(d + 'T23:59:59.999+05:30'),
+    startISO: `${d}T00:00:00+05:30`,
+    endISO: `${d}T23:59:59.999+05:30`,
   };
 }
 
@@ -80,11 +92,9 @@ function makeRepo(session: Session): DoctorRepository {
 
 export async function getDoctorQueue(session: Session): Promise<unknown[]> {
   const repo = makeRepo(session);
-  const { start, end } = getISTDayBounds();
+  const { start, end, startISO, endISO } = getISTDayBounds();
   const startMs = start.getTime();
   const endMs = end.getTime();
-  const startISO = start.toISOString();
-  const endISO = end.toISOString();
 
   const patients = (await repo.getQueue(startISO, endISO)) as Array<Record<string, unknown>>;
 
@@ -198,7 +208,7 @@ export async function savePrescription(
   body: Prescription,
 ): Promise<unknown> {
   const repo = makeRepo(session);
-  const { start, end } = getISTDayBounds();
+  const { startISO, endISO } = getISTDayBounds();
   const now = new Date().toISOString();
 
   const medicalData = {
@@ -216,8 +226,10 @@ export async function savePrescription(
     additionalNotes: body.additionalNotes ?? null,
     medicines: JSON.stringify(body.medicines ?? []),
     investigations: JSON.stringify(body.investigations ?? []),
+    // Prescription.followUpDate is a TIMESTAMP column with no timezone — raw
+    // string, not toISOString(), for the same reason as appointmentDate above.
     followUpDate: body.followUpDate
-      ? new Date(body.followUpDate + 'T00:00:00+05:30').toISOString()
+      ? `${body.followUpDate}T00:00:00+05:30`
       : null,
     notes: body.notes ?? null,
     status: 'COMPLETED',
@@ -225,8 +237,8 @@ export async function savePrescription(
 
   const existing = await repo.findTodayPrescription(
     patientId,
-    start.toISOString(),
-    end.toISOString(),
+    startISO,
+    endISO,
   );
 
   if (existing) {

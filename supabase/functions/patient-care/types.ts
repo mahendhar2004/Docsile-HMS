@@ -171,7 +171,13 @@ export const PatientListQuerySchema = z.object({
   date: z.string().date().optional(),
   search: z.string().optional(),
   page: z.coerce.number().int().positive().default(1),
-  pageSize: z.coerce.number().int().positive().max(100).default(50),
+  // 1000 (not 100) — the Stats modal's useOpdPatientsStats hook bulk-fetches
+  // an entire day's patients in one request (pageSize=1000) to compute
+  // counts/revenue client-side, matching main's own behavior of keeping the
+  // whole day in state. A 100 cap rejected that request outright (400), so
+  // the Stats modal silently showed zeros for every hospital regardless of
+  // how many patients were actually registered that day.
+  pageSize: z.coerce.number().int().positive().max(1000).default(50),
 });
 
 export const PatientSearchQuerySchema = z.object({
