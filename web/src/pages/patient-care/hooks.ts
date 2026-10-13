@@ -75,15 +75,20 @@ export const patientCareKeys = {
 // ─── Query hooks ──────────────────────────────────────────────────────────────
 
 /**
- * Offset-paginated OPD patient list for a specific appointment date.
- * Endpoint: GET /patient-care/patients?date=YYYY-MM-DD&page=N&pageSize=N
+ * Offset-paginated OPD patient list for a specific appointment date, with an
+ * optional server-side search filter — matches main's PatientsPage, whose
+ * "Search by ID, name, phone..." box re-fetches the whole day's list scoped
+ * to the search term (ilike across patientId/phone/firstName/lastName).
+ * Endpoint: GET /patient-care/patients?date=YYYY-MM-DD&search=&page=N&pageSize=N
  */
-export function useOpdPatients(date: string) {
+export function useOpdPatients(date: string, search = "") {
   return usePaginatedQuery<Patient>({
-    queryKey: patientCareKeys.patientList(date),
+    queryKey: [...patientCareKeys.patientList(date), search],
     queryFn: ({ page, pageSize }) =>
       apiClient.get<Patient[]>(
-        `/patient-care/patients?date=${date}&page=${page}&pageSize=${pageSize}`,
+        `/patient-care/patients?date=${date}&page=${page}&pageSize=${pageSize}${
+          search ? `&search=${encodeURIComponent(search)}` : ""
+        }`,
       ),
     initialPageSize: 50,
   })

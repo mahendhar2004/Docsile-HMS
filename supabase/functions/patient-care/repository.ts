@@ -52,6 +52,7 @@ export class PatientCareRepository {
     date: string | undefined,
     page: number,
     pageSize: number,
+    search?: string,
   ): Promise<{ data: Record<string, unknown>[]; total: number }> {
     const from = (page - 1) * pageSize;
     const to = from + pageSize - 1;
@@ -73,6 +74,12 @@ export class PatientCareRepository {
       query = query
         .gte('appointmentDate', `${date}T00:00:00+05:30`)
         .lte('appointmentDate', `${date}T23:59:59+05:30`);
+    }
+
+    if (search) {
+      query = query.or(
+        `patientId.ilike.%${search}%,phone.ilike.%${search}%,firstName.ilike.%${search}%,lastName.ilike.%${search}%`,
+      );
     }
 
     const { data, error, count } = await query;

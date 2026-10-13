@@ -85,10 +85,15 @@ function computePatientStatus(
  */
 export async function listPatients(
   s: Session,
-  query: { date?: string; page: number; pageSize: number },
+  query: { date?: string; search?: string; page: number; pageSize: number },
 ): Promise<{ data: Patient[]; total: number }> {
   const repo = makeRepo(s);
-  const { data: rows, total } = await repo.listPatients(query.date, query.page, query.pageSize);
+  const { data: rows, total } = await repo.listPatients(
+    query.date,
+    query.page,
+    query.pageSize,
+    query.search,
+  );
 
   const data = rows.map((p) => {
     const prescriptions = (p.prescriptions ?? []) as {

@@ -88,12 +88,23 @@ export const patientCareHandlers = [
   http.get("/patient-care/patients", ({ request }) => {
     const url = new URL(request.url)
     const dateFilter = url.searchParams.get("date")
+    const searchFilter = (url.searchParams.get("search") ?? "").toLowerCase().trim()
     const page = Number(url.searchParams.get("page") ?? "1")
     const pageSize = Number(url.searchParams.get("pageSize") ?? "50")
 
-    const filtered = dateFilter
+    let filtered = dateFilter
       ? patients.filter((p) => p.appointmentDate.startsWith(dateFilter))
       : patients
+
+    if (searchFilter) {
+      filtered = filtered.filter(
+        (p) =>
+          p.firstName.toLowerCase().includes(searchFilter) ||
+          p.lastName.toLowerCase().includes(searchFilter) ||
+          p.patientId.toLowerCase().includes(searchFilter) ||
+          p.phone.includes(searchFilter),
+      )
+    }
 
     const { data, meta } = paginate(filtered, page, pageSize)
     return ok(data, meta)

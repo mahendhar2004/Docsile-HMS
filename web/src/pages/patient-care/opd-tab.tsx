@@ -475,6 +475,7 @@ export const OpdTab = forwardRef<OpdTabHandle, OpdTabProps>(function OpdTab({
   onOpenSettings,
 }, ref) {
   const [searchQ, setSearchQ] = useState("")
+  const [listFilter, setListFilter] = useState("")
   const [selectedPatientId, setSelectedPatientId] = useState<string | null>(null)
   const [showDetail, setShowDetail] = useState(false)
   const [showRegister, setShowRegister] = useState(false)
@@ -483,7 +484,9 @@ export const OpdTab = forwardRef<OpdTabHandle, OpdTabProps>(function OpdTab({
 
   const dateStr = format(viewDate, "yyyy-MM-dd")
 
-  // Offset-paginated OPD list for the selected date.
+  // Offset-paginated OPD list for the selected date, scoped to `listFilter` —
+  // matches main's "Search by ID, name, phone..." box, which re-fetches the
+  // whole day's list on submit rather than filtering client-side.
   const {
     data,
     total,
@@ -496,7 +499,7 @@ export const OpdTab = forwardRef<OpdTabHandle, OpdTabProps>(function OpdTab({
     setPage,
     setPageSize,
     refetch,
-  } = useOpdPatients(dateStr)
+  } = useOpdPatients(dateStr, listFilter)
 
   // Autocomplete search using the cursor-based search endpoint.
   const { data: searchData, isLoading: isSearching } = usePatientSearch(searchQ)
@@ -516,6 +519,15 @@ export const OpdTab = forwardRef<OpdTabHandle, OpdTabProps>(function OpdTab({
     setSearchQ(`${suggestion.value.firstName} ${suggestion.value.lastName} — ${suggestion.value.phone}`)
     setSelectedPatientId(suggestion.value.id)
     setShowDetail(true)
+  }
+
+  // Enter with no suggestion highlighted filters the day's list by the typed
+  // text (server-side ilike on patientId/phone/firstName/lastName), matching
+  // main's SearchInput submit behavior — selecting a suggestion instead jumps
+  // straight to that patient's detail panel via handleSearchSelect above.
+  function handleListFilterSearch(value: string) {
+    setListFilter(value)
+    setPage(1)
   }
 
   function navigateDate(direction: -1 | 1) {
@@ -606,6 +618,7 @@ export const OpdTab = forwardRef<OpdTabHandle, OpdTabProps>(function OpdTab({
             onChange={setSearchQ}
             suggestions={searchSuggestions}
             onSuggestionSelect={handleSearchSelect}
+            onSearch={handleListFilterSearch}
             isLoadingSuggestions={isSearching}
             placeholder="Search patient by name, phone, ID…"
             aria-label="Search existing patients"
