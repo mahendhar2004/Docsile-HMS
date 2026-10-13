@@ -12,8 +12,14 @@
  * bundles Generate Bills + History together internally as one component —
  * splitting it apart just to insert Pending in the middle wasn't worth the
  * structural cost given everything else still being audited. Order here
- * is Bills (Generate+History) then Pending; heading text matches main's
- * exact "Pending Investigations" label.
+ * is Bills (Generate+History) then Pending.
+ *
+ * No extra wrapper heading here — PendingTab already renders its own
+ * "Pending Investigations" header row (icon + live count badge + date
+ * filter + refresh, inside its own card), matching main's actual
+ * "PENDING INVESTIGATIONS PANEL" exactly. An earlier version of this file
+ * wrapped it in a second <section> with its own plain heading, producing
+ * a visible duplicate "Pending Investigations" label stacked on screen.
  */
 
 import { BillsTab } from "./bills-tab"
@@ -23,13 +29,7 @@ export function BillingTab() {
   return (
     <div className="space-y-8">
       <BillsTab />
-
-      <section aria-label="Pending investigations" className="rounded-xl border border-border/60 bg-white overflow-hidden p-4">
-        <h2 className="text-sm font-semibold text-foreground mb-3">
-          Pending Investigations
-        </h2>
-        <PendingTab />
-      </section>
+      <PendingTab />
     </div>
   )
 }
