@@ -113,7 +113,13 @@ export const labsHandlers = [
 
   // ─── Pending Investigations ───────────────────────────────────────────────────
 
-  http.get("/labs/pending-investigations", () => ok(pendingPatients)),
+  http.get("/labs/pending-investigations", ({ request }) => {
+    const date = new URL(request.url).searchParams.get("date")
+    const filtered = date
+      ? pendingPatients.filter((p) => p.prescriptionDate === date)
+      : pendingPatients
+    return ok(filtered.map(({ prescriptionDate: _prescriptionDate, ...p }) => p))
+  }),
 
   // ─── Lab Bills ───────────────────────────────────────────────────────────────
 

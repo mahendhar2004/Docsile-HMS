@@ -142,10 +142,17 @@ export function getLabBillDetail(id: string): LabBillDetailData | undefined {
 
 // ─── Pending Investigations ────────────────────────────────────────────────────
 
-export let pendingPatients: PendingPatient[] = [
-  { patientId: "P-0008", patientName: "Ravi Shankar", age: 34, gender: "Male", doctorName: "Dr. Anand Rao", investigationCount: 3, billCount: 0, prescriptionId: "presc-008" },
-  { patientId: "P-0009", patientName: "Saroja Devi", age: 62, gender: "Female", doctorName: "Dr. Kiran Patel", investigationCount: 2, billCount: 0, prescriptionId: "presc-009" },
-  { patientId: "P-0010", patientName: "Aruna Devi", age: 45, gender: "Female", doctorName: "Dr. Anand Rao", investigationCount: 1, billCount: 0, prescriptionId: "presc-010" },
+// Internal-only: main's getPendingLabInvestigations(date) filters prescriptions
+// by prescriptionDate (IST day bounds) — the public PendingPatient shape has no
+// date field, so it's tracked here and stripped by the handler before response.
+interface PendingPatientFixture extends PendingPatient {
+  prescriptionDate: string
+}
+
+export let pendingPatients: PendingPatientFixture[] = [
+  { patientId: "P-0008", patientName: "Ravi Shankar", age: 34, gender: "Male", doctorName: "Dr. Anand Rao", investigationCount: 3, billCount: 0, prescriptionId: "presc-008", prescriptionDate: "2026-09-22" },
+  { patientId: "P-0009", patientName: "Saroja Devi", age: 62, gender: "Female", doctorName: "Dr. Kiran Patel", investigationCount: 2, billCount: 0, prescriptionId: "presc-009", prescriptionDate: "2026-09-22" },
+  { patientId: "P-0010", patientName: "Aruna Devi", age: 45, gender: "Female", doctorName: "Dr. Anand Rao", investigationCount: 1, billCount: 0, prescriptionId: "presc-010", prescriptionDate: "2026-09-22" },
 ]
 
 // ─── Patient investigation response fixture ────────────────────────────────────
