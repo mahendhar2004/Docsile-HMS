@@ -405,11 +405,25 @@ export async function getAnalytics(
  */
 export async function listCallLogs(
   session: Session,
-  q: { page: number; pageSize: number; date?: string },
+  q: {
+    page: number;
+    pageSize: number;
+    date?: string;
+    status?: string;
+    direction?: string;
+    search?: string;
+  },
 ): Promise<{ data: unknown[]; total: number }> {
   const correlationId = crypto.randomUUID();
   const repo = new CallLogsRepository(getSupabaseClient(), session.hospitalId);
-  const { rows, total } = await repo.listCallLogs(q.page, q.pageSize, q.date);
+  const { rows, total } = await repo.listCallLogs(
+    q.page,
+    q.pageSize,
+    q.date,
+    q.status,
+    q.direction,
+    q.search,
+  );
 
   logger.info('Call logs listed', {
     correlationId, hospitalId: session.hospitalId, userId: session.id,

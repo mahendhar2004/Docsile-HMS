@@ -28,10 +28,27 @@ export const callLogsHandlers = [
     const page = Number(url.searchParams.get("page") ?? "1")
     const pageSize = Number(url.searchParams.get("pageSize") ?? "50")
     const dateFilter = url.searchParams.get("date")
+    const statusFilter = url.searchParams.get("status")
+    const directionFilter = url.searchParams.get("direction")
+    const search = (url.searchParams.get("search") ?? "").toLowerCase().trim()
 
     let filtered = [...callLogs]
     if (dateFilter) {
       filtered = filtered.filter((cl) => cl.startTime.startsWith(dateFilter))
+    }
+    if (statusFilter && statusFilter !== "all") {
+      filtered = filtered.filter((cl) => cl.status === statusFilter)
+    }
+    if (directionFilter && directionFilter !== "all") {
+      filtered = filtered.filter((cl) => cl.direction === directionFilter)
+    }
+    if (search) {
+      filtered = filtered.filter(
+        (cl) =>
+          cl.callFrom.toLowerCase().includes(search) ||
+          (cl.callerName?.toLowerCase().includes(search) ?? false) ||
+          (cl.notes?.toLowerCase().includes(search) ?? false),
+      )
     }
 
     const { data, meta } = paginate(filtered, page, pageSize)

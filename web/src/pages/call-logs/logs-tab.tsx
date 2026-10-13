@@ -3,10 +3,10 @@
  *
  * Call logs list tab — paginated table with date/status/direction filters.
  *
- * API: GET /call-logs?page=N&pageSize=N&date=YYYY-MM-DD
- * The backend only supports a single-date filter (no date range, no server-side
- * status/direction/search filtering). Status, direction, and search filters are
- * applied client-side on the loaded page.
+ * API: GET /call-logs?page=N&pageSize=N&date=YYYY-MM-DD&status=&direction=&search=
+ * Matches main's getCallLogs(): status/direction/search are server-side
+ * filters (re-queried on every change, not debounced), not a client-side
+ * filter over whatever page happens to be loaded.
  *
  * Columns (matching old app CallLogsPage.tsx):
  *   Direction | Caller / Contact | Phone Number | Date & Time | Duration | Status | Notes | —
@@ -200,9 +200,13 @@ export function LogsTab({ canView, canEdit }: LogsTabProps) {
   // Convert Date to the string format the API expects
   const date = format(viewDate, "yyyy-MM-dd")
 
-  // Fetch paginated data for the selected date
+  // Server-side filtering for status, direction, search — matches main's
+  // getCallLogs(), which re-queries on every filter change rather than
+  // filtering client-side (important since the previous client-side-only
+  // approach only ever filtered the current page's rows, silently missing
+  // matches on other pages once a day had more calls than one page size).
   const {
-    data,
+    data: filteredData,
     total,
     page,
     pageSize,
@@ -213,29 +217,11 @@ export function LogsTab({ canView, canEdit }: LogsTabProps) {
     refetch,
     setPage,
     setPageSize,
-  } = useCallLogsList(date, canView)
-
-  // Client-side filtering for status, direction, search (API only supports date)
-  const filteredData = useMemo<CallLog[]>(() => {
-    let rows = data
-    if (statusFilter !== "all") {
-      rows = rows.filter((r) => r.status === statusFilter)
-    }
-    if (directionFilter !== "all") {
-      rows = rows.filter((r) => r.direction === directionFilter)
-    }
-    if (searchQuery.trim().length > 0) {
-      const q = searchQuery.toLowerCase().trim()
-      rows = rows.filter(
-        (r) =>
-          r.callFrom.toLowerCase().includes(q) ||
-          r.callTo.toLowerCase().includes(q) ||
-          (r.callerName?.toLowerCase().includes(q) ?? false) ||
-          (r.notes?.toLowerCase().includes(q) ?? false),
-      )
-    }
-    return rows
-  }, [data, statusFilter, directionFilter, searchQuery])
+  } = useCallLogsList(date, canView, {
+    status: statusFilter,
+    direction: directionFilter,
+    search: searchQuery,
+  })
 
   const columns = useMemo(() => buildColumns(), [])
 
@@ -255,7 +241,7 @@ export function LogsTab({ canView, canEdit }: LogsTabProps) {
         <SearchBar
           variant="standalone"
           value={searchQuery}
-          onChange={setSearchQuery}
+          onChange={(v) => { setSearchQuery(v); setPage(1) }}
           placeholder="Search by phone, name, or notes..."
           aria-label="Search call logs"
           className="flex-1 min-w-[200px]"
@@ -264,14 +250,14 @@ export function LogsTab({ canView, canEdit }: LogsTabProps) {
         <SingleSelect
           options={STATUS_OPTIONS}
           value={statusFilter}
-          onChange={setStatusFilter}
+          onChange={(v) => { setStatusFilter(v); setPage(1) }}
           placeholder="All Status"
         />
 
         <SingleSelect
           options={DIRECTION_OPTIONS}
           value={directionFilter}
-          onChange={setDirectionFilter}
+          onChange={(v) => { setDirectionFilter(v); setPage(1) }}
           placeholder="All Directions"
         />
       </div>

@@ -49,15 +49,26 @@ export const callLogsKeys = {
  * GET /call-logs?page=N&pageSize=N&date=YYYY-MM-DD
  * x-permission: call_logs:view
  */
-export function useCallLogsList(date: string | null, enabled = true) {
+export function useCallLogsList(
+  date: string | null,
+  enabled = true,
+  filters?: { status?: string; direction?: string; search?: string },
+) {
+  const status = filters?.status && filters.status !== "all" ? filters.status : ""
+  const direction = filters?.direction && filters.direction !== "all" ? filters.direction : ""
+  const search = filters?.search ?? ""
+
   return usePaginatedQuery<CallLog>({
-    queryKey: callLogsKeys.list(date),
+    queryKey: [...callLogsKeys.list(date), status, direction, search],
     queryFn: ({ page, pageSize }) => {
       const params = new URLSearchParams({
         page: String(page),
         pageSize: String(pageSize),
       })
       if (date) params.set("date", date)
+      if (status) params.set("status", status)
+      if (direction) params.set("direction", direction)
+      if (search) params.set("search", search)
       return apiClient.get<CallLog[]>(`/call-logs?${params.toString()}`)
     },
     initialPageSize: 50,

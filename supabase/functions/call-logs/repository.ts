@@ -119,6 +119,9 @@ export class CallLogsRepository {
     page: number,
     pageSize: number,
     date?: string,
+    status?: string,
+    direction?: string,
+    search?: string,
   ): Promise<{ rows: CallLogRow[]; total: number }> {
     let q = this.supabase
       .from('CallLog')
@@ -131,6 +134,18 @@ export class CallLogsRepository {
 
     if (date) {
       q = q.gte('startTime', `${date}T00:00:00.000Z`).lte('startTime', `${date}T23:59:59.999Z`);
+    }
+
+    if (status && status !== 'all') {
+      q = q.eq('status', status);
+    }
+
+    if (direction && direction !== 'all') {
+      q = q.eq('direction', direction);
+    }
+
+    if (search) {
+      q = q.or(`callFrom.ilike.%${search}%,callerName.ilike.%${search}%,notes.ilike.%${search}%`);
     }
 
     const from = (page - 1) * pageSize;

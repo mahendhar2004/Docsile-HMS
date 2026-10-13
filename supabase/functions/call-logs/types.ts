@@ -4,6 +4,9 @@ export const CallLogListQuerySchema = z.object({
   page: z.coerce.number().int().positive().default(1),
   pageSize: z.coerce.number().int().positive().max(100).default(50),
   date: z.string().date().optional(),
+  status: z.string().optional(),
+  direction: z.string().optional(),
+  search: z.string().optional(),
 });
 
 export const AnalyticsQuerySchema = z.object({
