@@ -1,8 +1,9 @@
 /**
- * dues-followups Edge Function — 9 endpoints
+ * dues-followups Edge Function — 10 endpoints
  *
  * Routes (openapi.yaml §dues-followups):
  *   GET   /dues-followups/dues                   dues:view
+ *   GET   /dues-followups/dues/summary           dues:view
  *   GET   /dues-followups/followups              dues:view
  *   GET   /dues-followups/followups/summary      dues:view
  *   PATCH /dues-followups/dues/:id/mark-paid     dues:edit
@@ -25,6 +26,11 @@ const app = new Hono().basePath('/dues-followups');
 app.use('*', requireAuth);
 app.onError(handleError);
 
+app.get('/dues/summary', requirePermission('dues:view'), async (c) => {
+  const s = c.get('session') as Session;
+  const result = await service.getDuesSummary(s);
+  return ok(c, result);
+});
 app.get('/dues', requirePermission('dues:view'), async (c) => {
   const s = c.get('session') as Session;
   const q = DuesListQuerySchema.safeParse(c.req.query());

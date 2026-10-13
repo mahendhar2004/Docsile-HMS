@@ -38,6 +38,23 @@ export interface DueRecord {
   pharmacyBillNumber?: string
 }
 
+// ─── GET /dues-followups/dues/summary ────────────────────────────────────────
+// Matches main's DuesTab summary tiles (Total Outstanding + per-type
+// OPD/IPD/LAB/PHARMACY count+total), computed server-side over every
+// outstanding due, not just one page.
+
+export interface DuesSummary {
+  totalOutstanding: number
+  opdCount: number
+  opdTotal: number
+  ipdCount: number
+  ipdTotal: number
+  labCount: number
+  labTotal: number
+  pharmacyCount: number
+  pharmacyTotal: number
+}
+
 // ─── GET /dues-followups/followups ───────────────────────────────────────────
 // Verified against supabase/functions/dues-followups/types.ts FollowUpRecord AND
 // src/app/(hospital)/dues-followups/actions.ts getFollowUps() return shape — they match exactly.

@@ -66,6 +66,23 @@ export interface EmailTemplate {
 }
 
 /**
+ * Summary tile totals for the Dues tab, matching main's DuesTab
+ * (Total Outstanding + per-type OPD/IPD/LAB/PHARMACY count+total) —
+ * computed over every outstanding due record, not just the current page.
+ */
+export interface DuesSummary {
+  totalOutstanding: number;
+  opdCount: number;
+  opdTotal: number;
+  ipdCount: number;
+  ipdTotal: number;
+  labCount: number;
+  labTotal: number;
+  pharmacyCount: number;
+  pharmacyTotal: number;
+}
+
+/**
  * Summary tile counts for the Follow-Ups tab, matching main's
  * FollowUpsTab summary (Today/Tomorrow/Total/Overdue) — computed over every
  * OPD+IPD follow-up record (this backend doesn't restrict getFollowups to a

@@ -34,6 +34,26 @@ export const duesFollowupsHandlers = [
     return ok(data, meta)
   }),
 
+  http.get("/dues-followups/dues/summary", () => {
+    const byType = (t: string) => dues.filter((d) => d.type === t)
+    const sum = (rows: typeof dues) => rows.reduce((s, d) => s + d.balanceDue, 0)
+    const opd = byType("OPD")
+    const ipd = byType("IPD")
+    const lab = byType("LAB")
+    const pharmacy = byType("PHARMACY")
+    return ok({
+      totalOutstanding: sum(dues),
+      opdCount: opd.length,
+      opdTotal: sum(opd),
+      ipdCount: ipd.length,
+      ipdTotal: sum(ipd),
+      labCount: lab.length,
+      labTotal: sum(lab),
+      pharmacyCount: pharmacy.length,
+      pharmacyTotal: sum(pharmacy),
+    })
+  }),
+
   // ── Follow-ups (offset-paginated) ───────────────────────────────────────────
 
   http.get("/dues-followups/followups", ({ request }) => {

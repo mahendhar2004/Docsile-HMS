@@ -5,6 +5,7 @@
  *
  * Query hooks:
  *   useDues            — GET /dues-followups/dues (offset-paginated)
+ *   useDuesSummary     — GET /dues-followups/dues/summary (Total Outstanding + per-type)
  *   useFollowups       — GET /dues-followups/followups (offset-paginated)
  *   useFollowupsSummary — GET /dues-followups/followups/summary (Today/Tomorrow/Total/Overdue)
  *   useDoctors         — GET /dues-followups/doctors (for filter dropdowns)
@@ -23,6 +24,7 @@ import { apiClient } from "@/lib/api-client"
 import { usePaginatedQuery } from "@/hooks/usePaginatedQuery"
 import type {
   DueRecord,
+  DuesSummary,
   FollowUpRecord,
   FollowUpsSummary,
   EmailTemplate,
@@ -58,6 +60,22 @@ export function useDues(enabled = true) {
       ),
     initialPageSize: 25,
     queryOptions: { enabled },
+  })
+}
+
+/**
+ * Summary tile totals (Total Outstanding + per-type OPD/IPD/LAB/PHARMACY
+ * count+total), computed server-side over every outstanding due — not
+ * scoped to the currently loaded page.
+ * Endpoint: GET /dues-followups/dues/summary
+ * Permission: dues:view
+ */
+export function useDuesSummary(enabled = true) {
+  return useQuery({
+    queryKey: [...duesKeys.dues(), "summary"],
+    queryFn: () =>
+      apiClient.get<DuesSummary>("/dues-followups/dues/summary").then((res) => res.data),
+    enabled,
   })
 }
 

@@ -15,6 +15,7 @@ import { DuesFollowupsRepository } from './repository.ts';
 import type {
   DueRecord,
   DuesListQuery,
+  DuesSummary,
   EmailTemplate,
   FollowUpRecord,
   FollowUpsSummary,
@@ -82,6 +83,36 @@ export async function getFollowups(
   const data = all.slice(start, start + q.pageSize);
 
   return { data, total };
+}
+
+/**
+ * Summary tile totals (Total Outstanding + per-type OPD/IPD/LAB/PHARMACY
+ * count+total) over every outstanding due, independent of pagination —
+ * matches main's DuesTab summary.
+ */
+export async function getDuesSummary(s: Session): Promise<DuesSummary> {
+  const repo = new DuesFollowupsRepository(getSupabaseClient(), s.hospitalId);
+
+  const [opd, ipd, lab, pharmacy] = await Promise.all([
+    repo.getAllOPDDues(),
+    repo.getAllIPDDues(),
+    repo.getAllLABDues(),
+    repo.getAllPharmacyDues(),
+  ]);
+
+  const sum = (rows: DueRecord[]) => rows.reduce((s2, d) => s2 + d.balanceDue, 0);
+
+  return {
+    totalOutstanding: sum(opd) + sum(ipd) + sum(lab) + sum(pharmacy),
+    opdCount: opd.length,
+    opdTotal: sum(opd),
+    ipdCount: ipd.length,
+    ipdTotal: sum(ipd),
+    labCount: lab.length,
+    labTotal: sum(lab),
+    pharmacyCount: pharmacy.length,
+    pharmacyTotal: sum(pharmacy),
+  };
 }
 
 /**

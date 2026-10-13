@@ -16,10 +16,11 @@ import {
   PaginatedDataTable,
   ConfirmationModal,
   EmptyState,
+  StatCard,
   type ColumnDef,
 } from "@/components/patterns"
 import { usePermissions } from "@/hooks/usePermissions"
-import { useDues, useMarkPaid } from "./hooks"
+import { useDues, useDuesSummary, useMarkPaid } from "./hooks"
 import { dueTypeToMarkPaidType } from "./types"
 import type { DueRecord, DueType } from "./types"
 
@@ -85,6 +86,8 @@ export const DuesTab = forwardRef<DuesTabHandle>(function DuesTab(_props, ref) {
     setPage,
     refetch,
   } = useDues()
+
+  const { data: summary, isLoading: isSummaryLoading } = useDuesSummary()
 
   useImperativeHandle(ref, () => ({
     refetch: () => void refetch(),
@@ -182,6 +185,37 @@ export const DuesTab = forwardRef<DuesTabHandle>(function DuesTab(_props, ref) {
 
   return (
     <div className="space-y-4">
+      {/* Summary tiles — matches main's DuesTab (Total Outstanding + per-type
+          OPD/IPD/LAB/PHARMACY totals), computed over every outstanding due
+          server-side, not just the current page. */}
+      <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
+        <StatCard
+          label="Total Outstanding"
+          value={formatINR(summary?.totalOutstanding ?? 0)}
+          loading={isSummaryLoading}
+        />
+        <StatCard
+          label={`OPD (${summary?.opdCount ?? 0})`}
+          value={formatINR(summary?.opdTotal ?? 0)}
+          loading={isSummaryLoading}
+        />
+        <StatCard
+          label={`IPD (${summary?.ipdCount ?? 0})`}
+          value={formatINR(summary?.ipdTotal ?? 0)}
+          loading={isSummaryLoading}
+        />
+        <StatCard
+          label={`Lab (${summary?.labCount ?? 0})`}
+          value={formatINR(summary?.labTotal ?? 0)}
+          loading={isSummaryLoading}
+        />
+        <StatCard
+          label={`Pharmacy (${summary?.pharmacyCount ?? 0})`}
+          value={formatINR(summary?.pharmacyTotal ?? 0)}
+          loading={isSummaryLoading}
+        />
+      </div>
+
       {/* Summary line */}
       <div className="flex items-center justify-between">
         <p className="text-sm text-muted-foreground">
