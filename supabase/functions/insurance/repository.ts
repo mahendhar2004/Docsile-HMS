@@ -126,6 +126,8 @@ export class InsuranceRepository {
     page: number,
     pageSize: number,
     status?: string,
+    excludeClosed?: boolean,
+    search?: string,
   ): Promise<{ rows: Record<string, unknown>[]; total: number }> {
     let query = this.supabase
       .from('InsuranceClaim')
@@ -136,8 +138,19 @@ export class InsuranceRepository {
       .eq('hospital_id', this.hospitalId)
       .order('createdAt', { ascending: false });
 
+    if (excludeClosed) {
+      query = query.neq('status', 'CLOSED');
+    }
+
     if (status) {
-      query = query.eq('status', status);
+      const statuses = status.split(',').map((s) => s.trim()).filter(Boolean);
+      query = statuses.length > 1 ? query.in('status', statuses) : query.eq('status', statuses[0]);
+    }
+
+    if (search) {
+      query = query.or(
+        `claimNumber.ilike.%${search}%,patientName.ilike.%${search}%,ipNumber.ilike.%${search}%,phone.ilike.%${search}%,insuranceCompanyName.ilike.%${search}%`,
+      );
     }
 
     const from = (page - 1) * pageSize;

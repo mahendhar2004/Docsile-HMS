@@ -76,8 +76,24 @@ export const insuranceHandlers = [
     const page = Number(sp.get("page") ?? "1")
     const pageSize = Number(sp.get("pageSize") ?? "25")
     const statusFilter = sp.get("status")
+    const excludeClosed = sp.get("excludeClosed") === "true"
+    const search = (sp.get("search") ?? "").toLowerCase().trim()
     let filtered = [...claims]
-    if (statusFilter) filtered = filtered.filter((c) => c.status === statusFilter)
+    if (excludeClosed) filtered = filtered.filter((c) => c.status !== "CLOSED")
+    if (statusFilter) {
+      const statuses = statusFilter.split(",")
+      filtered = filtered.filter((c) => statuses.includes(c.status))
+    }
+    if (search) {
+      filtered = filtered.filter(
+        (c) =>
+          c.claimNumber.toLowerCase().includes(search) ||
+          c.patientName.toLowerCase().includes(search) ||
+          c.ipNumber.toLowerCase().includes(search) ||
+          c.phone.includes(search) ||
+          c.insuranceCompanyName.toLowerCase().includes(search),
+      )
+    }
     const { data, meta } = paginate(filtered, page, pageSize)
     return ok(data, meta)
   }),

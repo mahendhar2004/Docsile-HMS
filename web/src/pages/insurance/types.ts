@@ -334,20 +334,27 @@ export interface InpatientSearchResult {
 }
 
 // ─── Status filter select options ─────────────────────────────────────────────
+//
+// Grouped buckets, matching main's shared _status-map.ts exactly (each pill
+// matches several raw statuses, not one) — previously this listed all 13 raw
+// status values as separate pills, which doesn't match main's filter model
+// and meant e.g. "Preauth Pending" would only ever have matched
+// PREAUTH_SUBMITTED, silently hiding PREAUTH_QUERY claims from that bucket.
 
 export const CLAIM_STATUS_FILTER_OPTIONS = [
-  { value: "", label: "All Statuses" },
-  { value: "PREAUTH_SUBMITTED", label: "Preauth Submitted" },
-  { value: "PREAUTH_QUERY", label: "Preauth Query" },
-  { value: "PREAUTH_APPROVED", label: "Preauth Approved" },
-  { value: "PREAUTH_REJECTED", label: "Preauth Rejected" },
-  { value: "ENHANCEMENT_CLAIMED", label: "Enhancement Claimed" },
-  { value: "ENHANCEMENT_QUERY", label: "Enhancement Query" },
-  { value: "ENHANCEMENT_APPROVED", label: "Enhancement Approved" },
-  { value: "ENHANCEMENT_REJECTED", label: "Enhancement Rejected" },
-  { value: "FINAL_BILL_SUBMITTED", label: "Final Bill Sent" },
-  { value: "SETTLED", label: "Settled" },
-  { value: "PARTIALLY_SETTLED", label: "Partially Settled" },
-  { value: "CLAIM_REJECTED", label: "Claim Rejected" },
-  { value: "CLOSED", label: "Closed" },
+  { value: "", label: "All Active" },
+  { value: "preauth", label: "Preauth Pending" },
+  { value: "enhancement", label: "Enhancement Pending" },
+  { value: "settlement", label: "Settlement Pending" },
+  { value: "settled", label: "Settled" },
+  { value: "closed", label: "Closed" },
 ]
+
+export const CLAIM_STATUS_BUCKET_MAP: Record<string, string[]> = {
+  "": [],
+  preauth: ["PREAUTH_SUBMITTED", "PREAUTH_QUERY"],
+  enhancement: ["ENHANCEMENT_CLAIMED", "ENHANCEMENT_QUERY"],
+  settlement: ["FINAL_BILL_SUBMITTED"],
+  settled: ["SETTLED", "PARTIALLY_SETTLED"],
+  closed: ["CLOSED"],
+}

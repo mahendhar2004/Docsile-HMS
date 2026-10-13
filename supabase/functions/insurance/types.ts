@@ -92,6 +92,13 @@ export type CompanyListQuery = z.infer<typeof CompanyListQuerySchema>;
 export const ClaimListQuerySchema = z.object({
   page: z.coerce.number().int().positive().default(1),
   pageSize: z.coerce.number().int().positive().max(100).default(50),
+  // Comma-separated list of statuses (e.g. "PREAUTH_SUBMITTED,PREAUTH_QUERY")
+  // to support main's grouped status-filter buckets, which match several
+  // raw statuses per pill (see _status-map.ts on main).
   status: z.string().optional(),
+  // Matches main's `!showClosed` behavior: excludes CLOSED claims even when
+  // no explicit status filter is set (the "All Active" bucket).
+  excludeClosed: z.coerce.boolean().optional(),
+  search: z.string().optional(),
 });
 export type ClaimListQuery = z.infer<typeof ClaimListQuerySchema>;

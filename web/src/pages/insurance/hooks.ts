@@ -95,13 +95,22 @@ export function useInsuranceCompaniesAll(enabled = true) {
  * Endpoint: GET /insurance/claims?page=N&pageSize=N&status=...
  * Permission: insurance:view
  */
-export function useInsuranceClaims(statusFilter: string) {
+export function useInsuranceClaims(
+  statusFilter: string,
+  options?: { excludeClosed?: boolean; search?: string },
+) {
   const statusParam = statusFilter ? `&status=${statusFilter}` : ""
+  const excludeClosedParam = options?.excludeClosed ? `&excludeClosed=true` : ""
+  const searchParam = options?.search ? `&search=${encodeURIComponent(options.search)}` : ""
   return usePaginatedQuery<InsuranceClaim>({
-    queryKey: insuranceKeys.claimList(statusFilter),
+    queryKey: [
+      ...insuranceKeys.claimList(statusFilter),
+      options?.excludeClosed ?? false,
+      options?.search ?? "",
+    ],
     queryFn: ({ page, pageSize }) =>
       apiClient.get<InsuranceClaim[]>(
-        `/insurance/claims?page=${page}&pageSize=${pageSize}${statusParam}`,
+        `/insurance/claims?page=${page}&pageSize=${pageSize}${statusParam}${excludeClosedParam}${searchParam}`,
       ),
     initialPageSize: 25,
   })

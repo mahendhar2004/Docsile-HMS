@@ -15,15 +15,14 @@
  * - PaginatedDataTable with StatusPill using the real 13-value InsuranceClaimStatus enum
  * - Click row to open ClaimDetailPanel (Sheet)
  *
- * No search input: main's search is a server-side DB filter
- * (getInsuranceClaims' `search` param on the old Next.js app's direct
- * Supabase query) — this backend's GET /insurance/claims has no search
- * query param at all (confirmed in openapi.yaml), and a client-side filter
- * over just the current page would silently miss matches on other pages,
- * which is worse than no search.
+ * Search box matches main's "Search claim, patient, IP, phone, company..."
+ * SearchInput — submit-on-Enter against GET /insurance/claims?search=,
+ * which does a server-side ilike across claimNumber/patientName/ipNumber/
+ * phone/insuranceCompanyName (added alongside this fix; the endpoint
+ * previously had no search param at all).
  *
  * Endpoints:
- *   GET /insurance/claims?page=N&pageSize=N&status=... — insurance:view
+ *   GET /insurance/claims?page=N&pageSize=N&status=...&excludeClosed=&search=... — insurance:view
  *   POST /insurance/claims (via CreateClaimForm) — insurance:create
  */
 
@@ -41,6 +40,7 @@ import {
   PaginatedDataTable,
   StatusPill,
   EmptyState,
+  SearchBar,
 } from "@/components/patterns"
 import type { ColumnDef } from "@/components/patterns"
 import { usePermissions } from "@/hooks/usePermissions"
@@ -48,7 +48,7 @@ import { useInsuranceClaims } from "./hooks"
 import { CreateClaimForm } from "./create-claim-form"
 import { ClaimDetailPanel } from "./claim-detail-panel"
 import { CompaniesTab } from "./companies-tab"
-import { CLAIM_STATUS_FILTER_OPTIONS } from "./types"
+import { CLAIM_STATUS_FILTER_OPTIONS, CLAIM_STATUS_BUCKET_MAP } from "./types"
 import type { InsuranceClaim } from "./types"
 import { formatCurrency, cn } from "@/lib/utils"
 
@@ -60,8 +60,12 @@ export function ClaimsTab() {
 
   // ── Status filter ────────────────────────────────────────────────────────────
   const [statusFilter, setStatusFilter] = useState("")
+  const [searchText, setSearchText] = useState("")
+  const [searchFilter, setSearchFilter] = useState("")
 
-  // ── Paginated claim list ─────────────────────────────────────────────────────
+  // ── Paginated claim list — matches main's bucketed status-group filter
+  // (_status-map.ts) exactly: each pill maps to several raw statuses, and
+  // "All Active"/every non-"closed" bucket also excludes CLOSED claims. ──
   const {
     data,
     isLoading,
@@ -74,7 +78,10 @@ export function ClaimsTab() {
     total,
     setPage,
     setPageSize,
-  } = useInsuranceClaims(statusFilter)
+  } = useInsuranceClaims(CLAIM_STATUS_BUCKET_MAP[statusFilter].join(","), {
+    excludeClosed: statusFilter !== "closed",
+    search: searchFilter,
+  })
 
   // ── Create claim ─────────────────────────────────────────────────────────────
   const [showCreate, setShowCreate] = useState(false)
@@ -193,13 +200,29 @@ export function ClaimsTab() {
       {/* Plain bordered card, not the sticky PageToolbar/FilterBar — matches
           main's own one-off filter-row treatment for this page exactly. */}
       <div className="flex items-center gap-3 flex-wrap rounded-xl border border-border/60 bg-white/80 backdrop-blur-sm p-3">
+        <div className="w-full sm:w-72">
+          <SearchBar
+            variant="standalone"
+            value={searchText}
+            onChange={setSearchText}
+            onSearch={(v) => {
+              setSearchFilter(v)
+              setPage(1)
+            }}
+            placeholder="Search claim, patient, IP, phone, company..."
+            aria-label="Search insurance claims"
+          />
+        </div>
+
+        <div className="filter-divider hidden sm:block" />
+
         {/* Status filter — pill group, not a dropdown, matching main exactly */}
         <div className="flex gap-0.5 bg-muted/40 rounded-lg p-0.5 border border-border/30 flex-wrap">
           {CLAIM_STATUS_FILTER_OPTIONS.map((opt) => (
             <button
               key={opt.value}
               type="button"
-              onClick={() => setStatusFilter(opt.value)}
+              onClick={() => { setStatusFilter(opt.value); setPage(1) }}
               className={cn(
                 "rounded-md text-xs font-medium h-7 px-3 transition-all",
                 statusFilter === opt.value

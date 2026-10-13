@@ -95,7 +95,13 @@ export async function getClaims(
   query: ClaimListQuery,
 ): Promise<{ data: unknown[]; total: number }> {
   const repo = new InsuranceRepository(getSupabaseClient(), session.hospitalId);
-  const { rows, total } = await repo.findClaims(query.page, query.pageSize, query.status);
+  const { rows, total } = await repo.findClaims(
+    query.page,
+    query.pageSize,
+    query.status,
+    query.excludeClosed,
+    query.search,
+  );
   return { data: rows, total };
 }
 
