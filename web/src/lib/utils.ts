@@ -14,7 +14,16 @@ export function formatDate(dateString: string): string {
 }
 
 export function formatDateLong(dateString: string): string {
-  return new Date(dateString + "T00:00:00").toLocaleDateString("en-IN", {
+  // Plain "yyyy-MM-dd" dates need "T00:00:00" appended so `new Date()` parses
+  // them in local time instead of UTC midnight (which can roll back a day in
+  // IST). Full ISO timestamps (the shape of every backend createdAt/
+  // prescriptionDate/admissionDate/etc field) already have a "T" and must be
+  // passed through as-is — appending another "T00:00:00" to those produced
+  // an unparseable string and silently rendered "Invalid Date" everywhere
+  // this was called with a real timestamp (every call site in reports/
+  // except the Stats modal's plain `date` param).
+  const hasTime = dateString.includes("T")
+  return new Date(hasTime ? dateString : `${dateString}T00:00:00`).toLocaleDateString("en-IN", {
     weekday: "long",
     day: "numeric",
     month: "long",
