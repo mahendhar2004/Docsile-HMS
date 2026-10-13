@@ -197,16 +197,22 @@ export let stock: PharmacyStockItem[] = [
 ]
 
 export function getStockSummary(): StockSummary {
-  const total = stock.filter((s) => s.isActive).length
-  const lowStock = stock.filter((s) => s.isActive && s.quantity <= 10).length
+  // Matches main's actions.ts getStockSummary exactly: all five metrics are
+  // scoped to isActive + quantity > 0, and "near expiry" is a 3-month
+  // window (not 30 days — that was a mismatch with the client-side
+  // "Near Expiry" filter chip, which has always used 3 months).
+  const inStock = stock.filter((s) => s.isActive && s.quantity > 0)
+  const total = inStock.length
+  const lowStock = inStock.filter((s) => s.quantity <= 10).length
   const now = new Date()
-  const thirtyDays = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000)
-  const nearExpiry = stock.filter((s) => {
+  const threeMonths = new Date()
+  threeMonths.setMonth(threeMonths.getMonth() + 3)
+  const nearExpiry = inStock.filter((s) => {
     const exp = new Date(s.expiryDate)
-    return s.isActive && exp > now && exp <= thirtyDays
+    return exp > now && exp <= threeMonths
   }).length
-  const expired = stock.filter((s) => s.isActive && new Date(s.expiryDate) <= now).length
-  const stockValue = stock.filter((s) => s.isActive).reduce((acc, s) => acc + s.quantity * s.mrp, 0)
+  const expired = inStock.filter((s) => new Date(s.expiryDate) <= now).length
+  const stockValue = inStock.reduce((acc, s) => acc + s.quantity * s.mrp, 0)
   return { totalItems: total, lowStock, nearExpiry, expired, stockValue }
 }
 

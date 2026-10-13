@@ -48,10 +48,12 @@ export let stock: OpticalStockEntry[] = [
 ]
 
 export function getStockSummary(): StockSummary {
-  const active = stock.filter((s) => s.isActive)
+  // Matches main's actions.ts getStockSummary: both metrics are scoped to
+  // isActive + quantity > 0 (a zero-quantity batch isn't "in stock").
+  const inStock = stock.filter((s) => s.isActive && s.quantity > 0)
   return {
-    totalItems: active.length,
-    lowStock: active.filter((s) => s.quantity <= 5).length,
+    totalItems: inStock.length,
+    lowStock: inStock.filter((s) => s.quantity <= 5).length,
   }
 }
 
