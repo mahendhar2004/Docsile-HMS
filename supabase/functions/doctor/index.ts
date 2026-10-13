@@ -21,10 +21,12 @@ import { requireAuth } from '../_shared/auth.ts';
 import { requirePermission } from '../_shared/permission-guard.ts';
 import { handleError, ok, created, errorResponse } from '../_shared/response.ts';
 import type { Session } from '../_shared/auth.ts';
+import { corsMiddleware } from '../_shared/cors.ts';
 import { PrescriptionSchema, MedicineMasterSchema, DropdownOptionSchema, AskSithaSchema } from './types.ts';
 import * as service from './service.ts';
 
 const app = new Hono().basePath('/doctor');
+app.use('*', corsMiddleware);
 app.use('*', requireAuth);
 app.onError(handleError);
 
@@ -69,4 +71,4 @@ app.post('/patients/:patientId/prescriptions', requirePermission('doctor:consult
 });
 app.get('/patients/:patientId/receipt', requirePermission('billing:view'), async (c) => ok(c, await service.getPatientReceipt(c.get('session') as Session, c.req.param('patientId'))));
 
-export default app.fetch;
+Deno.serve(app.fetch);

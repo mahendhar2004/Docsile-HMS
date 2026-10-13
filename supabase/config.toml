@@ -1,0 +1,63 @@
+project_id = "rqimcfdwvecoehiyxrkv"
+
+[functions.analytics]
+import_map = "./functions/deno.json"
+
+[functions.auth]
+import_map = "./functions/deno.json"
+
+[functions.billing]
+import_map = "./functions/deno.json"
+
+[functions.call-logs]
+import_map = "./functions/deno.json"
+
+[functions.dashboard]
+import_map = "./functions/deno.json"
+
+[functions.doctor]
+import_map = "./functions/deno.json"
+
+[functions.dues-followups]
+import_map = "./functions/deno.json"
+
+[functions.expenses]
+import_map = "./functions/deno.json"
+
+[functions.health]
+import_map = "./functions/deno.json"
+
+[functions.insurance]
+import_map = "./functions/deno.json"
+
+[functions.labs]
+import_map = "./functions/deno.json"
+
+[functions.license-tracker]
+import_map = "./functions/deno.json"
+
+[functions.optical]
+import_map = "./functions/deno.json"
+
+[functions.patient-care]
+import_map = "./functions/deno.json"
+
+[functions.pharmacy]
+import_map = "./functions/deno.json"
+
+[functions.queue]
+import_map = "./functions/deno.json"
+
+[functions.reports]
+import_map = "./functions/deno.json"
+
+[functions.settings]
+import_map = "./functions/deno.json"
+
+[functions.staff]
+import_map = "./functions/deno.json"
+
+[functions.workup]
+import_map = "./functions/deno.json"
+
+

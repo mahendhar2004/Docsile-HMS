@@ -23,6 +23,7 @@ import { requirePermission } from '../_shared/permission-guard.ts';
 import { handleError, ok, paginated, errorResponse } from '../_shared/response.ts';
 import { getSupabaseClient } from '../_shared/supabase-client.ts';
 import type { Session } from '../_shared/auth.ts';
+import { corsMiddleware } from '../_shared/cors.ts';
 import {
   CallLogListQuerySchema,
   AnalyticsQuerySchema,
@@ -33,6 +34,7 @@ import {
 import * as service from './service.ts';
 
 const app = new Hono().basePath('/call-logs');
+app.use('*', corsMiddleware);
 app.onError(handleError);
 
 // ---- Webhook — no JWT auth; token-only; must be defined BEFORE global requireAuth ----
@@ -103,4 +105,4 @@ app.patch('/:id/patient', requirePermission('call_logs:edit'), async (c) => {
   return ok(c, null, 'Call linked to patient');
 });
 
-export default app.fetch;
+Deno.serve(app.fetch);

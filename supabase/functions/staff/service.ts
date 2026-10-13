@@ -22,7 +22,8 @@
  *   call_logs:*), so seeding never regresses that migration's work.
  */
 
-import { hash as bcryptHash } from 'bcryptjs';
+import bcrypt from 'bcryptjs';
+const { hash: bcryptHash } = bcrypt;
 import { getSupabaseClient } from '../_shared/supabase-client.ts';
 import { logger } from '../_shared/logger.ts';
 import { ConflictError, NotFoundError, ValidationError } from '../_shared/errors.ts';

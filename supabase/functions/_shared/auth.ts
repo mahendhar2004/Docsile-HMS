@@ -142,16 +142,23 @@ export const requireAuth: MiddlewareHandler = async (c, next) => {
 
 /**
  * Build an HttpOnly session cookie string for Set-Cookie headers.
+ *
+ * SameSite=None (not Strict) — the frontend (Vercel) and this API
+ * (*.supabase.co) are different registrable domains, so this is a
+ * genuinely cross-site deployment. A SameSite=Strict (or even Lax) cookie
+ * is never sent on cross-site requests, which silently broke every
+ * authenticated call after login. SameSite=None requires Secure, which is
+ * already set.
  */
 export function buildSessionCookie(token: string, maxAgeSeconds: number): string {
-  return `docsile-session=${token}; HttpOnly; Secure; SameSite=Strict; Path=/; Max-Age=${maxAgeSeconds}`;
+  return `docsile-session=${token}; HttpOnly; Secure; SameSite=None; Path=/; Max-Age=${maxAgeSeconds}`;
 }
 
 /**
  * Build an HttpOnly refresh cookie string for Set-Cookie headers.
  */
 export function buildRefreshCookie(token: string, maxAgeSeconds: number): string {
-  return `docsile-refresh=${token}; HttpOnly; Secure; SameSite=Strict; Path=/; Max-Age=${maxAgeSeconds}`;
+  return `docsile-refresh=${token}; HttpOnly; Secure; SameSite=None; Path=/; Max-Age=${maxAgeSeconds}`;
 }
 
 /**
@@ -159,8 +166,8 @@ export function buildRefreshCookie(token: string, maxAgeSeconds: number): string
  */
 export function buildClearCookies(): string[] {
   return [
-    'docsile-session=; HttpOnly; Secure; SameSite=Strict; Path=/; Max-Age=0',
-    'docsile-refresh=; HttpOnly; Secure; SameSite=Strict; Path=/; Max-Age=0',
+    'docsile-session=; HttpOnly; Secure; SameSite=None; Path=/; Max-Age=0',
+    'docsile-refresh=; HttpOnly; Secure; SameSite=None; Path=/; Max-Age=0',
   ];
 }
 

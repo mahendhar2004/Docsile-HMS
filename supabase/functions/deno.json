@@ -5,6 +5,6 @@
     "jose": "https://esm.sh/jose@5.9.6",
     "zod": "https://esm.sh/zod@3.23.8",
     "@supabase/supabase-js": "https://esm.sh/@supabase/supabase-js@2.46.1",
-    "bcryptjs": "https://esm.sh/bcryptjs@2.4.3"
+    "bcryptjs": "https://esm.sh/bcryptjs@2.4.3?target=deno"
   }
 }

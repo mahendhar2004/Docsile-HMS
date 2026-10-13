@@ -18,7 +18,8 @@
  *   { sub, email, role, fullName, hospitalId, permissions, jti, iat, exp }
  */
 
-import { compare } from 'bcryptjs';
+import bcrypt from 'bcryptjs';
+const { compare } = bcrypt;
 import { jwtVerify, decodeJwt } from 'jose';
 import { SignJWT } from '../_shared/auth.ts';
 import { getSupabaseClient } from '../_shared/supabase-client.ts';

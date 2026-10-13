@@ -13,10 +13,12 @@ import { requireAuth } from '../_shared/auth.ts';
 import { requirePermission } from '../_shared/permission-guard.ts';
 import { handleError, ok, errorResponse } from '../_shared/response.ts';
 import type { Session } from '../_shared/auth.ts';
+import { corsMiddleware } from '../_shared/cors.ts';
 import { EyeReadingSchema } from './types.ts';
 import * as service from './service.ts';
 
 const app = new Hono().basePath('/workup');
+app.use('*', corsMiddleware);
 app.use('*', requireAuth);
 app.onError(handleError);
 
@@ -34,4 +36,4 @@ app.post('/patients/:patientId/start', requirePermission('workup:create'), async
   return ok(c, null, 'Workup started (no-op)');
 });
 
-export default app.fetch;
+Deno.serve(app.fetch);

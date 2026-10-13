@@ -21,6 +21,7 @@ import { requireAuth } from '../_shared/auth.ts';
 import { requirePermission } from '../_shared/permission-guard.ts';
 import { handleError, ok, created, errorResponse } from '../_shared/response.ts';
 import type { Session } from '../_shared/auth.ts';
+import { corsMiddleware } from '../_shared/cors.ts';
 import {
   CreateStaffSchema,
   UpdateStaffSchema,
@@ -32,6 +33,7 @@ import {
 import * as service from './service.ts';
 
 const app = new Hono().basePath('/staff');
+app.use('*', corsMiddleware);
 app.use('*', requireAuth);
 app.onError(handleError);
 
@@ -97,4 +99,4 @@ app.patch('/roles/:id/permissions', requirePermission('staff:manage_roles'), asy
   return ok(c, null, 'Permissions updated');
 });
 
-export default app.fetch;
+Deno.serve(app.fetch);

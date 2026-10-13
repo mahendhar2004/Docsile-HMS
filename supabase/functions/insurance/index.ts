@@ -23,6 +23,7 @@ import { requireAuth } from '../_shared/auth.ts';
 import { requirePermission } from '../_shared/permission-guard.ts';
 import { handleError, ok, created, paginated, errorResponse } from '../_shared/response.ts';
 import type { Session } from '../_shared/auth.ts';
+import { corsMiddleware } from '../_shared/cors.ts';
 import {
   InsuranceCompanySchema,
   InsuranceClaimSchema,
@@ -36,6 +37,7 @@ import {
 import * as service from './service.ts';
 
 const app = new Hono().basePath('/insurance');
+app.use('*', corsMiddleware);
 app.use('*', requireAuth);
 app.onError(handleError);
 
@@ -109,4 +111,4 @@ app.post('/claims/:id/payments', requirePermission('insurance:edit'), async (c) 
 // ---- Inpatients search (for claim creation) ----
 app.get('/inpatients/search', requirePermission('insurance:view'), async (c) => ok(c, await service.searchInpatients(c.get('session') as Session, c.req.query('q'))));
 
-export default app.fetch;
+Deno.serve(app.fetch);

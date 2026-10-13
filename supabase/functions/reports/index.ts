@@ -26,10 +26,12 @@ import { requireAuth } from '../_shared/auth.ts';
 import { requirePermission } from '../_shared/permission-guard.ts';
 import { handleError, ok, errorResponse } from '../_shared/response.ts';
 import type { Session } from '../_shared/auth.ts';
+import { corsMiddleware } from '../_shared/cors.ts';
 import { PatientSearchQuerySchema, ExportQuerySchema } from './types.ts';
 import * as service from './service.ts';
 
 const app = new Hono().basePath('/reports');
+app.use('*', corsMiddleware);
 app.use('*', requireAuth);
 app.onError(handleError);
 
@@ -96,4 +98,4 @@ app.get('/exports/expenses', requirePermission('data:export'), async (c) => {
   return ok(c, await service.exportExpenses(c.get('session') as Session, q.data));
 });
 
-export default app.fetch;
+Deno.serve(app.fetch);

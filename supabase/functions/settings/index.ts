@@ -42,6 +42,7 @@ import { requireAuth } from '../_shared/auth.ts';
 import { requirePermission } from '../_shared/permission-guard.ts';
 import { handleError, ok, created, errorResponse } from '../_shared/response.ts';
 import type { Session } from '../_shared/auth.ts';
+import { corsMiddleware } from '../_shared/cors.ts';
 import {
   ServiceTemplateSchema,
   HospitalProfileSchema,
@@ -56,6 +57,7 @@ import {
 import * as service from './service.ts';
 
 const app = new Hono().basePath('/settings');
+app.use('*', corsMiddleware);
 app.use('*', requireAuth);
 app.onError(handleError);
 
@@ -226,4 +228,4 @@ app.delete('/medicine-master/:id', requirePermission('settings:edit'), async (c)
   return ok(c, null, 'Medicine master deleted');
 });
 
-export default app.fetch;
+Deno.serve(app.fetch);

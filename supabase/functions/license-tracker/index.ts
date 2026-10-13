@@ -15,10 +15,12 @@ import { requireAuth } from '../_shared/auth.ts';
 import { requirePermission } from '../_shared/permission-guard.ts';
 import { handleError, ok, created, errorResponse } from '../_shared/response.ts';
 import type { Session } from '../_shared/auth.ts';
+import { corsMiddleware } from '../_shared/cors.ts';
 import { LicenseSchema, SaveDocumentUrlSchema } from './types.ts';
 import * as service from './service.ts';
 
 const app = new Hono().basePath('/license-tracker');
+app.use('*', corsMiddleware);
 app.use('*', requireAuth);
 app.onError(handleError);
 
@@ -52,4 +54,4 @@ app.delete('/:id/document', requirePermission('licenses:edit'), async (c) => {
   return ok(c, null, 'Document URL cleared');
 });
 
-export default app.fetch;
+Deno.serve(app.fetch);

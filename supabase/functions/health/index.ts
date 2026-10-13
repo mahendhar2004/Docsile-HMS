@@ -11,9 +11,11 @@
 
 import { Hono } from 'hono';
 import { handleError, ok } from '../_shared/response.ts';
+import { corsMiddleware } from '../_shared/cors.ts';
 import * as service from './service.ts';
 
 const app = new Hono().basePath('/health');
+app.use('*', corsMiddleware);
 app.onError(handleError);
 
 // GET /health — public liveness
@@ -28,4 +30,4 @@ app.get('/db', async (c) => {
   return ok(c, data, 'DB connection is healthy');
 });
 
-export default app.fetch;
+Deno.serve(app.fetch);

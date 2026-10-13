@@ -25,6 +25,7 @@ import { requireAuth } from '../_shared/auth.ts';
 import { requirePermission } from '../_shared/permission-guard.ts';
 import { handleError, ok, created, paginated, errorResponse } from '../_shared/response.ts';
 import type { Session } from '../_shared/auth.ts';
+import { corsMiddleware } from '../_shared/cors.ts';
 import {
   OpticalProductSchema,
   OpticalStockSchema,
@@ -36,6 +37,7 @@ import {
 import * as service from './service.ts';
 
 const app = new Hono().basePath('/optical');
+app.use('*', corsMiddleware);
 app.use('*', requireAuth);
 app.onError(handleError);
 
@@ -118,4 +120,4 @@ app.patch('/settings', requirePermission('settings:edit'), async (c) => {
 // ---- Hospital profile ----
 app.get('/hospital-profile', requirePermission('optical:view'), async (c) => ok(c, await service.getHospitalProfile(c.get('session') as Session)));
 
-export default app.fetch;
+Deno.serve(app.fetch);

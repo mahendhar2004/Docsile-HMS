@@ -13,10 +13,12 @@
 import { Hono } from 'hono';
 import { handleError, ok, errorResponse } from '../_shared/response.ts';
 import { parseRefreshCookie, buildSessionCookie, buildRefreshCookie, buildClearCookies } from '../_shared/auth.ts';
+import { corsMiddleware } from '../_shared/cors.ts';
 import { LoginRequestSchema } from './types.ts';
 import * as service from './service.ts';
 
 const app = new Hono().basePath('/auth');
+app.use('*', corsMiddleware);
 app.onError(handleError);
 
 // POST /auth/login — public — rate limit: 5/min per IP (enforced at infrastructure layer)
@@ -59,4 +61,4 @@ app.post('/logout', async (c) => {
   return response;
 });
 
-export default app.fetch;
+Deno.serve(app.fetch);

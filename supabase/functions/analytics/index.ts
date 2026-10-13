@@ -32,10 +32,12 @@ import { requireAuth } from '../_shared/auth.ts';
 import { requirePermission } from '../_shared/permission-guard.ts';
 import { handleError, ok, errorResponse } from '../_shared/response.ts';
 import type { Session } from '../_shared/auth.ts';
+import { corsMiddleware } from '../_shared/cors.ts';
 import { AnalyticsQuerySchema } from './types.ts';
 import * as service from './service.ts';
 
 const app = new Hono().basePath('/analytics');
+app.use('*', corsMiddleware);
 app.use('*', requireAuth);
 app.use('*', requirePermission('reports:view'));
 app.onError(handleError);
@@ -136,4 +138,4 @@ app.get('/region-stats', async (c) => {
   return ok(c, await service.getRegionStats(c.get('session') as Session, q.data));
 });
 
-export default app.fetch;
+Deno.serve(app.fetch);
