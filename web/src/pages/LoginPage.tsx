@@ -166,33 +166,33 @@ export default function LoginPage() {
       {/* Right panel — login form */}
       <div className="flex flex-1 items-center justify-center p-4">
         <div className="w-full max-w-sm motion-list-item-in">
-          <div className="mb-8 flex items-center gap-3 lg:justify-start justify-center">
-            <div
-              className={[
-                "flex items-center justify-center h-11 w-11 shrink-0",
-                "rounded-[var(--radius-md)] bg-[var(--color-primary)]",
-                "shadow-[var(--shadow-card)]",
-              ].join(" ")}
-              aria-hidden="true"
-            >
-              <Stethoscope size={22} className="text-[var(--color-primary-foreground)]" />
-            </div>
-            <div className="text-left">
-              <h1 className="text-[length:var(--text-title)] font-bold text-[var(--color-foreground)] tracking-tight leading-[var(--leading-tight)]">
-                Docsile HMS
-              </h1>
-              <p className="text-[length:var(--text-caption)] text-[var(--color-muted-foreground)]">
-                Sign in to your hospital account
-              </p>
-            </div>
-          </div>
-
           <form
             onSubmit={handleSubmit}
             className="rounded-[var(--radius-xl)] bg-[var(--color-card)] shadow-[var(--shadow-card)] p-7 space-y-5"
             aria-label="Login form"
             noValidate
           >
+            <div className="flex items-center gap-3 pb-5 mb-2 border-b border-[var(--color-border)]">
+              <div
+                className={[
+                  "flex items-center justify-center h-11 w-11 shrink-0",
+                  "rounded-[var(--radius-md)] bg-[var(--color-primary)]",
+                  "shadow-[var(--shadow-card)]",
+                ].join(" ")}
+                aria-hidden="true"
+              >
+                <Stethoscope size={22} className="text-[var(--color-primary-foreground)]" />
+              </div>
+              <div className="text-left">
+                <h1 className="text-[length:var(--text-title)] font-bold text-[var(--color-foreground)] tracking-tight leading-[var(--leading-tight)]">
+                  Docsile HMS
+                </h1>
+                <p className="text-[length:var(--text-caption)] text-[var(--color-muted-foreground)]">
+                  Sign in to your hospital account
+                </p>
+              </div>
+            </div>
+
             <FormFieldRow label="Email" htmlFor="email" required>
               <TextInput
                 id="email"
