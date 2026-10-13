@@ -67,6 +67,17 @@ export interface FollowUpRecord {
   isOverdue: boolean
 }
 
+// ─── GET /dues-followups/followups/summary ───────────────────────────────────
+// Matches main's FollowUpsTab summary tiles (Today/Tomorrow/Total/Overdue),
+// computed server-side over every follow-up record, not just one page.
+
+export interface FollowUpsSummary {
+  todayCount: number
+  tomorrowCount: number
+  totalCount: number
+  overdueCount: number
+}
+
 // ─── GET /dues-followups/email-templates ─────────────────────────────────────
 // Verified against supabase/functions/dues-followups/types.ts EmailTemplate.
 

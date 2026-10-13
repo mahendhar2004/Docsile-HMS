@@ -17,6 +17,7 @@ import type {
   DuesListQuery,
   EmailTemplate,
   FollowUpRecord,
+  FollowUpsSummary,
   MarkPaidInput,
   SendEmailInput,
 } from './types.ts';
@@ -81,6 +82,41 @@ export async function getFollowups(
   const data = all.slice(start, start + q.pageSize);
 
   return { data, total };
+}
+
+/**
+ * Summary tile counts (Today/Tomorrow/Total/Overdue) over every follow-up
+ * record, independent of pagination — matches main's FollowUpsTab summary,
+ * whose counts are computed over the whole filtered set, not one page.
+ */
+export async function getFollowupsSummary(s: Session): Promise<FollowUpsSummary> {
+  const repo = new DuesFollowupsRepository(getSupabaseClient(), s.hospitalId);
+
+  const [opd, ipd] = await Promise.all([
+    repo.getAllOPDFollowups(),
+    repo.getAllIPDFollowups(),
+  ]);
+  const all: FollowUpRecord[] = [...opd, ...ipd];
+
+  const now = new Date();
+  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  const tomorrow = new Date(today);
+  tomorrow.setDate(tomorrow.getDate() + 1);
+  const tomorrowEnd = new Date(tomorrow);
+  tomorrowEnd.setDate(tomorrowEnd.getDate() + 1);
+
+  return {
+    todayCount: all.filter((f) => {
+      const d = new Date(f.followUpDate);
+      return d >= today && d < tomorrow;
+    }).length,
+    tomorrowCount: all.filter((f) => {
+      const d = new Date(f.followUpDate);
+      return d >= tomorrow && d < tomorrowEnd;
+    }).length,
+    totalCount: all.length,
+    overdueCount: all.filter((f) => f.isOverdue).length,
+  };
 }
 
 // ─── markPaid ────────────────────────────────────────────────────────────────

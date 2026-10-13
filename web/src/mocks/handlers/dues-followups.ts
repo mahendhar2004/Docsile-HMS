@@ -44,6 +44,28 @@ export const duesFollowupsHandlers = [
     return ok(data, meta)
   }),
 
+  http.get("/dues-followups/followups/summary", () => {
+    const now = new Date()
+    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate())
+    const tomorrow = new Date(today)
+    tomorrow.setDate(tomorrow.getDate() + 1)
+    const tomorrowEnd = new Date(tomorrow)
+    tomorrowEnd.setDate(tomorrowEnd.getDate() + 1)
+
+    return ok({
+      todayCount: followups.filter((f) => {
+        const d = new Date(f.followUpDate)
+        return d >= today && d < tomorrow
+      }).length,
+      tomorrowCount: followups.filter((f) => {
+        const d = new Date(f.followUpDate)
+        return d >= tomorrow && d < tomorrowEnd
+      }).length,
+      totalCount: followups.length,
+      overdueCount: followups.filter((f) => f.isOverdue).length,
+    })
+  }),
+
   // ── Reference lists ─────────────────────────────────────────────────────────
 
   http.get("/dues-followups/doctors", () => ok(doctors)),

@@ -1,9 +1,10 @@
 /**
- * dues-followups Edge Function — 8 endpoints
+ * dues-followups Edge Function — 9 endpoints
  *
  * Routes (openapi.yaml §dues-followups):
  *   GET   /dues-followups/dues                   dues:view
  *   GET   /dues-followups/followups              dues:view
+ *   GET   /dues-followups/followups/summary      dues:view
  *   PATCH /dues-followups/dues/:id/mark-paid     dues:edit
  *   GET   /dues-followups/doctors                dues:view
  *   GET   /dues-followups/departments            dues:view
@@ -30,6 +31,11 @@ app.get('/dues', requirePermission('dues:view'), async (c) => {
   if (!q.success) return errorResponse(c, `Invalid query: ${q.error.errors[0].message}`, 400);
   const { data, total } = await service.getDues(s, q.data);
   return paginated(c, data, { page: q.data.page, pageSize: q.data.pageSize, total });
+});
+app.get('/followups/summary', requirePermission('dues:view'), async (c) => {
+  const s = c.get('session') as Session;
+  const result = await service.getFollowupsSummary(s);
+  return ok(c, result);
 });
 app.get('/followups', requirePermission('dues:view'), async (c) => {
   const s = c.get('session') as Session;

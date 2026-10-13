@@ -17,10 +17,11 @@ import { Badge } from "@/components/ui/badge"
 import {
   PaginatedDataTable,
   EmptyState,
+  StatCard,
   type ColumnDef,
 } from "@/components/patterns"
 import { usePermissions } from "@/hooks/usePermissions"
-import { useFollowups } from "./hooks"
+import { useFollowups, useFollowupsSummary } from "./hooks"
 import { SendEmailForm } from "./send-email-form"
 import type { FollowUpRecord } from "./types"
 
@@ -74,6 +75,8 @@ export const FollowupsTab = forwardRef<FollowupsTabHandle>(function FollowupsTab
     setPage,
     refetch,
   } = useFollowups()
+
+  const { data: summary, isLoading: isSummaryLoading } = useFollowupsSummary()
 
   useImperativeHandle(ref, () => ({
     refetch: () => void refetch(),
@@ -171,6 +174,19 @@ export const FollowupsTab = forwardRef<FollowupsTabHandle>(function FollowupsTab
 
   return (
     <div className="space-y-4">
+      {/* Summary tiles — matches main's FollowUpsTab (Today/Tomorrow/Total/
+          Overdue), computed over every follow-up record server-side, not
+          just the current page. "Total" (not main's "Next 5 Days" label):
+          this backend's getFollowups has no default date-window the way
+          main's does, so the count here is genuinely every record, not one
+          bounded to the next 5 days. */}
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+        <StatCard label="Today" value={summary?.todayCount ?? 0} loading={isSummaryLoading} />
+        <StatCard label="Tomorrow" value={summary?.tomorrowCount ?? 0} loading={isSummaryLoading} />
+        <StatCard label="Total" value={summary?.totalCount ?? 0} loading={isSummaryLoading} />
+        <StatCard label="Overdue" value={summary?.overdueCount ?? 0} loading={isSummaryLoading} />
+      </div>
+
       {/* Summary line */}
       <div className="flex items-center justify-between">
         <p className="text-sm text-muted-foreground">

@@ -65,6 +65,20 @@ export interface EmailTemplate {
   name: string;
 }
 
+/**
+ * Summary tile counts for the Follow-Ups tab, matching main's
+ * FollowUpsTab summary (Today/Tomorrow/Total/Overdue) — computed over every
+ * OPD+IPD follow-up record (this backend doesn't restrict getFollowups to a
+ * default date window the way main's getFollowUps() does), not just the
+ * current page.
+ */
+export interface FollowUpsSummary {
+  todayCount: number;
+  tomorrowCount: number;
+  totalCount: number;
+  overdueCount: number;
+}
+
 // ─── Inferred types (for use in service and repository) ──────────────────────
 
 export type DuesListQuery = z.infer<typeof DuesListQuerySchema>;

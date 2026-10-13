@@ -6,6 +6,7 @@
  * Query hooks:
  *   useDues            — GET /dues-followups/dues (offset-paginated)
  *   useFollowups       — GET /dues-followups/followups (offset-paginated)
+ *   useFollowupsSummary — GET /dues-followups/followups/summary (Today/Tomorrow/Total/Overdue)
  *   useDoctors         — GET /dues-followups/doctors (for filter dropdowns)
  *   useDepartments     — GET /dues-followups/departments (for filter dropdowns)
  *   useEmailTemplates  — GET /dues-followups/email-templates
@@ -23,6 +24,7 @@ import { usePaginatedQuery } from "@/hooks/usePaginatedQuery"
 import type {
   DueRecord,
   FollowUpRecord,
+  FollowUpsSummary,
   EmailTemplate,
   MarkPaidBody,
   SendEmailBody,
@@ -73,6 +75,23 @@ export function useFollowups(enabled = true) {
       ),
     initialPageSize: 25,
     queryOptions: { enabled },
+  })
+}
+
+/**
+ * Summary tile counts (Today/Tomorrow/Total/Overdue), computed server-side
+ * over every follow-up record — not scoped to the currently loaded page.
+ * Endpoint: GET /dues-followups/followups/summary
+ * Permission: dues:view
+ */
+export function useFollowupsSummary(enabled = true) {
+  return useQuery({
+    queryKey: [...duesKeys.followups(), "summary"],
+    queryFn: () =>
+      apiClient
+        .get<FollowUpsSummary>("/dues-followups/followups/summary")
+        .then((res) => res.data),
+    enabled,
   })
 }
 
