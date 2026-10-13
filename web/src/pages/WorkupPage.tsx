@@ -211,7 +211,7 @@ export default function WorkupPage() {
             <Button
               variant={sithaOpen ? "primary" : "outline"}
               size="sm"
-              className="ml-auto"
+              className={!sithaOpen ? "ml-auto bg-primary/5 border-primary/20 text-primary hover:bg-primary/10" : "ml-auto"}
               onClick={toggleSitha}
               aria-label="Ask Sitha AI"
             >

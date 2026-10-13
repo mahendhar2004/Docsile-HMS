@@ -112,6 +112,7 @@ export default function AnalyticsPage() {
             size="sm"
             onClick={toggleSitha}
             aria-label="Ask Sitha AI"
+            className={!sithaOpen ? "bg-primary/5 border-primary/20 text-primary hover:bg-primary/10" : undefined}
           >
             <Sparkles className="h-3.5 w-3.5 mr-1.5" aria-hidden />
             {sithaOpen ? "Hide Sitha" : "Ask Sitha"}

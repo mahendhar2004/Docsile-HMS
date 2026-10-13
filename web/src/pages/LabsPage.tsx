@@ -33,6 +33,7 @@ export default function LabsPage() {
   const { can } = usePermissions()
   const hasAccess = can("labs:view")
   const toggleSitha = useAiContextStore((s) => s.toggleOpen)
+  const sithaOpen = useAiContextStore((s) => s.open)
 
   const { data: labs, refetch: refetchLabs } = useLabsList(hasAccess)
   const activeLabsCount = (labs ?? []).filter((l) => l.isActive).length
@@ -59,9 +60,15 @@ export default function LabsPage() {
         actions={
           <>
             {labs && <StatBadge value={activeLabsCount} label="Active Labs" variant="info" />}
-            <Button variant="outline" size="sm" onClick={toggleSitha} aria-label="Ask Sitha AI">
+            <Button
+              variant={sithaOpen ? "primary" : "outline"}
+              size="sm"
+              onClick={toggleSitha}
+              aria-label="Ask Sitha AI"
+              className={!sithaOpen ? "bg-primary/5 border-primary/20 text-primary hover:bg-primary/10" : undefined}
+            >
               <Sparkles className="h-3.5 w-3.5 mr-1.5" aria-hidden />
-              Ask Sitha
+              {sithaOpen ? "Hide Sitha" : "Ask Sitha"}
             </Button>
           </>
         }
