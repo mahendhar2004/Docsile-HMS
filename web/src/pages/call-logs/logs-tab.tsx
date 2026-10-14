@@ -1,12 +1,15 @@
 /**
  * call-logs/logs-tab.tsx
  *
- * Call logs list tab — paginated table with date/status/direction filters.
+ * Call logs list tab — paginated table with date-range/status/direction filters.
  *
- * API: GET /call-logs?page=N&pageSize=N&date=YYYY-MM-DD&status=&direction=&search=
+ * API: GET /call-logs?page=N&pageSize=N&dateFrom=&dateTo=&status=&direction=&search=
  * Matches main's getCallLogs(): status/direction/search are server-side
  * filters (re-queried on every change, not debounced), not a client-side
- * filter over whatever page happens to be loaded.
+ * filter over whatever page happens to be loaded. The date range is a plain
+ * reactive pair of date inputs (main's own `<input type="date">` × 2 in
+ * CallLogsPage.tsx) — no separate "Apply"/"Search" step, unlike the Bill
+ * History panels elsewhere in the app; main refetches immediately on change.
  *
  * Columns (matching old app CallLogsPage.tsx):
  *   Direction | Caller / Contact | Phone Number | Date & Time | Duration | Status | Notes | —
@@ -17,6 +20,7 @@
 
 import { useState, useMemo } from "react"
 import { format } from "date-fns"
+import { Calendar } from "lucide-react"
 import {
   PhoneIncoming,
   PhoneOutgoing,
@@ -24,7 +28,6 @@ import {
   MessageSquare,
 } from "lucide-react"
 import {
-  DatePicker,
   EmptyState,
   PaginatedDataTable,
   SearchBar,
@@ -32,6 +35,7 @@ import {
   type ColumnDef,
   type SelectOption,
 } from "@/components/patterns"
+import { todayISO } from "@/lib/utils"
 import { CallDetailSheet } from "./call-detail-sheet"
 import { useCallLogsList } from "./hooks"
 import { CALL_STATUS_CONFIG } from "./types"
@@ -191,14 +195,14 @@ function buildColumns(): ColumnDef<CallLog>[] {
 // ─── LogsTab ──────────────────────────────────────────────────────────────────
 
 export function LogsTab({ canView, canEdit }: LogsTabProps) {
-  const [viewDate, setViewDate] = useState<Date>(() => new Date())
+  // Date range — matches main's shared startDate/endDate (both default to
+  // today), a plain reactive pair, not a single day.
+  const [dateFrom, setDateFrom] = useState<string>(() => todayISO())
+  const [dateTo, setDateTo] = useState<string>(() => todayISO())
   const [statusFilter, setStatusFilter] = useState<string>("all")
   const [directionFilter, setDirectionFilter] = useState<string>("all")
   const [searchQuery, setSearchQuery] = useState<string>("")
   const [selectedCall, setSelectedCall] = useState<CallLog | null>(null)
-
-  // Convert Date to the string format the API expects
-  const date = format(viewDate, "yyyy-MM-dd")
 
   // Server-side filtering for status, direction, search — matches main's
   // getCallLogs(), which re-queries on every filter change rather than
@@ -217,7 +221,7 @@ export function LogsTab({ canView, canEdit }: LogsTabProps) {
     refetch,
     setPage,
     setPageSize,
-  } = useCallLogsList(date, canView, {
+  } = useCallLogsList(dateFrom || null, dateTo || null, canView, {
     status: statusFilter,
     direction: directionFilter,
     search: searchQuery,
@@ -231,12 +235,24 @@ export function LogsTab({ canView, canEdit }: LogsTabProps) {
           Plain bordered card, not the sticky PageToolbar/FilterBar — matches
           main's exact one-off filter-row treatment for this tab. */}
       <div className="flex flex-col sm:flex-row gap-3 p-4 mb-4 rounded-xl border border-border/60 bg-white shadow-sm">
-        <DatePicker
-          value={viewDate}
-          onChange={(d) => { if (d) { setViewDate(d); setPage(1) } }}
-          placeholder="Select date"
-          aria-label="Filter by date"
-        />
+        <div className="flex items-center gap-2">
+          <Calendar className="h-4 w-4 text-muted-foreground shrink-0" aria-hidden="true" />
+          <input
+            type="date"
+            value={dateFrom}
+            onChange={(e) => { setDateFrom(e.target.value); setPage(1) }}
+            className="px-2.5 py-1.5 border border-border rounded-lg text-xs bg-white focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all"
+            aria-label="Filter by start date"
+          />
+          <span className="text-xs text-muted-foreground font-medium">to</span>
+          <input
+            type="date"
+            value={dateTo}
+            onChange={(e) => { setDateTo(e.target.value); setPage(1) }}
+            className="px-2.5 py-1.5 border border-border rounded-lg text-xs bg-white focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all"
+            aria-label="Filter by end date"
+          />
+        </div>
 
         <SearchBar
           variant="standalone"

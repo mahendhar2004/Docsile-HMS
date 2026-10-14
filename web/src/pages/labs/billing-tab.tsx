@@ -20,16 +20,24 @@
  * "PENDING INVESTIGATIONS PANEL" exactly. An earlier version of this file
  * wrapped it in a second <section> with its own plain heading, producing
  * a visible duplicate "Pending Investigations" label stacked on screen.
+ *
+ * State lifted here so clicking a row in PendingTab can jump straight into
+ * billing it in BillsTab — matches main's single-component
+ * `selectPendingPatient` shortcut, which this split (Bills/Pending as
+ * separate components) otherwise has no way to wire.
  */
 
+import { useState } from "react"
 import { BillsTab } from "./bills-tab"
 import { PendingTab } from "./pending-tab"
 
 export function BillingTab() {
+  const [selectedPatientId, setSelectedPatientId] = useState<string | null>(null)
+
   return (
     <div className="space-y-8">
-      <BillsTab />
-      <PendingTab />
+      <BillsTab externalPatientId={selectedPatientId} />
+      <PendingTab onSelectPatient={setSelectedPatientId} />
     </div>
   )
 }

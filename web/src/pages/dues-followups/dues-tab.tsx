@@ -12,17 +12,44 @@
 import { useState, forwardRef, useImperativeHandle } from "react"
 import { IndianRupee } from "lucide-react"
 import { Badge } from "@/components/ui/badge"
+import { Input } from "@/components/ui/input"
 import {
   PaginatedDataTable,
   ConfirmationModal,
   EmptyState,
   StatCard,
+  SearchBar,
+  SingleSelect,
   type ColumnDef,
+  type SelectOption,
 } from "@/components/patterns"
 import { usePermissions } from "@/hooks/usePermissions"
-import { useDues, useDuesSummary, useMarkPaid } from "./hooks"
+import { formatDateLong } from "@/lib/utils"
+import { useDues, useDuesSummary, useMarkPaid, type DuesFilters } from "./hooks"
 import { dueTypeToMarkPaidType } from "./types"
+import { WhatsAppButton } from "./whatsapp-button"
 import type { DueRecord, DueType } from "./types"
+
+// ─── Filter options — matches main's DuesTab.tsx <Select> option sets ───────
+
+const TYPE_OPTIONS: SelectOption[] = [
+  { value: "ALL", label: "All Types" },
+  { value: "OPD", label: "OPD" },
+  { value: "IPD", label: "IPD" },
+  { value: "LAB", label: "Lab" },
+  { value: "PHARMACY", label: "Pharmacy" },
+]
+
+const SORT_OPTIONS: SelectOption[] = [
+  { value: "date_desc", label: "Newest First" },
+  { value: "date_asc", label: "Oldest First" },
+  { value: "amount_desc", label: "Highest Due" },
+  { value: "amount_asc", label: "Lowest Due" },
+]
+
+function getDueWhatsAppMessage(due: DueRecord): string {
+  return `Hello ${due.patientName}, this is a reminder. You have an outstanding balance of Rs. ${due.balanceDue.toLocaleString("en-IN")} for services on ${formatDateLong(due.date)}. Please arrange for payment at your earliest convenience. Thank you.`
+}
 
 // ─── Formatting helpers ───────────────────────────────────────────────────────
 
@@ -74,6 +101,23 @@ export const DuesTab = forwardRef<DuesTabHandle>(function DuesTab(_props, ref) {
 
   const [payTarget, setPayTarget] = useState<DueRecord | null>(null)
 
+  // Filter bar state — matches main's DuesTab.tsx exactly (search/type/sort
+  // are reactive, no Apply button; main's own `useEffect(loadDues, [...])`
+  // re-fetches on every change).
+  const [search, setSearch] = useState("")
+  const [typeFilter, setTypeFilter] = useState<DueType | "ALL">("ALL")
+  const [sortBy, setSortBy] = useState<DuesFilters["sortBy"]>("date_desc")
+  const [dateFrom, setDateFrom] = useState("")
+  const [dateTo, setDateTo] = useState("")
+
+  const filters: DuesFilters = {
+    search: search.trim() || undefined,
+    type: typeFilter,
+    dateFrom: dateFrom || undefined,
+    dateTo: dateTo || undefined,
+    sortBy,
+  }
+
   const {
     data,
     total,
@@ -85,7 +129,7 @@ export const DuesTab = forwardRef<DuesTabHandle>(function DuesTab(_props, ref) {
     pageSize,
     setPage,
     refetch,
-  } = useDues()
+  } = useDues(filters)
 
   const { data: summary, isLoading: isSummaryLoading } = useDuesSummary()
 
@@ -185,6 +229,63 @@ export const DuesTab = forwardRef<DuesTabHandle>(function DuesTab(_props, ref) {
 
   return (
     <div className="space-y-4">
+      {/* Filter bar — matches main's DuesTab.tsx FilterBar exactly: search,
+          type, sort, and a From/To date range. All reactive (no Apply
+          button), resetting to page 1 on every change. */}
+      <div className="flex items-center gap-2.5 flex-wrap">
+        <SearchBar
+          variant="standalone"
+          value={search}
+          onChange={(v) => {
+            setSearch(v)
+            setPage(1)
+          }}
+          placeholder="Search name, phone, ID…"
+          aria-label="Search dues"
+          className="w-56"
+        />
+        <SingleSelect
+          options={TYPE_OPTIONS}
+          value={typeFilter}
+          onChange={(v) => {
+            setTypeFilter(v as DueType | "ALL")
+            setPage(1)
+          }}
+          className="w-32"
+          aria-label="Filter by type"
+        />
+        <SingleSelect
+          options={SORT_OPTIONS}
+          value={sortBy ?? "date_desc"}
+          onChange={(v) => {
+            setSortBy(v as DuesFilters["sortBy"])
+            setPage(1)
+          }}
+          className="w-40"
+          aria-label="Sort dues"
+        />
+        <Input
+          type="date"
+          value={dateFrom}
+          onChange={(e) => {
+            setDateFrom(e.target.value)
+            setPage(1)
+          }}
+          className="w-36 h-9"
+          aria-label="From date"
+        />
+        <Input
+          type="date"
+          value={dateTo}
+          onChange={(e) => {
+            setDateTo(e.target.value)
+            setPage(1)
+          }}
+          className="w-36 h-9"
+          aria-label="To date"
+        />
+      </div>
+
       {/* Summary tiles — matches main's DuesTab (Total Outstanding + per-type
           OPD/IPD/LAB/PHARMACY totals), computed over every outstanding due
           server-side, not just the current page. */}
@@ -227,23 +328,26 @@ export const DuesTab = forwardRef<DuesTabHandle>(function DuesTab(_props, ref) {
         mode="offset"
         data={data}
         columns={columns}
-        variant={canEdit ? "with-row-actions" : "standard"}
-        rowActions={
-          canEdit
-            ? (row) => (
-                <button
-                  type="button"
-                  onClick={() => setPayTarget(row)}
-                  title="Mark as Paid"
-                  aria-label={`Mark ${row.patientName}'s due as paid`}
-                  className="flex items-center gap-1 rounded-md px-2 py-1 text-xs font-medium text-green-700 hover:bg-green-50 transition-colors"
-                >
-                  <IndianRupee className="h-3.5 w-3.5" aria-hidden="true" />
-                  Mark Paid
-                </button>
-              )
-            : undefined
-        }
+        variant="with-row-actions"
+        rowActions={(row) => (
+          <div className="flex items-center justify-end gap-1">
+            {/* WhatsApp reminder — visible regardless of dues:edit, matching
+                main (it's a read-only external deep link, not a mutation). */}
+            <WhatsAppButton phone={row.phone} message={getDueWhatsAppMessage(row)} />
+            {canEdit && (
+              <button
+                type="button"
+                onClick={() => setPayTarget(row)}
+                title="Mark as Paid"
+                aria-label={`Mark ${row.patientName}'s due as paid`}
+                className="flex items-center gap-1 rounded-md px-2 py-1 text-xs font-medium text-green-700 hover:bg-green-50 transition-colors"
+              >
+                <IndianRupee className="h-3.5 w-3.5" aria-hidden="true" />
+                Mark Paid
+              </button>
+            )}
+          </div>
+        )}
         isLoading={isLoading}
         isFetching={isFetching}
         isError={isError}

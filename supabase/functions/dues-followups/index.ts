@@ -20,7 +20,7 @@ import { requirePermission } from '../_shared/permission-guard.ts';
 import { handleError, ok, paginated, errorResponse } from '../_shared/response.ts';
 import type { Session } from '../_shared/auth.ts';
 import { corsMiddleware } from '../_shared/cors.ts';
-import { DuesListQuerySchema, MarkPaidSchema, SendEmailSchema } from './types.ts';
+import { DuesListQuerySchema, FollowupsListQuerySchema, MarkPaidSchema, SendEmailSchema } from './types.ts';
 import * as service from './service.ts';
 
 const app = new Hono().basePath('/dues-followups');
@@ -47,7 +47,7 @@ app.get('/followups/summary', requirePermission('dues:view'), async (c) => {
 });
 app.get('/followups', requirePermission('dues:view'), async (c) => {
   const s = c.get('session') as Session;
-  const q = DuesListQuerySchema.safeParse(c.req.query());
+  const q = FollowupsListQuerySchema.safeParse(c.req.query());
   if (!q.success) return errorResponse(c, `Invalid query: ${q.error.errors[0].message}`, 400);
   const { data, total } = await service.getFollowups(s, q.data);
   return paginated(c, data, { page: q.data.page, pageSize: q.data.pageSize, total });

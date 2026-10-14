@@ -3,14 +3,21 @@
  *
  * Bulk data export UI. Matches the real old DataExportPage.tsx pattern:
  *   - Tab selection for 9 export types
- *   - Date range + search filters (auto-fetch with debounce on search)
+ *   - Date range + search filters — ALWAYS auto-fetches on mount and on
+ *     every tab/date change, debouncing only the search field (400ms) —
+ *     main has no manual "fetch" step anywhere, ever. An earlier pass added
+ *     a manual "Fetch Data"/"Refresh" button gated behind a `fetchEnabled`
+ *     flag, justified by a claimed "10 req/min API-enforced rate limit" —
+ *     that limit doesn't exist anywhere in the backend (verified: no
+ *     rate-limiting middleware in supabase/functions/reports or _shared),
+ *     and main's own records-count badge has no such gate either. Removed;
+ *     this now matches main's real always-reactive behavior exactly.
  *   - Column visibility toggle
  *   - Row selection (individual + select-all)
  *   - Client-side CSV / Excel (.xls) blob download
  *
  * Permission: data:export (gated by parent ReportsPage)
  * Endpoints: GET /reports/exports/{endpoint}?filter=custom&customStart=...&customEnd=...&search=...
- * Rate limit: 10 req/min per user (API-enforced)
  */
 
 import { useState, useEffect, useCallback, useRef, useMemo } from "react"
@@ -236,11 +243,11 @@ export interface ExportSectionProps {
    * it can render them as badges in the page's real PageHeader — matches
    * main's DataExportPage, which keeps `data`/`selectedIds` at the same
    * component level as the header badges (this component used to render
-   * its own duplicate "Data Export" title+badges block instead).
-   * `total: null` means "no fetch yet" (hide the records badge) — matches
-   * main's `fetchEnabled &&` condition, distinct from a genuine 0-row result.
+   * its own duplicate "Data Export" title+badges block instead). Main's
+   * records badge is unconditional (always shows `data.length`, "0" while
+   * the first fetch is in flight) — matched exactly here, no gating.
    */
-  onCountsChange?: (counts: { total: number | null; selected: number }) => void
+  onCountsChange?: (counts: { total: number; selected: number }) => void
 }
 
 export function ExportSection({ onCountsChange }: ExportSectionProps = {}) {
@@ -254,7 +261,6 @@ export function ExportSection({ onCountsChange }: ExportSectionProps = {}) {
     () => new Set(EXPORT_TAB_CONFIG["patients"].columns.map((c) => c.key)),
   )
   const [exporting, setExporting] = useState(false)
-  const [fetchEnabled, setFetchEnabled] = useState(false)
 
   const config = EXPORT_TAB_CONFIG[activeTab]
   const allColumnKeys = useMemo(() => config.columns.map((c) => c.key), [config])
@@ -282,16 +288,16 @@ export function ExportSection({ onCountsChange }: ExportSectionProps = {}) {
     data: fetchedData,
     isLoading,
     isFetching,
-  } = useExportData(activeTab, params, fetchEnabled)
+  } = useExportData(activeTab, params)
 
   const data: ExportRow[] = fetchedData ?? []
 
   useEffect(() => {
     onCountsChange?.({
-      total: fetchEnabled ? data.length : null,
+      total: data.length,
       selected: selectedIds.size,
     })
-  }, [data.length, selectedIds.size, fetchEnabled, onCountsChange])
+  }, [data.length, selectedIds.size, onCountsChange])
 
   // Reset on tab change
   function handleTabChange(tab: ExportEndpoint) {
@@ -302,7 +308,6 @@ export function ExportSection({ onCountsChange }: ExportSectionProps = {}) {
     setDebouncedSearch("")
     setDateFrom("")
     setDateTo("")
-    setFetchEnabled(false)
   }
 
   // Selection
@@ -517,20 +522,6 @@ export function ExportSection({ onCountsChange }: ExportSectionProps = {}) {
           </Button>
         )}
 
-        {/* Fetch button */}
-        <Button
-          size="sm"
-          variant="outline"
-          className="h-9 text-xs"
-          onClick={() => setFetchEnabled(true)}
-          disabled={loading}
-        >
-          {loading ? (
-            <Loader2 className="h-3.5 w-3.5 mr-1.5 animate-spin" aria-hidden="true" />
-          ) : null}
-          {fetchEnabled ? "Refresh" : "Fetch Data"}
-        </Button>
-
         <div className="flex-1" />
 
         {/* Column visibility */}
@@ -584,44 +575,42 @@ export function ExportSection({ onCountsChange }: ExportSectionProps = {}) {
         </DropdownMenu>
 
         {/* Export dropdown */}
-        {fetchEnabled && (
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button
-                size="sm"
-                className="h-9 text-xs"
-                disabled={data.length === 0 || exporting || loading}
-              >
-                {exporting ? (
-                  <Loader2
-                    className="h-3.5 w-3.5 mr-1.5 animate-spin"
-                    aria-hidden="true"
-                  />
-                ) : (
-                  <Download className="h-3.5 w-3.5 mr-1.5" aria-hidden="true" />
-                )}
-                Export{selectedIds.size > 0 ? ` (${selectedIds.size})` : ""}
-                <ChevronDown className="h-3.5 w-3.5 ml-1" aria-hidden="true" />
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
-              <DropdownMenuLabel className="text-xs">
-                {selectedIds.size > 0
-                  ? `Export ${selectedIds.size} selected rows`
-                  : `Export all ${data.length} rows`}
-              </DropdownMenuLabel>
-              <DropdownMenuSeparator />
-              <DropdownMenuItem onClick={exportCSV} className="text-xs gap-2">
-                <FileText className="h-4 w-4" aria-hidden="true" />
-                Export as CSV
-              </DropdownMenuItem>
-              <DropdownMenuItem onClick={exportExcel} className="text-xs gap-2">
-                <FileSpreadsheet className="h-4 w-4" aria-hidden="true" />
-                Export as Excel (.xls)
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
-        )}
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button
+              size="sm"
+              className="h-9 text-xs"
+              disabled={data.length === 0 || exporting}
+            >
+              {exporting ? (
+                <Loader2
+                  className="h-3.5 w-3.5 mr-1.5 animate-spin"
+                  aria-hidden="true"
+                />
+              ) : (
+                <Download className="h-3.5 w-3.5 mr-1.5" aria-hidden="true" />
+              )}
+              Export{selectedIds.size > 0 ? ` (${selectedIds.size})` : ""}
+              <ChevronDown className="h-3.5 w-3.5 ml-1" aria-hidden="true" />
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end">
+            <DropdownMenuLabel className="text-xs">
+              {selectedIds.size > 0
+                ? `Export ${selectedIds.size} selected rows`
+                : `Export all ${data.length} rows`}
+            </DropdownMenuLabel>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem onClick={exportCSV} className="text-xs gap-2">
+              <FileText className="h-4 w-4" aria-hidden="true" />
+              Export as CSV
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={exportExcel} className="text-xs gap-2">
+              <FileSpreadsheet className="h-4 w-4" aria-hidden="true" />
+              Export as Excel (.xls)
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
       </div>
 
       {/* Data table */}
@@ -664,24 +653,7 @@ export function ExportSection({ onCountsChange }: ExportSectionProps = {}) {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {!fetchEnabled ? (
-                <TableRow>
-                  <TableCell
-                    colSpan={visibleCols.length + 2}
-                    className="text-center py-16 text-muted-foreground"
-                  >
-                    <div className="flex flex-col items-center gap-2">
-                      <FileText
-                        className="h-8 w-8 text-muted-foreground/50"
-                        aria-hidden="true"
-                      />
-                      <p className="text-sm">
-                        Click &ldquo;Fetch Data&rdquo; to load records
-                      </p>
-                    </div>
-                  </TableCell>
-                </TableRow>
-              ) : loading ? (
+              {loading ? (
                 Array.from({ length: 8 }).map((_, i) => (
                   <TableRow key={i}>
                     <TableCell className="px-3">
@@ -775,7 +747,7 @@ export function ExportSection({ onCountsChange }: ExportSectionProps = {}) {
         </div>
 
         {/* Footer */}
-        {fetchEnabled && data.length > 0 && (
+        {data.length > 0 && (
           <div className="flex items-center justify-between px-4 py-2.5 border-t bg-muted/30 text-xs text-muted-foreground">
             <span>
               {selectedIds.size > 0

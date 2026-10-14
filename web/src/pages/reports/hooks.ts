@@ -31,6 +31,7 @@ import type {
   InpatientRecord,
   LabRecord,
   BillingData,
+  ReportReceiptData,
   ExportEndpoint,
   ExportRow,
 } from "./types"
@@ -47,6 +48,7 @@ export const reportsKeys = {
   patientInpatient: (id: string) => [...reportsKeys.all, "inpatient", id] as const,
   patientLabs: (id: string) => [...reportsKeys.all, "labs", id] as const,
   patientBilling: (id: string) => [...reportsKeys.all, "billing", id] as const,
+  patientReceipt: (id: string) => [...reportsKeys.all, "receipt", id] as const,
   export: (endpoint: ExportEndpoint, params: string) =>
     [...reportsKeys.all, "export", endpoint, params] as const,
 } as const
@@ -184,6 +186,27 @@ export function usePatientBilling(patientId: string | null, enabled = true) {
   })
 }
 
+// ─── Patient receipt data (for print — prescription/lab/inpatient modes) ──────
+
+/**
+ * Fetch full patient + all-prescriptions + all-eye-readings data for the
+ * report print modal. Mirrors main's getReportReceiptData(). Only enabled
+ * when the print modal is actually open (same lazy-fetch pattern as
+ * patient-care's usePatientReceipt).
+ * @param patientId — Patient UUID.
+ */
+export function usePatientReceipt(patientId: string | null, enabled: boolean) {
+  return useQuery({
+    queryKey: reportsKeys.patientReceipt(patientId ?? ""),
+    queryFn: () =>
+      apiClient
+        .get<ReportReceiptData>(`/reports/patients/${patientId!}/receipt`)
+        .then((e) => e.data),
+    enabled: enabled && patientId != null,
+    staleTime: 60 * 1000,
+  })
+}
+
 // ─── Bulk export ──────────────────────────────────────────────────────────────
 
 export interface ExportQueryParams {
@@ -208,14 +231,19 @@ function buildExportUrl(endpoint: ExportEndpoint, params: ExportQueryParams): st
 }
 
 /**
- * Fetch export data for a given endpoint + filter params.
- * Rate-limited at 10 req/min per user (API-enforced).
+ * Fetch export data for a given endpoint + filter params. Auto-refetches
+ * whenever endpoint/params change (React Query's queryKey reactivity) —
+ * matches main's DataExportPage.tsx, which always auto-fetches on mount and
+ * on every tab/date change, debouncing only the search field. There is no
+ * real backend rate limit on these routes (checked: no rate-limiting
+ * middleware anywhere in supabase/functions/reports or _shared) — an
+ * earlier pass's claim of one was stale/incorrect and had been used to
+ * justify a manual "Fetch Data" button gate not present in main at all.
  * Gated by data:export permission in the consuming component.
  */
 export function useExportData(
   endpoint: ExportEndpoint,
   params: ExportQueryParams,
-  enabled: boolean,
 ) {
   const paramsKey = JSON.stringify(params)
   return useQuery({
@@ -224,7 +252,6 @@ export function useExportData(
       apiClient
         .get<ExportRow[]>(buildExportUrl(endpoint, params))
         .then((e) => e.data),
-    enabled,
     staleTime: 0,    // always re-fetch when key changes
     gcTime: 5 * 60 * 1000,
   })

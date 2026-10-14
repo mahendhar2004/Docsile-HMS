@@ -16,6 +16,26 @@ import type { SupabaseClient } from '@supabase/supabase-js';
 import type { DueRecord, FollowUpRecord, EmailTemplate } from './types.ts';
 import { NotFoundError } from '../_shared/errors.ts';
 
+/** Shared per-table due filters — matches main's getDues() filter set. */
+export interface DueFilters {
+  search?: string;
+  dateFrom?: string;
+  dateTo?: string;
+}
+
+/**
+ * Per-table follow-up filters. dateFromISO/dateToISO are pre-computed full
+ * ISO bounds (service.ts applies main's default-window logic — next 5 days,
+ * or from 2000-01-01 when includeOverdue — before calling the repository).
+ */
+export interface FollowupFilters {
+  notesSearch?: string;
+  doctor?: string;
+  department?: string;
+  dateFromISO: string;
+  dateToISO: string;
+}
+
 export class DuesFollowupsRepository {
   constructor(
     private readonly supabase: SupabaseClient,
@@ -24,8 +44,8 @@ export class DuesFollowupsRepository {
 
   // ─── Dues: OPD (Prescription with balanceDue > 0) ──────────────────────────
 
-  async getAllOPDDues(): Promise<DueRecord[]> {
-    const { data, error } = await this.supabase
+  async getAllOPDDues(filters: DueFilters = {}): Promise<DueRecord[]> {
+    let query = this.supabase
       .from('Prescription')
       .select(`
         id,
@@ -40,6 +60,17 @@ export class DuesFollowupsRepository {
       .gt('balanceDue', 0)
       .eq('hospital_id', this.hospitalId)
       .order('prescriptionDate', { ascending: false });
+
+    if (filters.dateFrom) query = query.gte('prescriptionDate', `${filters.dateFrom}T00:00:00`);
+    if (filters.dateTo) query = query.lte('prescriptionDate', `${filters.dateTo}T23:59:59`);
+    if (filters.search) {
+      const s = filters.search;
+      query = query.or(
+        `prescriptionNumber.ilike.%${s}%,patient.firstName.ilike.%${s}%,patient.lastName.ilike.%${s}%,patient.phone.ilike.%${s}%,patient.patientId.ilike.%${s}%`,
+      );
+    }
+
+    const { data, error } = await query;
 
     if (error) throw error;
 
@@ -73,8 +104,8 @@ export class DuesFollowupsRepository {
 
   // ─── Dues: IPD (InPatient with balanceAmount > 0) ──────────────────────────
 
-  async getAllIPDDues(): Promise<DueRecord[]> {
-    const { data, error } = await this.supabase
+  async getAllIPDDues(filters: DueFilters = {}): Promise<DueRecord[]> {
+    let query = this.supabase
       .from('InPatient')
       .select(`
         id,
@@ -90,6 +121,15 @@ export class DuesFollowupsRepository {
       .gt('balanceAmount', 0)
       .eq('hospital_id', this.hospitalId)
       .order('admissionDate', { ascending: false });
+
+    if (filters.dateFrom) query = query.gte('admissionDate', `${filters.dateFrom}T00:00:00`);
+    if (filters.dateTo) query = query.lte('admissionDate', `${filters.dateTo}T23:59:59`);
+    if (filters.search) {
+      const s = filters.search;
+      query = query.or(`name.ilike.%${s}%,phone.ilike.%${s}%,ipNumber.ilike.%${s}%`);
+    }
+
+    const { data, error } = await query;
 
     if (error) throw error;
 
@@ -115,8 +155,8 @@ export class DuesFollowupsRepository {
 
   // ─── Dues: LAB (LabBill with balanceDue > 0, not CANCELLED) ────────────────
 
-  async getAllLABDues(): Promise<DueRecord[]> {
-    const { data, error } = await this.supabase
+  async getAllLABDues(filters: DueFilters = {}): Promise<DueRecord[]> {
+    let query = this.supabase
       .from('LabBill')
       .select(`
         id,
@@ -133,6 +173,17 @@ export class DuesFollowupsRepository {
       .neq('status', 'CANCELLED')
       .eq('hospital_id', this.hospitalId)
       .order('createdAt', { ascending: false });
+
+    if (filters.dateFrom) query = query.gte('createdAt', `${filters.dateFrom}T00:00:00`);
+    if (filters.dateTo) query = query.lte('createdAt', `${filters.dateTo}T23:59:59`);
+    if (filters.search) {
+      const s = filters.search;
+      query = query.or(
+        `billNumber.ilike.%${s}%,patient.firstName.ilike.%${s}%,patient.lastName.ilike.%${s}%,patient.phone.ilike.%${s}%,patient.patientId.ilike.%${s}%`,
+      );
+    }
+
+    const { data, error } = await query;
 
     if (error) throw error;
 
@@ -172,8 +223,8 @@ export class DuesFollowupsRepository {
 
   // ─── Dues: PHARMACY (PharmacyBill with balanceDue > 0) ─────────────────────
 
-  async getAllPharmacyDues(): Promise<DueRecord[]> {
-    const { data, error } = await this.supabase
+  async getAllPharmacyDues(filters: DueFilters = {}): Promise<DueRecord[]> {
+    let query = this.supabase
       .from('PharmacyBill')
       .select(`
         id,
@@ -190,6 +241,15 @@ export class DuesFollowupsRepository {
       .gt('balanceDue', 0)
       .eq('hospital_id', this.hospitalId)
       .order('createdAt', { ascending: false });
+
+    if (filters.dateFrom) query = query.gte('createdAt', `${filters.dateFrom}T00:00:00`);
+    if (filters.dateTo) query = query.lte('createdAt', `${filters.dateTo}T23:59:59`);
+    if (filters.search) {
+      const s = filters.search;
+      query = query.or(`billNumber.ilike.%${s}%,patientName.ilike.%${s}%,patientPhone.ilike.%${s}%,patientId.ilike.%${s}%`);
+    }
+
+    const { data, error } = await query;
 
     if (error) throw error;
 
@@ -214,11 +274,11 @@ export class DuesFollowupsRepository {
 
   // ─── Follow-ups: OPD (Prescription with non-null followUpDate) ─────────────
 
-  async getAllOPDFollowups(): Promise<FollowUpRecord[]> {
+  async getAllOPDFollowups(filters: FollowupFilters): Promise<FollowUpRecord[]> {
     const now = new Date();
     const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
 
-    const { data, error } = await this.supabase
+    let query = this.supabase
       .from('Prescription')
       .select(`
         id,
@@ -232,7 +292,15 @@ export class DuesFollowupsRepository {
       `)
       .not('followUpDate', 'is', null)
       .eq('hospital_id', this.hospitalId)
+      .gte('followUpDate', filters.dateFromISO)
+      .lte('followUpDate', filters.dateToISO)
       .order('followUpDate', { ascending: true });
+
+    if (filters.notesSearch) query = query.ilike('additionalNotes', `%${filters.notesSearch}%`);
+    if (filters.doctor) query = query.ilike('doctorName', `%${filters.doctor}%`);
+    if (filters.department) query = query.eq('department', filters.department);
+
+    const { data, error } = await query;
 
     if (error) throw error;
 
@@ -269,11 +337,11 @@ export class DuesFollowupsRepository {
 
   // ─── Follow-ups: IPD (InPatient with non-null followUpDate) ────────────────
 
-  async getAllIPDFollowups(): Promise<FollowUpRecord[]> {
+  async getAllIPDFollowups(filters: FollowupFilters): Promise<FollowUpRecord[]> {
     const now = new Date();
     const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
 
-    const { data, error } = await this.supabase
+    let query = this.supabase
       .from('InPatient')
       .select(`
         id,
@@ -291,7 +359,15 @@ export class DuesFollowupsRepository {
       `)
       .not('followUpDate', 'is', null)
       .eq('hospital_id', this.hospitalId)
+      .gte('followUpDate', filters.dateFromISO)
+      .lte('followUpDate', filters.dateToISO)
       .order('followUpDate', { ascending: true });
+
+    if (filters.notesSearch) query = query.ilike('dischargeNotes', `%${filters.notesSearch}%`);
+    if (filters.doctor) query = query.ilike('doctorNames', `%${filters.doctor}%`);
+    if (filters.department) query = query.eq('department', filters.department);
+
+    const { data, error } = await query;
 
     if (error) throw error;
 

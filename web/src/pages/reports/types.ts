@@ -154,6 +154,7 @@ export interface InpatientRecord {
   netAmount: number
   totalReceivedAmount: number
   balanceAmount: number
+  followUpDate: string | null
   admissionNotes: string | null
   /** JSON-encoded IPPrescription[]. */
   prescriptions: string | null
@@ -289,6 +290,84 @@ export interface BillingData {
   prescriptions: BillingPrescriptionRow[]
   labBills: BillingLabBillRow[]
   inpatient: BillingInpatientRow | null
+}
+
+// ─── GET /reports/patients/{patientId}/receipt ────────────────────────────────
+// Shape from service.ts getPatientReceipt() — raw Patient row (all columns)
+// plus nested arrays. Mirrors main's getReportReceiptData() / ReportPrintModal.tsx.
+
+export interface ReceiptHospitalProfile {
+  name: string
+  displayName?: string | null
+  address?: string | null
+  phone?: string | null
+  email?: string | null
+  website?: string | null
+  registrationNo?: string | null
+  logoUrl?: string | null
+}
+
+export interface ReceiptInvoiceItem {
+  id: string
+  description: string
+  amount: number
+  sortOrder?: number
+}
+
+export interface ReceiptPrescription {
+  id: string
+  prescriptionNumber: string | null
+  prescriptionDate: string
+  doctorName: string | null
+  department: string | null
+  temperature: number | null
+  pulseRate: number | null
+  spo2: number | null
+  presentComplaint: string | null
+  previousHistory: string | null
+  diagnosis: string | null
+  additionalNotes: string | null
+  notes: string | null
+  medicines: string | null
+  investigations: string | null
+  followUpDate: string | null
+  subtotal: number
+  discount: number
+  total: number
+  amountPaid: number
+  balanceDue: number
+  paymentMode: string | null
+  items: ReceiptInvoiceItem[]
+}
+
+export interface ReceiptEyeReading {
+  createdAt: string
+  autoRefractometer: string | null
+  previousPrescription: string | null
+  presentPrescription: string | null
+  clinicalFindings: string | null
+}
+
+export interface ReceiptPatient {
+  patientId: string
+  firstName: string
+  lastName: string | null
+  phone: string | null
+  age: number | null
+  gender: string
+  dateOfBirth: string | null
+  address: string | null
+  referredBy: string | null
+  doctorName: string | null
+  department: string | null
+  appointmentDate: string
+  prescriptions: ReceiptPrescription[]
+  eyeReadings: ReceiptEyeReading[]
+}
+
+export interface ReportReceiptData {
+  patient: ReceiptPatient | null
+  hospital: ReceiptHospitalProfile | null
 }
 
 // ─── GET /reports/exports/* ───────────────────────────────────────────────────

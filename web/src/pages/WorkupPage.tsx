@@ -13,10 +13,15 @@
  *   workup:view   — required to see the page and queue
  *   workup:create — required to save eye readings (form fields are read-only without it)
  *
- * No DateNavigator: GET /workup/queue has no `date` query param at all
- * (confirmed against .sde/schemas/openapi.yaml — always "today"
- * server-side, same limitation as the Doctor queue) — would be a
- * decorative control with nothing to change.
+ * DateNavigator: main's WorkupPage.tsx has prev/next/Today date navigation
+ * over its queue (getWorkupQueue(date)). The backend repository layer
+ * (WorkupRepository.getWorkupQueue(date?)/getPatientForWorkup(id, date?) in
+ * supabase/functions/workup/repository.ts) already fully supported a date
+ * param — only the HTTP route (index.ts) and service layer never threaded
+ * it through, so GET /workup/queue was silently always "today" even though
+ * the capability existed one layer down. Wired `date` through index.ts →
+ * service.ts (repository needed no changes) and added the DateNavigator here,
+ * same component/pattern already used by the OPD queue (opd-tab.tsx).
  *
  * Stat badges: main's exact 4-way split (Total / Optometrist / Doctor /
  * Completed), verified against both main's WorkupPage.tsx bucket check
@@ -35,8 +40,10 @@ import { ArrowLeft, Sparkles } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Skeleton } from "@/components/ui/skeleton"
 import { PageHeader, SearchBar, StatBadge, ErrorState, StatusPill } from "@/components/patterns"
+import { DateNavigator } from "@/components/patterns/date-time/date-navigator"
 import { usePermissions } from "@/hooks/usePermissions"
 import { useAiContextStore } from "@/store/ai-context"
+import { todayISO, toLocalDateISO } from "@/lib/utils"
 import { EyeReadingForm } from "./workup/eye-reading-form"
 import { WorkupQueue } from "./workup/workup-queue"
 import { useWorkupQueue, useWorkupPatient } from "./workup/use-workup"
@@ -46,6 +53,7 @@ import type { WorkupQueuePatient } from "./workup/types"
 
 interface PatientWorkupDetailProps {
   patientId: string
+  date: string
   hasCreate: boolean
 }
 
@@ -55,8 +63,8 @@ interface PatientWorkupDetailProps {
  * a patient is selected — the hook is always called (no conditional hook call),
  * but the `enabled` flag prevents the fetch until patientId is real.
  */
-function PatientWorkupDetail({ patientId, hasCreate }: PatientWorkupDetailProps) {
-  const { data: patient, isLoading, error } = useWorkupPatient(patientId)
+function PatientWorkupDetail({ patientId, date, hasCreate }: PatientWorkupDetailProps) {
+  const { data: patient, isLoading, error } = useWorkupPatient(patientId, date)
 
   if (isLoading) {
     return (
@@ -103,6 +111,13 @@ export default function WorkupPage() {
 
   const [selectedPatient, setSelectedPatient] = React.useState<WorkupQueuePatient | null>(null)
   const [search, setSearch] = React.useState("")
+  const [date, setDate] = React.useState(todayISO())
+
+  function navigateDate(deltaDays: number) {
+    const d = new Date(date + "T00:00:00")
+    d.setDate(d.getDate() + deltaDays)
+    setDate(toLocalDateISO(d))
+  }
 
   // Sitha's global panel switches into this patient's workup context while
   // selected — matches main's AskSithaAI(patientId, module: "workup") in the
@@ -118,7 +133,7 @@ export default function WorkupPage() {
   }, [selectedPatient, setAiContext, clearAiContext])
 
   // All hooks called unconditionally — early return comes after.
-  const queueQuery = useWorkupQueue()
+  const queueQuery = useWorkupQueue(date)
 
   const queueData = queueQuery.data ?? []
   const optometristCount = queueData.filter(
@@ -185,13 +200,23 @@ export default function WorkupPage() {
         }
         toolbar={
           !selectedPatient ? (
-            <SearchBar
-              variant="standalone"
-              value={search}
-              onChange={setSearch}
-              placeholder="Search by name, ID, or phone…"
-              aria-label="Search workup queue"
-            />
+            <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3 w-full">
+              <DateNavigator
+                date={date}
+                onDateChange={setDate}
+                onPrev={() => navigateDate(-1)}
+                onNext={() => navigateDate(1)}
+                onToday={() => setDate(todayISO())}
+                isToday={date === todayISO()}
+              />
+              <SearchBar
+                variant="standalone"
+                value={search}
+                onChange={setSearch}
+                placeholder="Search by name, ID, or phone…"
+                aria-label="Search workup queue"
+              />
+            </div>
           ) : undefined
         }
       />
@@ -219,7 +244,7 @@ export default function WorkupPage() {
               {sithaOpen ? "Hide Sitha" : "Ask Sitha"}
             </Button>
           </div>
-          <PatientWorkupDetail patientId={selectedPatient.patientId} hasCreate={hasCreate} />
+          <PatientWorkupDetail patientId={selectedPatient.patientId} date={date} hasCreate={hasCreate} />
         </div>
       ) : (
         <section aria-label="Today's workup queue">

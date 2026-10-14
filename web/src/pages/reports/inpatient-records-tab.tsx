@@ -36,13 +36,15 @@ import { Button } from "@/components/ui/button"
 import { Skeleton } from "@/components/ui/skeleton"
 import { ErrorState } from "@/components/patterns"
 import { formatDateLong, formatCurrency } from "@/lib/utils"
-import { toast } from "@/components/ui/sonner"
 import { usePatientInpatient } from "./hooks"
+import { ReportPrintModal } from "./report-print-modal"
 import { INPATIENT_STATUS_COLORS } from "./types"
+import type { PatientSummary } from "./types"
 
 interface InpatientRecordsTabProps {
   /** Patient UUID — used as the route param AND directly as InPatient FK. */
   patientId: string
+  patient: PatientSummary
 }
 
 interface IPPrescription {
@@ -67,10 +69,11 @@ interface PaymentRecord {
   notes?: string
 }
 
-export function InpatientRecordsTab({ patientId }: InpatientRecordsTabProps) {
+export function InpatientRecordsTab({ patientId, patient }: InpatientRecordsTabProps) {
   const [showPrescriptions, setShowPrescriptions] = useState(false)
   const [showDischarge, setShowDischarge] = useState(false)
   const [showInsurance, setShowInsurance] = useState(false)
+  const [printOpen, setPrintOpen] = useState(false)
 
   const { data: record, isLoading, isError, error, refetch } =
     usePatientInpatient(patientId)
@@ -211,7 +214,7 @@ export function InpatientRecordsTab({ patientId }: InpatientRecordsTabProps) {
               size="sm"
               aria-label="Print inpatient record"
               className="shrink-0 gap-1.5"
-              onClick={() => toast.info("Print functionality coming soon.")}
+              onClick={() => setPrintOpen(true)}
             >
               <Printer className="h-3.5 w-3.5" aria-hidden="true" />
               Print
@@ -563,6 +566,23 @@ export function InpatientRecordsTab({ patientId }: InpatientRecordsTabProps) {
           )}
         </div>
       )}
+
+      <ReportPrintModal
+        open={printOpen}
+        onClose={() => setPrintOpen(false)}
+        patient={{
+          id: patient.id,
+          patientId: patient.patientId,
+          fullName: patient.fullName,
+          phone: patient.phone,
+          age: patient.age,
+          gender: patient.gender,
+          dateOfBirth: patient.dateOfBirth,
+          address: patient.address,
+        }}
+        mode="inpatient"
+        inpatientRecord={record}
+      />
     </div>
   )
 }

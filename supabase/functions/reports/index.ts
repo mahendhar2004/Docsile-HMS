@@ -36,10 +36,22 @@ app.use('*', requireAuth);
 app.onError(handleError);
 
 // ---- Patient search — static route before /:patientId ----
+// NOT `ok(c, ...)`: the frontend's usePatientSearch() uses useCursorQuery,
+// which expects the standard cursor-page envelope `{ data: T[], meta: { cursor } }`
+// (same shape every other cursor consumer in this app relies on). service.ts's
+// searchPatients() returns `{ data, nextCursor }` as ONE object — passing that
+// straight to `ok()` nested it one level too deep (`data: { data, nextCursor }`),
+// so useCursorQuery's `pages.flatMap(p => p.data)` treated the whole envelope
+// object as a single non-array "page", producing one empty-looking suggestion
+// row (icons rendered, every text field undefined) instead of the real results.
 app.get('/patients/search', requirePermission('reports:view'), async (c) => {
   const q = PatientSearchQuerySchema.safeParse(c.req.query());
   if (!q.success) return errorResponse(c, `Invalid query: ${q.error.errors[0].message}`, 400);
-  return ok(c, await service.searchPatients(c.get('session') as Session, q.data));
+  const result = await service.searchPatients(c.get('session') as Session, q.data);
+  return c.json(
+    { statusCode: 200, message: 'Success', data: result.data, meta: { cursor: result.nextCursor } },
+    200,
+  );
 });
 
 // ---- Patient-specific report routes ----

@@ -229,24 +229,29 @@ export function RevenueTab({ filter, customStart, customEnd }: Props) {
               : <TrendingDown size={20} aria-hidden="true" />
           }
           loading={financialQ.isLoading}
+          subtitle="Collected minus expenses"
         />
         <StatCard
           label="Total Billed"
           value={financial ? fmt(financial.totalBilled) : "—"}
           icon={<Receipt size={20} aria-hidden="true" />}
           loading={financialQ.isLoading}
+          subtitle="Across all departments"
         />
         <StatCard
           label="Collection Rate"
           value={financial ? `${collectionRate}%` : "—"}
           icon={<CreditCard size={20} aria-hidden="true" />}
           loading={financialQ.isLoading}
+          subtitle={financial ? `${fmt(financial.totalCollected)} of ${fmt(financial.totalBilled)}` : undefined}
+          progress={financial ? collectionRate : undefined}
         />
         <StatCard
           label="Pending Dues"
           value={financial ? fmt(financial.totalDues) : "—"}
           icon={<IndianRupee size={20} aria-hidden="true" />}
           loading={financialQ.isLoading}
+          subtitle="Outstanding balance"
         />
       </div>
 

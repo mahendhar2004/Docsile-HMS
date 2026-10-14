@@ -10,9 +10,38 @@
 import * as React from "react"
 import type { UseQueryResult } from "@tanstack/react-query"
 import { Skeleton } from "@/components/ui/skeleton"
-import { DataTable, EmptyState, ErrorState, StatusPill } from "@/components/patterns"
+import { DataTable, EmptyState, ErrorState } from "@/components/patterns"
 import type { ColumnDef } from "@/components/patterns"
+import { cn } from "@/lib/utils"
 import type { WorkupQueuePatient } from "./types"
+
+// Main's real WorkupPage.tsx defines its OWN local statusConfig for this
+// queue table (REGISTERED/IN_WORKUP → "Optometrist", WORKUP_DONE/WITH_DOCTOR
+// → "Doctor"), deliberately different from the generic Patient-status labels
+// the shared StatusPill renders elsewhere ("Registered"/"In Workup"/etc) —
+// same pattern (and same statusConfig values) as the Doctor queue's own
+// override. Ported as a file-local component here too, not a shared-component
+// change. Note: main's Workup statusConfig has no VISITED entry (Doctor's does).
+const WORKUP_STATUS_CONFIG: Record<string, { label: string; bg: string; text: string; dot: string }> = {
+  REGISTERED:   { label: "Optometrist",  bg: "bg-destructive/10",  text: "text-destructive",             dot: "bg-destructive" },
+  IN_WORKUP:    { label: "Optometrist",  bg: "bg-destructive/10",  text: "text-destructive",             dot: "bg-destructive" },
+  WORKUP_DONE:  { label: "Doctor",       bg: "bg-warning-soft",    text: "text-warning-soft-foreground", dot: "bg-warning" },
+  WITH_DOCTOR:  { label: "Doctor",       bg: "bg-warning-soft",    text: "text-warning-soft-foreground", dot: "bg-warning" },
+  COMPLETED:    { label: "Completed",    bg: "bg-success-soft",    text: "text-success-soft-foreground", dot: "bg-success" },
+  MEDICAL_ONLY: { label: "Medical Only", bg: "bg-info-soft",       text: "text-info-soft-foreground",    dot: "bg-info" },
+}
+
+function WorkupStatusPill({ status }: { status: string }) {
+  const sc = WORKUP_STATUS_CONFIG[status] ?? {
+    label: status, bg: "bg-neutral-soft", text: "text-neutral-soft-foreground", dot: "bg-neutral",
+  }
+  return (
+    <span className={cn("inline-flex items-center gap-1.5 text-[11px] font-semibold px-2.5 py-1 rounded-full whitespace-nowrap", sc.bg, sc.text)}>
+      <span className={cn("h-1.5 w-1.5 rounded-full", sc.dot)} />
+      {sc.label}
+    </span>
+  )
+}
 
 // ─── Formatting helpers ───────────────────────────────────────────────────────
 
@@ -81,7 +110,7 @@ function buildColumns(): ColumnDef<WorkupQueuePatient>[] {
     {
       key: "status",
       header: "Status",
-      cell: (p) => <StatusPill status={p.status} dot />,
+      cell: (p) => <WorkupStatusPill status={p.status} />,
     },
     {
       key: "appointment",

@@ -39,9 +39,9 @@ function getISTDayBounds(dateStr?: string): { start: string; end: string } {
  * or eye reading today. Status is computed in-process from nested relation data.
  * Ports `getWorkupQueue` from src/app/(hospital)/workup/actions.ts.
  */
-export async function getWorkupQueue(session: Session): Promise<unknown[]> {
+export async function getWorkupQueue(session: Session, date?: string): Promise<unknown[]> {
   const repo = new WorkupRepository(getSupabaseClient(), session.hospitalId);
-  return repo.getWorkupQueue();
+  return repo.getWorkupQueue(date);
 }
 
 /**
@@ -55,9 +55,10 @@ export async function getWorkupQueue(session: Session): Promise<unknown[]> {
 export async function getPatientForWorkup(
   session: Session,
   patientId: string,
+  date?: string,
 ): Promise<unknown> {
   const repo = new WorkupRepository(getSupabaseClient(), session.hospitalId);
-  const patient = await repo.getPatientForWorkup(patientId);
+  const patient = await repo.getPatientForWorkup(patientId, date);
   if (!patient) {
     throw new NotFoundError('Patient', patientId);
   }

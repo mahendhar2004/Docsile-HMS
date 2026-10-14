@@ -14,7 +14,7 @@ import { requirePermission } from '../_shared/permission-guard.ts';
 import { handleError, ok, errorResponse } from '../_shared/response.ts';
 import type { Session } from '../_shared/auth.ts';
 import { corsMiddleware } from '../_shared/cors.ts';
-import { EyeReadingSchema } from './types.ts';
+import { EyeReadingSchema, WorkupDateQuerySchema } from './types.ts';
 import * as service from './service.ts';
 
 const app = new Hono().basePath('/workup');
@@ -22,8 +22,16 @@ app.use('*', corsMiddleware);
 app.use('*', requireAuth);
 app.onError(handleError);
 
-app.get('/queue', requirePermission('workup:view'), async (c) => ok(c, await service.getWorkupQueue(c.get('session') as Session)));
-app.get('/patients/:patientId', requirePermission('workup:view'), async (c) => ok(c, await service.getPatientForWorkup(c.get('session') as Session, c.req.param('patientId'))));
+app.get('/queue', requirePermission('workup:view'), async (c) => {
+  const q = WorkupDateQuerySchema.safeParse(c.req.query());
+  if (!q.success) return errorResponse(c, `Invalid query: ${q.error.errors[0].message}`, 400);
+  return ok(c, await service.getWorkupQueue(c.get('session') as Session, q.data.date));
+});
+app.get('/patients/:patientId', requirePermission('workup:view'), async (c) => {
+  const q = WorkupDateQuerySchema.safeParse(c.req.query());
+  if (!q.success) return errorResponse(c, `Invalid query: ${q.error.errors[0].message}`, 400);
+  return ok(c, await service.getPatientForWorkup(c.get('session') as Session, c.req.param('patientId'), q.data.date));
+});
 app.post('/patients/:patientId/eye-readings', requirePermission('workup:create'), async (c) => {
   const s = c.get('session') as Session;
   const b = EyeReadingSchema.safeParse(await c.req.json());

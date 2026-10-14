@@ -6,11 +6,12 @@
  *   - supabase/functions/license-tracker/types.ts                      (LicenseSchema)
  *   - .sde/schemas/openapi.yaml                                        (License schema, /license-tracker/* paths)
  *
- * Permission keys (from src/lib/permissions.ts + openapi x-permission):
+ * Permission keys — matches main's real src/app/(hospital)/license-tracker/
+ * actions.ts (NOT the openapi spec's planned `licenses:edit`, which main
+ * never actually checks anywhere for this module):
  *   licenses:view    — GET /license-tracker
- *   licenses:create  — POST /license-tracker
- *   licenses:edit    — PATCH /license-tracker/{id}, PATCH/DELETE /license-tracker/{id}/document
- *   licenses:delete  — DELETE /license-tracker/{id}
+ *   licenses:create  — POST /license-tracker, PATCH /license-tracker/{id}, PATCH /license-tracker/{id}/document
+ *   licenses:delete  — DELETE /license-tracker/{id}, DELETE /license-tracker/{id}/document
  */
 
 import { differenceInDays } from "date-fns"

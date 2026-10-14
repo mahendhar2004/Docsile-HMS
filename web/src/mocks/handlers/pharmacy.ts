@@ -124,13 +124,28 @@ export const pharmacyHandlers = [
 
   // ─── Suppliers ────────────────────────────────────────────────────────────────
 
-  http.get("/pharmacy/suppliers", () => ok(suppliers.filter((s) => s.isActive))),
+  // Mirrors the real backend's getSuppliers (supabase/functions/pharmacy/service.ts) —
+  // _count is computed from the other fixtures, not stored on the supplier itself.
+  http.get("/pharmacy/suppliers", () =>
+    ok(
+      suppliers
+        .filter((s) => s.isActive)
+        .map((s) => ({
+          ...s,
+          _count: {
+            purchaseOrders: purchaseOrders.filter((po) => po.supplierId === s.id).length,
+            stockEntries: stock.filter((item) => item.supplierId === s.id).length,
+          },
+        })),
+    ),
+  ),
 
   http.post("/pharmacy/suppliers", async ({ request }) => {
     const body = await request.json() as SupplierFormValues
     const sup: PharmacySupplier = {
       id: uid("sup"), ...body, hospitalId: HOSPITAL_ID, isActive: true,
       createdAt: nowIso(), updatedAt: nowIso(),
+      _count: { purchaseOrders: 0, stockEntries: 0 },
     }
     suppliers.push(sup)
     return created(sup)

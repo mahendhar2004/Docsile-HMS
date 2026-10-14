@@ -33,12 +33,15 @@ import { Button } from "@/components/ui/button"
 import { Label } from "@/components/ui/label"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Skeleton } from "@/components/ui/skeleton"
+import { EditableComboboxWithAdd } from "@/components/ui/editable-combobox"
 import { ConfirmationModal, ErrorState, EmptyState } from "@/components/patterns"
 import {
   useSurgeries,
   useCreateSurgery,
   useUpdateSurgery,
   useDeleteSurgery,
+  useDropdownOptions,
+  useAddDropdownOption,
 } from "./hooks"
 import type { PredefinedSurgery } from "./types"
 
@@ -235,13 +238,24 @@ interface SurgeryDialogProps {
 function SurgeryDialog({ open, onClose, existing }: SurgeryDialogProps) {
   const [name, setName] = useState(existing?.name ?? "")
   const [department, setDepartment] = useState(existing?.department ?? "")
+  // A brand-new template (no `existing`) always starts with one empty row,
+  // matching main's SurgeryFormDialog ([""] in its own "else" reset branch)
+  // — JSON.parse("[]") succeeds validly to an empty array, so without this
+  // explicit check the dialog opened with zero rows (only the "+ Add doctor"
+  // button) instead of one ready-to-fill row.
   const [doctorNames, setDoctorNames] = useState<string[]>(() => {
-    try { return (JSON.parse(existing?.doctorNames ?? "[]") as string[]) }
-    catch { return [""] }
+    if (!existing) return [""]
+    try {
+      const parsed = JSON.parse(existing.doctorNames ?? "[]") as string[]
+      return parsed.length > 0 ? parsed : [""]
+    } catch { return [""] }
   })
   const [onDutyDoctors, setOnDutyDoctors] = useState<string[]>(() => {
-    try { return (JSON.parse(existing?.onDutyDoctors ?? "[]") as string[]) }
-    catch { return [""] }
+    if (!existing) return [""]
+    try {
+      const parsed = JSON.parse(existing.onDutyDoctors ?? "[]") as string[]
+      return parsed.length > 0 ? parsed : [""]
+    } catch { return [""] }
   })
   const [provisionDiagnosis, setProvisionDiagnosis] = useState(existing?.provisionDiagnosis ?? "")
   const [operationProcedure, setOperationProcedure] = useState(existing?.operationProcedure ?? "")
@@ -249,6 +263,13 @@ function SurgeryDialog({ open, onClose, existing }: SurgeryDialogProps) {
 
   const createM = useCreateSurgery(() => onClose())
   const updateM = useUpdateSurgery(existing?.id ?? "", () => onClose())
+
+  // Doctor-name autocomplete — matches main's real SurgeryFormDialog, which
+  // feeds both Doctor Names and On-Duty Doctors from the same tenant-editable
+  // DropdownOption list (fieldName="doctorName") used elsewhere (Patient
+  // Registration, IPD Admission), not a plain free-text input.
+  const { data: doctorOptions = [] } = useDropdownOptions("doctorName")
+  const addDropdownOption = useAddDropdownOption()
 
   function updateRow(rows: string[], setter: (v: string[]) => void, i: number, v: string) {
     setter(rows.map((x, j) => (j === i ? v : x)))
@@ -311,12 +332,17 @@ function SurgeryDialog({ open, onClose, existing }: SurgeryDialogProps) {
             <div className="space-y-2 mt-1">
               {doctorNames.map((d, i) => (
                 <div key={i} className="flex items-center gap-2">
-                  <Input
-                    value={d}
-                    onChange={(e) => updateRow(doctorNames, setDoctorNames, i, e.target.value)}
-                    placeholder={`Doctor ${i + 1}`}
-                    className="flex-1"
-                  />
+                  <div className="flex-1">
+                    <EditableComboboxWithAdd
+                      options={doctorOptions}
+                      value={d}
+                      onValueChange={(v) => updateRow(doctorNames, setDoctorNames, i, v)}
+                      onAddOption={async (val) => {
+                        await addDropdownOption.mutateAsync({ fieldName: "doctorName", value: val })
+                      }}
+                      placeholder={`Doctor ${i + 1}`}
+                    />
+                  </div>
                   <Button
                     type="button"
                     variant="ghost"
@@ -350,12 +376,17 @@ function SurgeryDialog({ open, onClose, existing }: SurgeryDialogProps) {
             <div className="space-y-2 mt-1">
               {onDutyDoctors.map((d, i) => (
                 <div key={i} className="flex items-center gap-2">
-                  <Input
-                    value={d}
-                    onChange={(e) => updateRow(onDutyDoctors, setOnDutyDoctors, i, e.target.value)}
-                    placeholder={`On-duty doctor ${i + 1}`}
-                    className="flex-1"
-                  />
+                  <div className="flex-1">
+                    <EditableComboboxWithAdd
+                      options={doctorOptions}
+                      value={d}
+                      onValueChange={(v) => updateRow(onDutyDoctors, setOnDutyDoctors, i, v)}
+                      onAddOption={async (val) => {
+                        await addDropdownOption.mutateAsync({ fieldName: "doctorName", value: val })
+                      }}
+                      placeholder={`On-duty doctor ${i + 1}`}
+                    />
+                  </div>
                   <Button
                     type="button"
                     variant="ghost"

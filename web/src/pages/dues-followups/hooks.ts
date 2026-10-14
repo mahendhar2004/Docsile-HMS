@@ -25,19 +25,41 @@ import { usePaginatedQuery } from "@/hooks/usePaginatedQuery"
 import type {
   DueRecord,
   DuesSummary,
+  DueType,
   FollowUpRecord,
+  FollowUpType,
   FollowUpsSummary,
   EmailTemplate,
   MarkPaidBody,
   SendEmailBody,
 } from "./types"
 
+// ─── Filter param shapes ──────────────────────────────────────────────────────
+
+export interface DuesFilters {
+  search?: string
+  type?: DueType | "ALL"
+  dateFrom?: string
+  dateTo?: string
+  sortBy?: "date_desc" | "date_asc" | "amount_desc" | "amount_asc"
+}
+
+export interface FollowupsFilters {
+  notesSearch?: string
+  type?: FollowUpType | "ALL"
+  doctor?: string
+  department?: string
+  dateFrom?: string
+  dateTo?: string
+  includeOverdue?: boolean
+}
+
 // ─── Query key factory ────────────────────────────────────────────────────────
 
 export const duesKeys = {
   all: ["dues-followups"] as const,
-  dues: () => [...duesKeys.all, "dues"] as const,
-  followups: () => [...duesKeys.all, "followups"] as const,
+  dues: (filters?: DuesFilters) => [...duesKeys.all, "dues", filters ?? {}] as const,
+  followups: (filters?: FollowupsFilters) => [...duesKeys.all, "followups", filters ?? {}] as const,
   doctors: () => [...duesKeys.all, "doctors"] as const,
   departments: () => [...duesKeys.all, "departments"] as const,
   emailTemplates: () => [...duesKeys.all, "email-templates"] as const,
@@ -48,16 +70,22 @@ export const duesKeys = {
 
 /**
  * Offset-paginated outstanding dues across all modules (OPD / IPD / LAB / PHARMACY).
- * Endpoint: GET /dues-followups/dues?page=N&pageSize=N
+ * Filters match main's DuesTab filter bar — search / type / date range / sortBy.
+ * Endpoint: GET /dues-followups/dues?page=N&pageSize=N&search=&type=&dateFrom=&dateTo=&sortBy=
  * Permission: dues:view
  */
-export function useDues(enabled = true) {
+export function useDues(filters: DuesFilters = {}, enabled = true) {
   return usePaginatedQuery<DueRecord>({
-    queryKey: duesKeys.dues(),
-    queryFn: ({ page, pageSize }) =>
-      apiClient.get<DueRecord[]>(
-        `/dues-followups/dues?page=${page}&pageSize=${pageSize}`,
-      ),
+    queryKey: duesKeys.dues(filters),
+    queryFn: ({ page, pageSize }) => {
+      const params = new URLSearchParams({ page: String(page), pageSize: String(pageSize) })
+      if (filters.search) params.set("search", filters.search)
+      if (filters.type) params.set("type", filters.type)
+      if (filters.dateFrom) params.set("dateFrom", filters.dateFrom)
+      if (filters.dateTo) params.set("dateTo", filters.dateTo)
+      if (filters.sortBy) params.set("sortBy", filters.sortBy)
+      return apiClient.get<DueRecord[]>(`/dues-followups/dues?${params}`)
+    },
     initialPageSize: 25,
     queryOptions: { enabled },
   })
@@ -66,13 +94,13 @@ export function useDues(enabled = true) {
 /**
  * Summary tile totals (Total Outstanding + per-type OPD/IPD/LAB/PHARMACY
  * count+total), computed server-side over every outstanding due — not
- * scoped to the currently loaded page.
+ * scoped to the currently loaded page or the list's active filters.
  * Endpoint: GET /dues-followups/dues/summary
  * Permission: dues:view
  */
 export function useDuesSummary(enabled = true) {
   return useQuery({
-    queryKey: [...duesKeys.dues(), "summary"],
+    queryKey: [...duesKeys.all, "dues", "summary"],
     queryFn: () =>
       apiClient.get<DuesSummary>("/dues-followups/dues/summary").then((res) => res.data),
     enabled,
@@ -81,16 +109,25 @@ export function useDuesSummary(enabled = true) {
 
 /**
  * Offset-paginated follow-up list (OPD + IPD, sorted soonest-first).
- * Endpoint: GET /dues-followups/followups?page=N&pageSize=N
+ * Filters match main's FollowUpsTab filter bar — notes search / type /
+ * doctor / department / date range / includeOverdue.
+ * Endpoint: GET /dues-followups/followups?page=N&pageSize=N&notesSearch=&type=&doctor=&department=&dateFrom=&dateTo=&includeOverdue=
  * Permission: dues:view
  */
-export function useFollowups(enabled = true) {
+export function useFollowups(filters: FollowupsFilters = {}, enabled = true) {
   return usePaginatedQuery<FollowUpRecord>({
-    queryKey: duesKeys.followups(),
-    queryFn: ({ page, pageSize }) =>
-      apiClient.get<FollowUpRecord[]>(
-        `/dues-followups/followups?page=${page}&pageSize=${pageSize}`,
-      ),
+    queryKey: duesKeys.followups(filters),
+    queryFn: ({ page, pageSize }) => {
+      const params = new URLSearchParams({ page: String(page), pageSize: String(pageSize) })
+      if (filters.notesSearch) params.set("notesSearch", filters.notesSearch)
+      if (filters.type) params.set("type", filters.type)
+      if (filters.doctor) params.set("doctor", filters.doctor)
+      if (filters.department) params.set("department", filters.department)
+      if (filters.dateFrom) params.set("dateFrom", filters.dateFrom)
+      if (filters.dateTo) params.set("dateTo", filters.dateTo)
+      if (filters.includeOverdue) params.set("includeOverdue", "true")
+      return apiClient.get<FollowUpRecord[]>(`/dues-followups/followups?${params}`)
+    },
     initialPageSize: 25,
     queryOptions: { enabled },
   })
@@ -98,13 +135,14 @@ export function useFollowups(enabled = true) {
 
 /**
  * Summary tile counts (Today/Tomorrow/Total/Overdue), computed server-side
- * over every follow-up record — not scoped to the currently loaded page.
+ * over every follow-up record — not scoped to the currently loaded page or
+ * the list's active filters (same deliberately-global design as useDuesSummary).
  * Endpoint: GET /dues-followups/followups/summary
  * Permission: dues:view
  */
 export function useFollowupsSummary(enabled = true) {
   return useQuery({
-    queryKey: [...duesKeys.followups(), "summary"],
+    queryKey: [...duesKeys.all, "followups", "summary"],
     queryFn: () =>
       apiClient
         .get<FollowUpsSummary>("/dues-followups/followups/summary")
@@ -190,7 +228,11 @@ export function useMarkPaid(onSuccess?: () => void) {
     mutationFn: ({ id, body }: { id: string; body: MarkPaidBody }) =>
       apiClient.patch(`/dues-followups/dues/${id}/mark-paid`, body),
     onSuccess: () => {
-      void qc.invalidateQueries({ queryKey: duesKeys.dues() })
+      // Prefix-invalidate every dues query regardless of active filters —
+      // duesKeys.dues(filters) embeds the filter object as its last segment,
+      // so invalidating with a specific (or empty) filters value would only
+      // exact/prefix-match that one variant, not every other filter combo.
+      void qc.invalidateQueries({ queryKey: [...duesKeys.all, "dues"] })
       toast.success("Due marked as paid.")
       onSuccess?.()
     },

@@ -36,8 +36,8 @@ export default function DataExportPage() {
   const { can } = usePermissions()
   const canExport = can("data:export")
 
-  const [counts, setCounts] = useState<{ total: number | null; selected: number }>({
-    total: null,
+  const [counts, setCounts] = useState<{ total: number; selected: number }>({
+    total: 0,
     selected: 0,
   })
 
@@ -64,11 +64,9 @@ export default function DataExportPage() {
                 {counts.selected} selected
               </Badge>
             )}
-            {counts.total != null && (
-              <Badge variant="outline" className="text-xs">
-                {counts.total} records
-              </Badge>
-            )}
+            <Badge variant="outline" className="text-xs">
+              {counts.total} records
+            </Badge>
           </div>
         }
       />

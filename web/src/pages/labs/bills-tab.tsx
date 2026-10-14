@@ -35,7 +35,9 @@ import {
   CreditCard,
   Loader2,
   FlaskConical,
-  RefreshCw,
+  Filter,
+  ChevronDown,
+  History,
   Printer,
 } from "lucide-react"
 import { usePermissions } from "@/hooks/usePermissions"
@@ -52,7 +54,14 @@ import {
 } from "@/components/ui/select"
 import { PaginatedDataTable, EmptyState } from "@/components/patterns"
 import type { ColumnDef } from "@/components/patterns"
-import { usePatientInvestigations, useCreateLabBills, useLabBills } from "./hooks"
+import { cn } from "@/lib/utils"
+import {
+  usePatientInvestigations,
+  useCreateLabBills,
+  useLabBills,
+  useLabsList,
+  type LabBillFilters,
+} from "./hooks"
 import { LabBillPrintModal } from "./lab-bill-print-modal"
 import {
   PAYMENT_MODES,
@@ -267,7 +276,16 @@ function BillCard({
 
 // ─── BillsTab ─────────────────────────────────────────────────────────────────
 
-export function BillsTab() {
+export interface BillsTabProps {
+  /**
+   * Set when a pending-investigations row is clicked (PendingTab, via
+   * BillingTab) — matches main's `selectPendingPatient` jump-to-billing
+   * shortcut. Each distinct value re-triggers the search exactly once.
+   */
+  externalPatientId?: string | null
+}
+
+export function BillsTab({ externalPatientId }: BillsTabProps = {}) {
   const { can } = usePermissions()
 
   // ── Patient search state ──────────────────────────────────────────────────────
@@ -280,8 +298,37 @@ export function BillsTab() {
     { billNumber: string; labName: string; total: number }[]
   >([])
 
-  // ── History filter state ──────────────────────────────────────────────────────
-  const [historyDate, setHistoryDate] = useState(todayIST)
+  // Jump straight into billing a patient selected from the Pending
+  // Investigations panel — mirrors main's selectPendingPatient.
+  React.useEffect(() => {
+    if (!externalPatientId) return
+    setSearchInput(externalPatientId)
+    setSearchedPatientId(externalPatientId)
+    setCompletedBills([])
+  }, [externalPatientId])
+
+  // ── History filter state (applied only on "Apply", matching main's
+  //     explicit loadHistory call — not reactive to every keystroke) ───────────
+  const [historyOpen, setHistoryOpen] = useState(false)
+  const [dateFrom, setDateFrom] = useState(todayIST)
+  const [dateTo, setDateTo] = useState(todayIST)
+  const [filterLabId, setFilterLabId] = useState("all")
+  const [filterStatus, setFilterStatus] = useState("all")
+  const [filterPatient, setFilterPatient] = useState("")
+  const [appliedFilters, setAppliedFilters] = useState<LabBillFilters>({
+    dateFrom: todayIST(),
+    dateTo: todayIST(),
+  })
+
+  function handleApplyFilters() {
+    setAppliedFilters({
+      dateFrom: dateFrom || undefined,
+      dateTo: dateTo || undefined,
+      labId: filterLabId !== "all" ? filterLabId : undefined,
+      status: filterStatus !== "all" ? filterStatus : undefined,
+      patientId: filterPatient || undefined,
+    })
+  }
 
   // ── Queries ───────────────────────────────────────────────────────────────────
   const {
@@ -290,7 +337,8 @@ export function BillsTab() {
     error: patientError,
   } = usePatientInvestigations(searchedPatientId)
 
-  const billsQuery = useLabBills(historyDate || null)
+  const billsQuery = useLabBills(appliedFilters)
+  const { data: labsList } = useLabsList()
 
   const createLabBills = useCreateLabBills()
 
@@ -794,34 +842,131 @@ export function BillsTab() {
 
       {/* ── HISTORY SECTION ────────────────────────────────────────────────────── */}
       <section aria-label="Lab bills history">
-        {/* Filter bar — plain flex row matching main's collapsible history
-            panel filter row, not the sticky PageToolbar/FilterBar. */}
-        <div className="flex items-center gap-3 flex-wrap mb-3">
-          <div>
-            <label className="text-xs text-muted-foreground block mb-1" htmlFor="history-date">
-              Date
-            </label>
+        {/* Collapsible filters — matches main's "Lab Bills History" collapsible
+            panel: header row (icon + title + count badge + chevron) toggles a
+            filter row (date range, lab, status, patient, Apply). */}
+        <div className="rounded-[var(--radius-lg)] bg-[var(--color-card)] shadow-[var(--shadow-card)] overflow-hidden mb-3">
+          <button
+            type="button"
+            onClick={() => setHistoryOpen((o) => !o)}
+            className="w-full flex items-center justify-between px-5 py-3.5 hover:bg-muted/40 transition-colors"
+          >
             <div className="flex items-center gap-2">
-              <Input
-                id="history-date"
-                type="date"
-                value={historyDate}
-                onChange={(e) => setHistoryDate(e.target.value)}
-                className="h-9 w-40 bg-white text-sm"
-                aria-label="History date filter"
-              />
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                className="h-9"
-                onClick={() => void billsQuery.refetch()}
-                aria-label="Refresh bill history"
-              >
-                <RefreshCw className="h-3.5 w-3.5" aria-hidden="true" />
-              </Button>
+              <History className="h-4 w-4 text-muted-foreground" aria-hidden="true" />
+              <span className="text-sm font-semibold text-foreground">Lab Bills History</span>
+              {!billsQuery.isLoading && billsQuery.total > 0 && (
+                <Badge variant="secondary" className="text-xs">
+                  {billsQuery.total}
+                </Badge>
+              )}
             </div>
-          </div>
+            <ChevronDown
+              className={cn(
+                "h-4 w-4 text-muted-foreground transition-transform duration-200",
+                historyOpen && "rotate-180",
+              )}
+              aria-hidden="true"
+            />
+          </button>
+
+          {historyOpen && (
+            <div className="border-t border-border px-5 py-3 bg-muted/20">
+              <div className="flex items-center gap-3 flex-wrap">
+                <div>
+                  <label className="text-xs text-muted-foreground block mb-1" htmlFor="history-date-from">
+                    From
+                  </label>
+                  <Input
+                    id="history-date-from"
+                    type="date"
+                    value={dateFrom}
+                    onChange={(e) => setDateFrom(e.target.value)}
+                    className="h-9 w-40 bg-white text-sm"
+                    aria-label="History from date"
+                  />
+                </div>
+                <div>
+                  <label className="text-xs text-muted-foreground block mb-1" htmlFor="history-date-to">
+                    To
+                  </label>
+                  <Input
+                    id="history-date-to"
+                    type="date"
+                    value={dateTo}
+                    onChange={(e) => setDateTo(e.target.value)}
+                    className="h-9 w-40 bg-white text-sm"
+                    aria-label="History to date"
+                  />
+                </div>
+                <div>
+                  <label className="text-xs text-muted-foreground block mb-1" htmlFor="history-lab">
+                    Lab
+                  </label>
+                  <Select value={filterLabId} onValueChange={setFilterLabId}>
+                    <SelectTrigger id="history-lab" className="h-9 w-44" aria-label="Filter by lab">
+                      <SelectValue placeholder="All Labs" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">All Labs</SelectItem>
+                      {(labsList ?? []).map((lab) => (
+                        <SelectItem key={lab.id} value={lab.id}>
+                          {lab.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div>
+                  <label className="text-xs text-muted-foreground block mb-1" htmlFor="history-status">
+                    Status
+                  </label>
+                  <Select value={filterStatus} onValueChange={setFilterStatus}>
+                    <SelectTrigger id="history-status" className="h-9 w-36" aria-label="Filter by status">
+                      <SelectValue placeholder="All" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">All</SelectItem>
+                      <SelectItem value="PAID">Paid</SelectItem>
+                      <SelectItem value="PARTIAL">Partial</SelectItem>
+                      <SelectItem value="PENDING">Pending</SelectItem>
+                      <SelectItem value="CANCELLED">Cancelled</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div>
+                  <label className="text-xs text-muted-foreground block mb-1" htmlFor="history-patient">
+                    Patient
+                  </label>
+                  <div className="relative">
+                    <Search
+                      className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground"
+                      aria-hidden="true"
+                    />
+                    <Input
+                      id="history-patient"
+                      placeholder="Patient ID…"
+                      value={filterPatient}
+                      onChange={(e) => setFilterPatient(e.target.value)}
+                      className="h-9 w-40 pl-8 bg-white text-sm"
+                      aria-label="Filter by patient ID"
+                    />
+                  </div>
+                </div>
+                <div className="pt-5">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    className="h-9"
+                    onClick={handleApplyFilters}
+                  >
+                    <Filter className="h-3.5 w-3.5 mr-1" aria-hidden="true" />
+                    Apply
+                  </Button>
+                </div>
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Bill history table */}
@@ -933,7 +1078,7 @@ function PatientInfoCard({
               patient.age && `${patient.age}y`,
               patient.gender,
               patient.phone,
-              patient.doctorName,
+              patient.doctorName && `Dr. ${patient.doctorName}`,
             ]
               .filter(Boolean)
               .join(" · ")}

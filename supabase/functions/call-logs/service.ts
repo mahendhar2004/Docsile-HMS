@@ -409,6 +409,8 @@ export async function listCallLogs(
     page: number;
     pageSize: number;
     date?: string;
+    dateFrom?: string;
+    dateTo?: string;
     status?: string;
     direction?: string;
     search?: string;
@@ -423,6 +425,8 @@ export async function listCallLogs(
     q.status,
     q.direction,
     q.search,
+    q.dateFrom,
+    q.dateTo,
   );
 
   logger.info('Call logs listed', {
@@ -430,7 +434,7 @@ export async function listCallLogs(
     module: 'call-logs', action: 'listCallLogs',
   }, {
     count: rows.length, total, page: q.page, pageSize: q.pageSize,
-    hasDateFilter: !!q.date,
+    hasDateFilter: !!(q.date || q.dateFrom || q.dateTo),
   });
 
   return {

@@ -11,6 +11,7 @@ import { useState } from "react"
 import { Plus, ChevronDown, Printer } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet"
 import {
   DropdownMenu,
@@ -25,6 +26,7 @@ import {
   SingleSelect,
 } from "@/components/patterns"
 import type { ColumnDef } from "@/components/patterns"
+import { todayISO } from "@/lib/utils"
 import { OpticalBillForm } from "./optical-bill-form"
 import { OpticalBillPrintModal } from "./optical-bill-print-modal"
 import { useOpticalBills, useUpdateBillStatus } from "./hooks"
@@ -49,10 +51,22 @@ interface BillsTabProps {
 }
 
 export function BillsTab({ canCreate, canEdit }: BillsTabProps) {
-  const [dateFilter, setDateFilter] = useState("")
+  // Bill history date range — matches main's exact Bill History UX: the
+  // From/To inputs are freely editable, but the list only refetches for the
+  // *applied* range when "Search" is clicked (main's own loadHistory is an
+  // explicit imperative call, not a reactive effect on every keystroke).
+  const [dateFrom, setDateFrom] = useState(todayISO())
+  const [dateTo, setDateTo] = useState(todayISO())
+  const [appliedDateFrom, setAppliedDateFrom] = useState(todayISO())
+  const [appliedDateTo, setAppliedDateTo] = useState(todayISO())
   const [statusFilter, setStatusFilter] = useState("")
   const [showCreate, setShowCreate] = useState(false)
   const [printBill, setPrintBill] = useState<OpticalBillRow | null>(null)
+
+  function handleSearch() {
+    setAppliedDateFrom(dateFrom)
+    setAppliedDateTo(dateTo)
+  }
 
   const {
     data,
@@ -67,7 +81,8 @@ export function BillsTab({ canCreate, canEdit }: BillsTabProps) {
     setPage,
     setPageSize,
   } = useOpticalBills({
-    date: dateFilter || undefined,
+    dateFrom: appliedDateFrom || undefined,
+    dateTo: appliedDateTo || undefined,
     status: statusFilter || undefined,
   })
 
@@ -197,24 +212,30 @@ export function BillsTab({ canCreate, canEdit }: BillsTabProps) {
       {/* Filter bar — plain bordered card, not the sticky PageToolbar/FilterBar;
           matches main's exact Bill History card treatment. */}
       <div className="rounded-xl border border-border bg-white p-4 flex items-center gap-3 flex-wrap">
-        <div className="flex items-center gap-2">
-          <Input
-            type="date"
-            value={dateFilter}
-            onChange={(e) => setDateFilter(e.target.value)}
-            className="h-8 text-sm w-40"
-            aria-label="Filter by date"
-          />
-          {dateFilter && (
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => setDateFilter("")}
-              aria-label="Clear date filter"
-            >
-              Clear
-            </Button>
-          )}
+        <div className="flex items-end gap-2">
+          <div className="space-y-1">
+            <Label className="text-xs">From</Label>
+            <Input
+              type="date"
+              value={dateFrom}
+              onChange={(e) => setDateFrom(e.target.value)}
+              className="h-8 text-sm w-40"
+              aria-label="Bill history from date"
+            />
+          </div>
+          <div className="space-y-1">
+            <Label className="text-xs">To</Label>
+            <Input
+              type="date"
+              value={dateTo}
+              onChange={(e) => setDateTo(e.target.value)}
+              className="h-8 text-sm w-40"
+              aria-label="Bill history to date"
+            />
+          </div>
+          <Button size="sm" className="h-8" onClick={handleSearch}>
+            Search
+          </Button>
         </div>
 
         <SingleSelect
@@ -266,8 +287,8 @@ export function BillsTab({ canCreate, canEdit }: BillsTabProps) {
           <EmptyState
             title="No bills found"
             description={
-              dateFilter
-                ? "No optical bills for this date."
+              appliedDateFrom || appliedDateTo
+                ? "No optical bills in this date range."
                 : "No optical bills yet — create the first one."
             }
             action={

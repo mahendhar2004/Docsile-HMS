@@ -122,6 +122,8 @@ export class CallLogsRepository {
     status?: string,
     direction?: string,
     search?: string,
+    dateFrom?: string,
+    dateTo?: string,
   ): Promise<{ rows: CallLogRow[]; total: number }> {
     let q = this.supabase
       .from('CallLog')
@@ -132,7 +134,13 @@ export class CallLogsRepository {
       .eq('hospital_id', this.hospitalId)
       .order('startTime', { ascending: false });
 
-    if (date) {
+    if (dateFrom) {
+      q = q.gte('startTime', `${dateFrom}T00:00:00.000Z`);
+    }
+    if (dateTo) {
+      q = q.lte('startTime', `${dateTo}T23:59:59.999Z`);
+    }
+    if (!dateFrom && !dateTo && date) {
       q = q.gte('startTime', `${date}T00:00:00.000Z`).lte('startTime', `${date}T23:59:59.999Z`);
     }
 

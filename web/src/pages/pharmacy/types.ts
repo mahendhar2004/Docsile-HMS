@@ -198,6 +198,14 @@ export interface PharmacySupplier {
   isActive: boolean
   createdAt: string
   updatedAt: string
+  /**
+   * Computed by GET /pharmacy/suppliers (service.ts getSuppliers) — main only
+   * ever displays `purchaseOrders` (the "N POs" badge on the supplier card).
+   */
+  _count: {
+    purchaseOrders: number
+    stockEntries: number
+  }
 }
 
 /**

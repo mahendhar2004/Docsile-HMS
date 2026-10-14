@@ -15,6 +15,7 @@ import { apiClient } from "@/lib/api-client"
 import { usePaginatedQuery } from "@/hooks/usePaginatedQuery"
 import type {
   Lab,
+  LabWithCount,
   LabWithInvestigations,
   InvestigationMaster,
   LabInvestigationMapping,
@@ -45,8 +46,8 @@ export const labsKeys = {
   pending: (date: string) => [...labsKeys.all, "pending", date] as const,
   // Bills
   bills: () => [...labsKeys.all, "bills"] as const,
-  billList: (date: string | null) =>
-    [...labsKeys.bills(), "list", date ?? "all"] as const,
+  billList: (filters: LabBillFilters) =>
+    [...labsKeys.bills(), "list", filters] as const,
   billDetail: (id: string) => [...labsKeys.bills(), "detail", id] as const,
 } as const
 
@@ -60,7 +61,7 @@ export function useLabsList(enabled = true) {
   return useQuery({
     queryKey: labsKeys.labList(),
     queryFn: () =>
-      apiClient.get<Lab[]>("/labs/labs").then((e) => e.data),
+      apiClient.get<LabWithCount[]>("/labs/labs").then((e) => e.data),
     enabled,
   })
 }
@@ -287,17 +288,38 @@ export function usePendingInvestigations(date: string, enabled = true) {
 // ─── Lab bills ───────────────────────────────────────────────────────────────
 
 /**
- * GET /labs/bills?page=N&pageSize=N&date=YYYY-MM-DD — paginated lab bills.
+ * Lab Bills History filters — matches main's real filter set (LabBillingTab.tsx
+ * loadHistory): date range + lab + status + patient ID, applied only when the
+ * user clicks "Apply" (not reactively on every keystroke).
+ */
+export interface LabBillFilters {
+  dateFrom?: string
+  dateTo?: string
+  labId?: string
+  status?: string
+  patientId?: string
+}
+
+/**
+ * GET /labs/bills?page=N&pageSize=N&dateFrom=&dateTo=&labId=&status=&patientId=
+ * — paginated lab bills.
  * x-permission: labs:view
  */
-export function useLabBills(date: string | null) {
-  const dateParam = date ? `&date=${date}` : ""
+export function useLabBills(filters: LabBillFilters) {
   return usePaginatedQuery<LabBillRow>({
-    queryKey: labsKeys.billList(date),
-    queryFn: ({ page, pageSize }) =>
-      apiClient.get<LabBillRow[]>(
-        `/labs/bills?page=${page}&pageSize=${pageSize}${dateParam}`,
-      ),
+    queryKey: labsKeys.billList(filters),
+    queryFn: ({ page, pageSize }) => {
+      const params = new URLSearchParams({
+        page: String(page),
+        pageSize: String(pageSize),
+      })
+      if (filters.dateFrom) params.set("dateFrom", filters.dateFrom)
+      if (filters.dateTo) params.set("dateTo", filters.dateTo)
+      if (filters.labId) params.set("labId", filters.labId)
+      if (filters.status) params.set("status", filters.status)
+      if (filters.patientId) params.set("patientId", filters.patientId)
+      return apiClient.get<LabBillRow[]>(`/labs/bills?${params}`)
+    },
     initialPageSize: 25,
   })
 }

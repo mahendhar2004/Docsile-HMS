@@ -2,6 +2,9 @@
  * lab-records-tab.tsx
  *
  * Patient lab records — expandable accordion with test items and payments.
+ * The print trigger opens ReportPrintModal mode="lab" (generic lab-bill
+ * layout — main's hospital-specific "Vennela" branded layout is deliberately
+ * not ported, see report-print-modal.tsx's file header).
  * Tab ID: "labs"
  * Endpoint: GET /reports/patients/{patientId}/labs
  * Permission: reports:view (gated by parent)
@@ -20,17 +23,20 @@ import { Button } from "@/components/ui/button"
 import { Skeleton } from "@/components/ui/skeleton"
 import { ErrorState } from "@/components/patterns"
 import { formatDateLong, formatCurrency } from "@/lib/utils"
-import { toast } from "@/components/ui/sonner"
 import { usePatientLabRecords } from "./hooks"
+import { ReportPrintModal } from "./report-print-modal"
 import { LAB_STATUS_VARIANT } from "./types"
+import type { LabRecord, PatientSummary } from "./types"
 
 interface LabRecordsTabProps {
   /** Patient UUID — route param for GET /reports/patients/{id}/labs. */
   patientId: string
+  patient: PatientSummary
 }
 
-export function LabRecordsTab({ patientId }: LabRecordsTabProps) {
+export function LabRecordsTab({ patientId, patient }: LabRecordsTabProps) {
   const [expandedId, setExpandedId] = useState<string | null>(null)
+  const [printBill, setPrintBill] = useState<LabRecord | null>(null)
   const { data: bills, isLoading, isError, error, refetch } =
     usePatientLabRecords(patientId)
 
@@ -161,7 +167,7 @@ export function LabRecordsTab({ patientId }: LabRecordsTabProps) {
                     className="h-8 w-8 p-0 text-muted-foreground hover:text-primary"
                     onClick={(e) => {
                       e.stopPropagation()
-                      toast.info("Print functionality coming soon.")
+                      setPrintBill(bill)
                     }}
                   >
                     <Printer className="h-4 w-4" aria-hidden="true" />
@@ -246,6 +252,37 @@ export function LabRecordsTab({ patientId }: LabRecordsTabProps) {
           </div>
         )
       })}
+
+      {printBill && (
+        <ReportPrintModal
+          open
+          onClose={() => setPrintBill(null)}
+          patient={{
+            id: patient.id,
+            patientId: patient.patientId,
+            fullName: patient.fullName,
+            phone: patient.phone,
+            age: patient.age,
+            gender: patient.gender,
+            dateOfBirth: patient.dateOfBirth,
+            address: patient.address,
+          }}
+          mode="lab"
+          labBill={{
+            billNumber: printBill.billNumber,
+            labName: printBill.lab.name,
+            total: printBill.total,
+            amountPaid: printBill.amountPaid,
+            balanceDue: printBill.balanceDue,
+            discount: printBill.discount,
+            subtotal: printBill.subtotal,
+            paymentMode: printBill.paymentMode,
+            items: printBill.items.map((i) => ({ name: i.name, amount: i.amount })),
+            createdAt: printBill.createdAt,
+            printHeaderKey: printBill.lab.printHeaderKey,
+          }}
+        />
+      )}
     </div>
   )
 }

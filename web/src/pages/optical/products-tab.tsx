@@ -9,9 +9,10 @@
  */
 
 import { useState } from "react"
-import { Plus, Pencil, Trash2, MoreHorizontal } from "lucide-react"
+import { Plus, Pencil, Trash2, MoreHorizontal, Search } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
+import { Input } from "@/components/ui/input"
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -23,12 +24,16 @@ import {
   EmptyState,
   ErrorState,
   ConfirmationModal,
+  SingleSelect,
 } from "@/components/patterns"
 import type { ColumnDef } from "@/components/patterns"
 import { Skeleton } from "@/components/ui/skeleton"
 import { ProductForm } from "./product-form"
 import { useOpticalProducts, useCreateProduct, useUpdateProduct, useDeleteProduct } from "./hooks"
 import type { OpticalProduct, CreateOpticalProductBody } from "./types"
+import { OPTICAL_CATEGORY_OPTIONS } from "./types"
+
+const CATEGORY_FILTER_OPTIONS = [{ value: "All", label: "All Categories" }, ...OPTICAL_CATEGORY_OPTIONS]
 
 interface ProductsTabProps {
   canEdit: boolean
@@ -40,6 +45,21 @@ export function ProductsTab({ canEdit }: ProductsTabProps) {
   const [showCreate, setShowCreate] = useState(false)
   const [editing, setEditing] = useState<OpticalProduct | null>(null)
   const [deletingId, setDeletingId] = useState<string | null>(null)
+  // Main filters server-side (getOpticalProducts/InventoryTab.tsx's `search`/
+  // `filterCategory` state); this endpoint returns the full list unpaginated,
+  // so the same result is reached by filtering client-side here.
+  const [search, setSearch] = useState("")
+  const [filterCategory, setFilterCategory] = useState("All")
+
+  const filteredProducts = (products ?? []).filter((p) => {
+    const s = search.toLowerCase()
+    const matchesSearch =
+      !s ||
+      p.name.toLowerCase().includes(s) ||
+      (p.brand ?? "").toLowerCase().includes(s)
+    const matchesCategory = filterCategory === "All" || p.category === filterCategory
+    return matchesSearch && matchesCategory
+  })
 
   const createMutation = useCreateProduct(() => setShowCreate(false))
   const updateMutation = useUpdateProduct(
@@ -154,10 +174,25 @@ export function ProductsTab({ canEdit }: ProductsTabProps) {
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center justify-between">
-        <p className="text-sm text-muted-foreground">
-          {products?.length ?? 0} product{products?.length !== 1 ? "s" : ""}
-        </p>
+      <div className="flex items-center gap-3">
+        <div className="relative flex-1 max-w-sm">
+          <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" aria-hidden="true" />
+          <Input
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder="Search products..."
+            className="pl-8"
+            aria-label="Search products"
+          />
+        </div>
+        <SingleSelect
+          options={CATEGORY_FILTER_OPTIONS}
+          value={filterCategory}
+          onChange={setFilterCategory}
+          className="w-36"
+          aria-label="Filter by category"
+        />
+        <div className="flex-1" />
         {canEdit && (
           <Button size="sm" onClick={() => setShowCreate(true)}>
             <Plus className="h-4 w-4 mr-1.5" aria-hidden="true" />
@@ -165,6 +200,10 @@ export function ProductsTab({ canEdit }: ProductsTabProps) {
           </Button>
         )}
       </div>
+
+      <p className="text-sm text-muted-foreground">
+        {filteredProducts.length} product{filteredProducts.length !== 1 ? "s" : ""}
+      </p>
 
       {products && products.length === 0 ? (
         <EmptyState
@@ -176,10 +215,15 @@ export function ProductsTab({ canEdit }: ProductsTabProps) {
               : undefined
           }
         />
+      ) : filteredProducts.length === 0 ? (
+        <EmptyState
+          title="No matching products"
+          description="Try a different search term or category filter."
+        />
       ) : (
         <DataTable
           columns={columns}
-          data={products ?? []}
+          data={filteredProducts}
           aria-label="Optical products table"
         />
       )}

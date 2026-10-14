@@ -332,13 +332,18 @@ export function useUpdatePOStatus() {
  * Paginated pharmacy bills list.
  * x-permission: pharmacy:view
  */
-export function usePharmacyBills(enabled = true) {
+export function usePharmacyBills(
+  opts: { dateFrom?: string; dateTo?: string; enabled?: boolean } = {},
+) {
+  const { dateFrom, dateTo, enabled = true } = opts
   return usePaginatedQuery<PharmacyBill>({
-    queryKey: pharmacyKeys.bills,
-    queryFn: ({ page, pageSize }) =>
-      apiClient.get<PharmacyBill[]>(
-        `/pharmacy/bills?page=${page}&pageSize=${pageSize}`,
-      ),
+    queryKey: [...pharmacyKeys.bills, dateFrom ?? null, dateTo ?? null],
+    queryFn: ({ page, pageSize }) => {
+      const params = new URLSearchParams({ page: String(page), pageSize: String(pageSize) })
+      if (dateFrom) params.set("dateFrom", dateFrom)
+      if (dateTo) params.set("dateTo", dateTo)
+      return apiClient.get<PharmacyBill[]>(`/pharmacy/bills?${params}`)
+    },
     initialPageSize: 50,
     queryOptions: { enabled },
   })

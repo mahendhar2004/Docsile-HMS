@@ -224,6 +224,7 @@ export const patientInpatient: InpatientRecord = {
   netAmount: 26000,
   totalReceivedAmount: 26000,
   balanceAmount: 0,
+  followUpDate: "2025-11-26T07:00:00Z",
   admissionNotes: "Patient fit for surgery, routine pre-op clearance done",
   prescriptions: null,
   dischargeNotes: JSON.stringify({

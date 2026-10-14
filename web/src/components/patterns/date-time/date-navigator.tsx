@@ -2,20 +2,24 @@
  * date-time/date-navigator.tsx
  *
  * DateNavigator — prev/today/next date flipper used in main's queue-style
- * toolbars (Patients OPD, Labs pending, etc.), matching main's DateNavigator
- * exactly (src/components/layout/header.tsx). Distinct from DatePicker (a
- * calendar-popover for arbitrary single-date selection elsewhere in this
- * app) — main itself uses two different controls for these two different
- * jobs, and this app should too.
+ * toolbars (Patients OPD, Labs pending, etc.).
  *
- * The native <input type="date"> is stacked invisibly over the trigger
- * button (main's own trick) so clicking anywhere on the button opens the
- * platform's native date picker via showPicker(), while the visible label
- * stays fully custom-styled.
+ * Main's own implementation stacks a native <input type="date"> invisibly
+ * over the trigger button and calls showPicker() on click — faithfully
+ * copied here originally, but that native-popup trick turned out unreliable
+ * in practice (clicking the pill silently did nothing instead of opening a
+ * picker). Replaced with the same Popover+DayPicker calendar this app's
+ * DatePicker component uses elsewhere — fully custom-rendered, no native
+ * platform widget involved, so it opens reliably and looks consistent with
+ * every other date control in the app.
  */
 
-import { useId } from "react"
+import { useState } from "react"
 import { ChevronLeft, ChevronRight, Calendar } from "lucide-react"
+import { DayPicker } from "react-day-picker"
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
+import { calendarClassNames } from "./date-picker"
+import { toLocalDateISO } from "@/lib/utils"
 
 export interface DateNavigatorProps {
   /** ISO date string (YYYY-MM-DD). */
@@ -28,6 +32,12 @@ export interface DateNavigatorProps {
   className?: string
 }
 
+function parseISODate(s: string): Date | undefined {
+  const [y, m, d] = s.split("-").map(Number)
+  if (!y || !m || !d) return undefined
+  return new Date(y, m - 1, d)
+}
+
 export function DateNavigator({
   date,
   onDateChange,
@@ -37,7 +47,7 @@ export function DateNavigator({
   isToday,
   className = "",
 }: DateNavigatorProps) {
-  const inputId = useId()
+  const [open, setOpen] = useState(false)
 
   let formatted = date
   try {
@@ -63,29 +73,31 @@ export function DateNavigator({
         <ChevronLeft className="h-3.5 w-3.5" aria-hidden="true" />
       </button>
 
-      <div className="relative">
-        <button
-          type="button"
-          aria-label="Choose date"
-          className="h-8 px-3 flex items-center gap-2 rounded-lg border border-border/60 bg-white hover:bg-muted/40 transition-colors text-sm font-medium text-foreground"
-          onClick={() => {
-            const input = document.getElementById(inputId) as HTMLInputElement | null
-            input?.showPicker?.()
-          }}
-        >
-          <Calendar className="h-3.5 w-3.5 text-muted-foreground" aria-hidden="true" />
-          <span>{formatted}</span>
-        </button>
-        <input
-          id={inputId}
-          type="date"
-          value={date}
-          onChange={(e) => onDateChange(e.target.value)}
-          className="absolute inset-0 opacity-0 cursor-pointer"
-          tabIndex={-1}
-          aria-hidden="true"
-        />
-      </div>
+      <Popover open={open} onOpenChange={setOpen}>
+        <PopoverTrigger asChild>
+          <button
+            type="button"
+            aria-label="Choose date"
+            className="h-8 px-3 flex items-center gap-2 rounded-lg border border-border/60 bg-white hover:bg-muted/40 transition-colors text-sm font-medium text-foreground"
+          >
+            <Calendar className="h-3.5 w-3.5 text-muted-foreground" aria-hidden="true" />
+            <span>{formatted}</span>
+          </button>
+        </PopoverTrigger>
+        <PopoverContent className="w-auto p-0" align="start" sideOffset={6}>
+          <DayPicker
+            mode="single"
+            selected={parseISODate(date)}
+            onSelect={(d) => {
+              if (!d) return
+              onDateChange(toLocalDateISO(d))
+              setOpen(false)
+            }}
+            classNames={calendarClassNames}
+            showOutsideDays
+          />
+        </PopoverContent>
+      </Popover>
 
       <button
         type="button"

@@ -133,11 +133,13 @@ export function useStockSearch(q: string, enabled = true) {
  * Permission: optical:view
  */
 export function useOpticalBills(
-  filters: { date?: string; status?: string; search?: string } = {},
+  filters: { date?: string; dateFrom?: string; dateTo?: string; status?: string; search?: string } = {},
   enabled = true,
 ) {
   const params = new URLSearchParams()
   if (filters.date) params.set("date", filters.date)
+  if (filters.dateFrom) params.set("dateFrom", filters.dateFrom)
+  if (filters.dateTo) params.set("dateTo", filters.dateTo)
   if (filters.status) params.set("status", filters.status)
   if (filters.search) params.set("search", filters.search)
   const qs = params.toString()

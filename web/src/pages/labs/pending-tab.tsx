@@ -28,7 +28,16 @@ function todayIST(): string {
 
 // ─── Component ───────────────────────────────────────────────────────────────
 
-export function PendingTab() {
+export interface PendingTabProps {
+  /**
+   * Clicking a pending patient jumps straight into billing them — matches
+   * main's `selectPendingPatient` (LabBillingTab.tsx): the row is a button,
+   * not inert text.
+   */
+  onSelectPatient?: (patientId: string) => void
+}
+
+export function PendingTab({ onSelectPatient }: PendingTabProps = {}) {
   const [date, setDate] = useState(todayIST)
 
   const {
@@ -121,15 +130,17 @@ export function PendingTab() {
           className="rounded-[var(--radius-lg)] bg-[var(--color-card)] shadow-[var(--shadow-card)] overflow-hidden divide-y divide-border/40"
         >
           {patients.map((p) => (
-            <div
+            <button
               key={p.prescriptionId}
+              type="button"
               role="listitem"
-              className="flex items-center gap-3 px-4 py-3"
+              onClick={() => onSelectPatient?.(p.patientId)}
+              className="w-full flex items-center gap-3 px-4 py-3 hover:bg-primary/[0.03] transition-colors text-left group"
             >
               {/* Patient info */}
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2 flex-wrap">
-                  <span className="font-semibold text-sm text-foreground truncate">
+                  <span className="font-semibold text-sm text-foreground group-hover:text-primary transition-colors truncate">
                     {p.patientName}
                   </span>
                   <span className="font-mono text-[11px] text-muted-foreground bg-muted/60 px-1.5 py-0.5 rounded shrink-0">
@@ -140,7 +151,7 @@ export function PendingTab() {
                   {[
                     p.age && `${p.age}y`,
                     p.gender,
-                    p.doctorName,
+                    p.doctorName && `Dr. ${p.doctorName}`,
                   ]
                     .filter(Boolean)
                     .join(" · ")}
@@ -171,7 +182,7 @@ export function PendingTab() {
                   </span>
                 )}
               </div>
-            </div>
+            </button>
           ))}
         </div>
       )}

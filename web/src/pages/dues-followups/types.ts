@@ -140,4 +140,10 @@ export interface SendEmailBody {
   /** Template code from GET /dues-followups/email-templates. */
   templateId: string
   customMessage?: string | null
+  /**
+   * ISO datetime of the specific follow-up being emailed about — populates
+   * the `followUpDate` template variable server-side (matches main's
+   * SendEmailModal.tsx). Pass the FollowUpRecord's own `followUpDate`.
+   */
+  followUpDate?: string
 }

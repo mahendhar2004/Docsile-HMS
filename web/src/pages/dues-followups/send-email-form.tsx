@@ -54,6 +54,7 @@ export function SendEmailForm({ record, open, onOpenChange }: SendEmailFormProps
     sendEmail.mutate({
       patientId: record.patientId,
       templateId,
+      followUpDate: record.followUpDate,
     })
   }
 

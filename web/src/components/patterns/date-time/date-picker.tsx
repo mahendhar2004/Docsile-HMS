@@ -32,6 +32,12 @@ export interface DatePickerProps {
   fromDate?: Date;
   /** Latest selectable date. */
   toDate?: Date;
+  /**
+   * Caption style: "dropdown" shows month + year select dropdowns instead of
+   * just a label, so jumping to e.g. a distant birth year doesn't require
+   * clicking "previous month" repeatedly. Defaults to "dropdown".
+   */
+  captionLayout?: "label" | "dropdown" | "dropdown-months" | "dropdown-years";
   /** Additional className for the trigger wrapper. */
   className?: string;
   /** Accessible label for the trigger button. */
@@ -58,13 +64,21 @@ const iconSizeClasses: Record<DatePickerSize, string> = {
 
 // ─── Calendar classNames — maps react-day-picker v10 UI keys to Tailwind ─────
 
-const calendarClassNames = {
+export const calendarClassNames = {
   root: "p-3 select-none",
   months: "flex gap-4",
   month: "space-y-3",
   month_caption: "flex items-center justify-between px-1 pb-1",
-  caption_label: "text-sm font-semibold text-[var(--color-foreground)]",
+  caption_label: [
+    "flex items-center gap-1 text-sm font-semibold text-[var(--color-foreground)]",
+    "rounded-[var(--radius-sm)] px-1.5 py-0.5 -mx-1.5",
+    "hover:bg-[var(--color-muted)] transition-colors duration-[var(--duration-micro)]",
+  ].join(" "),
   nav: "flex items-center gap-1",
+  dropdowns: "flex items-center gap-1.5",
+  dropdown_root: "relative inline-flex items-center",
+  dropdown: "absolute inset-0 w-full h-full opacity-0 cursor-pointer appearance-none",
+  chevron: "size-3 fill-[var(--color-muted-foreground)]",
   button_previous: [
     "inline-flex items-center justify-center",
     "size-7 rounded-[var(--radius-sm)]",
@@ -123,12 +137,16 @@ export function DatePicker({
   disabled = false,
   fromDate,
   toDate,
+  captionLayout = "dropdown",
   className,
   "aria-label": ariaLabel,
   "aria-describedby": ariaDescribedBy,
   id,
 }: DatePickerProps) {
   const [open, setOpen] = React.useState(false);
+  const currentYear = new Date().getFullYear();
+  const startMonth = fromDate ?? new Date(currentYear - 120, 0, 1);
+  const endMonth = toDate ?? new Date(currentYear + 10, 11, 31);
 
   const formatted = value ? format(value, "dd MMM yyyy") : null;
 
@@ -240,6 +258,10 @@ export function DatePicker({
             ...(fromDate ? [{ before: fromDate }] : []),
             ...(toDate ? [{ after: toDate }] : []),
           ]}
+          captionLayout={captionLayout}
+          startMonth={startMonth}
+          endMonth={endMonth}
+          defaultMonth={value ?? toDate}
           classNames={calendarClassNames}
           showOutsideDays
         />

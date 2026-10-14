@@ -203,6 +203,7 @@ export function OverviewTab({ filter, customStart, customEnd }: Props) {
                 }
               : undefined
           }
+          subtitle={overview ? `${fmt(overview.totalConsultationRevenue)} consultation` : undefined}
         />
         <StatCard
           label="Total Patients"
@@ -218,12 +219,18 @@ export function OverviewTab({ filter, customStart, customEnd }: Props) {
                 }
               : undefined
           }
+          subtitle={overview ? `${fmtCount(overview.newPatientsToday)} registered today` : undefined}
         />
         <StatCard
           label="Conversion Rate"
           value={overview ? `${overview.conversionRate}%` : "—"}
           icon={<ArrowRightLeft size={20} aria-hidden="true" />}
           loading={isLoading}
+          subtitle={
+            overview
+              ? `${fmtCount(overview.surgeryConverted)} of ${fmtCount(overview.surgeryRecommended)} surgery patients`
+              : undefined
+          }
         />
         <StatCard
           label="Net Cash Flow"
@@ -234,6 +241,7 @@ export function OverviewTab({ filter, customStart, customEnd }: Props) {
               : <TrendingDown size={20} aria-hidden="true" />
           }
           loading={isLoading}
+          subtitle={overview ? `${fmt(overview.totalExpenses)} expenses` : undefined}
         />
       </div>
 
@@ -299,9 +307,21 @@ export function OverviewTab({ filter, customStart, customEnd }: Props) {
               <EmptyState title="No data" description="No financial data for this period." />
             )}
 
-            {/* Bottom strip */}
+            {/* Bottom strip — matches main's exact 3 columns: Net Cash Flow, Rev/Patient, Gender Split */}
             {overview && (
-              <div className="mt-4 pt-4 border-t border-border/40 grid grid-cols-2 gap-3">
+              <div className="mt-4 pt-4 border-t border-border/40 grid grid-cols-3 gap-3">
+                <div>
+                  <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-widest">
+                    Net Cash Flow
+                  </p>
+                  <p
+                    className={`text-sm font-black mt-0.5 tabular-nums ${
+                      netCashFlow >= 0 ? "text-emerald-600" : "text-red-600"
+                    }`}
+                  >
+                    {fmt(netCashFlow)}
+                  </p>
+                </div>
                 <div>
                   <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-widest">
                     Rev / Patient
@@ -310,14 +330,31 @@ export function OverviewTab({ filter, customStart, customEnd }: Props) {
                     {fmt(overview.revenuePerPatient)}
                   </p>
                 </div>
-                <div>
-                  <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-widest">
-                    Collection Rate
-                  </p>
-                  <p className="text-sm font-black text-foreground mt-0.5 tabular-nums">
-                    {overview.collectionRate}%
-                  </p>
-                </div>
+                {genderSlices.length > 0 && (
+                  <div>
+                    <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-widest mb-1.5">
+                      Gender Split
+                    </p>
+                    <div className="flex h-2 rounded-full overflow-hidden">
+                      {genderSlices.map((s) => {
+                        const pct = genderTotal > 0 ? Math.round((s.value / genderTotal) * 100) : 0
+                        return pct > 0 ? (
+                          <div key={s.name} style={{ width: `${pct}%`, backgroundColor: s.color }} />
+                        ) : null
+                      })}
+                    </div>
+                    <div className="flex gap-2 mt-1 text-[9px] text-muted-foreground">
+                      {genderSlices.map((s) => {
+                        const pct = genderTotal > 0 ? Math.round((s.value / genderTotal) * 100) : 0
+                        return (
+                          <span key={s.name}>
+                            {s.name.charAt(0)} {pct}%
+                          </span>
+                        )
+                      })}
+                    </div>
+                  </div>
+                )}
               </div>
             )}
           </CardContent>

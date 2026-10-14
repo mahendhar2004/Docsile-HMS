@@ -61,13 +61,67 @@ CommandInput.displayName = "CommandInput"
 const CommandList = React.forwardRef<
   HTMLDivElement,
   React.ComponentPropsWithoutRef<typeof CommandPrimitive.List>
->(({ className, ...props }, ref) => (
-  <CommandPrimitive.List
-    ref={ref}
-    className={cn("max-h-[300px] overflow-y-auto overflow-x-hidden", className)}
-    {...props}
-  />
-))
+>(({ className, onScroll, onWheel, ...props }, ref) => {
+  // cmdk tracks a keyboard-nav "active" item via pointermove over cmdk-items,
+  // and auto-scrolls that item into view whenever it changes. When content
+  // scrolls under a stationary cursor, the browser re-evaluates :hover and
+  // fires a synthetic pointermove on whatever item is now under the cursor —
+  // cmdk sees that as a new active item and immediately scrolls back to it,
+  // fighting (and effectively cancelling) the user's own wheel/trackpad
+  // scroll. A well-documented cmdk behavior (pacocoursey/cmdk), not specific
+  // to any one dropdown here. Fix: disable pointer events on items for the
+  // duration of a scroll gesture (+ a short settle delay), so hovering
+  // caused purely by content moving under the cursor can't retrigger it.
+  const [isScrolling, setIsScrolling] = React.useState(false)
+  const scrollEndTimeout = React.useRef<ReturnType<typeof setTimeout> | undefined>(undefined)
+
+  const handleScroll = React.useCallback(
+    (e: React.UIEvent<HTMLDivElement>) => {
+      setIsScrolling(true)
+      if (scrollEndTimeout.current) clearTimeout(scrollEndTimeout.current)
+      scrollEndTimeout.current = setTimeout(() => setIsScrolling(false), 150)
+      onScroll?.(e)
+    },
+    [onScroll]
+  )
+
+  // This component is almost always used inside a Radix Popover that is
+  // itself nested inside a Radix Dialog (e.g. SingleSelect inside a
+  // registration wizard dialog) — that nested-modal combination silently
+  // swallows the wheel event's native scroll-the-nearest-ancestor behavior
+  // before it ever reaches this list (confirmed: scrollTop never changes on
+  // a real wheel gesture, even though setting scrollTop directly works
+  // fine). preventDefault() upstream doesn't stop the event from bubbling
+  // here, so we scroll the list ourselves from the wheel delta instead of
+  // relying on the browser's default action.
+  const handleWheel = React.useCallback(
+    (e: React.WheelEvent<HTMLDivElement>) => {
+      e.currentTarget.scrollTop += e.deltaY
+      onWheel?.(e)
+    },
+    [onWheel]
+  )
+
+  React.useEffect(() => {
+    return () => {
+      if (scrollEndTimeout.current) clearTimeout(scrollEndTimeout.current)
+    }
+  }, [])
+
+  return (
+    <CommandPrimitive.List
+      ref={ref}
+      onScroll={handleScroll}
+      onWheel={handleWheel}
+      className={cn(
+        "max-h-[300px] overflow-y-auto overflow-x-hidden",
+        isScrolling && "[&_[cmdk-item]]:pointer-events-none",
+        className
+      )}
+      {...props}
+    />
+  )
+})
 CommandList.displayName = "CommandList"
 
 /* ─── Empty ─────────────────────────────────────────────────────────────────── */

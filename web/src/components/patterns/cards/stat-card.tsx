@@ -15,6 +15,8 @@
  *                   direction "neutral" → neutral gray (unchanged / N/A)
  *                   delta  — the change value to display (e.g. "+12" or "-3%")
  *                   label  — optional context text after delta (e.g. "vs yesterday")
+ *   subtitle    — optional small context line below the value/trend (e.g. "128 registered today")
+ *   progress    — optional 0-100 value rendered as a thin progress bar below the content
  *   loading     — show skeleton placeholder while data is fetching
  *   onClick     — makes the card interactive (dashboard nav tiles)
  *   className   — forwarded to the root Card
@@ -57,6 +59,10 @@ export interface StatCardProps {
   icon?: React.ReactNode
   /** Optional trend indicator */
   trend?: StatCardTrend
+  /** Optional small context line rendered below the value/trend */
+  subtitle?: React.ReactNode
+  /** Optional 0-100 value rendered as a thin progress bar below the content */
+  progress?: number
   /** Show loading skeleton — renders placeholder, hides real content */
   loading?: boolean
   /** Makes the card interactive (adds hover/click feedback) */
@@ -111,7 +117,7 @@ function StatCardSkeleton() {
 
 const StatCard = React.forwardRef<HTMLDivElement, StatCardProps>(
   (
-    { label, value, icon, trend, loading = false, onClick, className },
+    { label, value, icon, trend, subtitle, progress, loading = false, onClick, className },
     ref
   ) => {
     const isInteractive = !!onClick
@@ -170,6 +176,29 @@ const StatCard = React.forwardRef<HTMLDivElement, StatCardProps>(
               {/* Trend */}
               {trend && (
                 <TrendBadge trend={trend} />
+              )}
+
+              {/* Subtitle */}
+              {subtitle && (
+                <p
+                  className={cn(
+                    "text-[length:var(--text-caption)]",
+                    "text-[var(--color-muted-foreground)]",
+                    trend ? "mt-1.5" : "mt-0.5"
+                  )}
+                >
+                  {subtitle}
+                </p>
+              )}
+
+              {/* Progress bar */}
+              {progress !== undefined && (
+                <div className="h-1.5 bg-[var(--color-muted)] rounded-full overflow-hidden mt-3">
+                  <div
+                    className="h-full rounded-full bg-[var(--color-primary)]"
+                    style={{ width: `${Math.min(100, Math.max(0, progress))}%` }}
+                  />
+                </div>
               )}
             </>
           )}

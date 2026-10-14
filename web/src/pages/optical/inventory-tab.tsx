@@ -7,19 +7,20 @@
  * both stacked (corrected during the placement audit — stacking both was
  * a structural mismatch, not just a styling one). Each section
  * (ProductsTab, StockTab) is reused as-is, just composed together here.
+ *
+ * Main's "Products" sub-tab button shows a live count, e.g. "Products (12)"
+ * — its "Stock" button deliberately has no count. Reusing `useOpticalProducts`'s
+ * own query here (same cache key as ProductsTab/StockTab's own fetch) costs
+ * no extra network request, just reads the already-cached length.
  */
 
 import { useState } from "react"
 import { SegmentedControl, type SegmentOption } from "@/components/patterns"
 import { ProductsTab } from "./products-tab"
 import { StockTab } from "./stock-tab"
+import { useOpticalProducts } from "./hooks"
 
 type View = "stock" | "products"
-
-const VIEW_OPTIONS: SegmentOption<View>[] = [
-  { value: "stock", label: "Stock" },
-  { value: "products", label: "Products" },
-]
 
 export interface InventoryTabProps {
   canEdit: boolean
@@ -27,11 +28,17 @@ export interface InventoryTabProps {
 
 export function InventoryTab({ canEdit }: InventoryTabProps) {
   const [view, setView] = useState<View>("stock")
+  const { data: products } = useOpticalProducts()
+
+  const viewOptions: SegmentOption<View>[] = [
+    { value: "stock", label: "Stock" },
+    { value: "products", label: `Products (${products?.length ?? 0})` },
+  ]
 
   return (
     <div className="space-y-4">
       <SegmentedControl
-        options={VIEW_OPTIONS}
+        options={viewOptions}
         value={view}
         onValueChange={setView}
         aria-label="Inventory view"

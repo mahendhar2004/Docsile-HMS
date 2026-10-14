@@ -4,16 +4,19 @@
  * Endpoints:
  *   GET    /license-tracker                  → License[]  (licenses:view)
  *   POST   /license-tracker                  → License    (licenses:create)
- *   PATCH  /license-tracker/{id}             → void       (licenses:edit)
+ *   PATCH  /license-tracker/{id}             → void       (licenses:create) — reuses create, matches main
  *   DELETE /license-tracker/{id}             → void       (licenses:delete)
- *   PATCH  /license-tracker/{id}/document    → void       (licenses:edit) — saves URL after Storage upload
- *   DELETE /license-tracker/{id}/document    → void       (licenses:edit) — server handles Storage deletion
+ *   PATCH  /license-tracker/{id}/document    → void       (licenses:create) — saves URL after Storage upload
+ *   DELETE /license-tracker/{id}/document    → void       (licenses:delete) — server handles Storage deletion
  *
- * Permissions:
+ * Permissions (matches main's real actions.ts exactly — main has no
+ * `licenses:edit` check anywhere despite that key existing in the
+ * permissions registry; a prior pass followed the planned openapi spec
+ * instead of main's actual code and introduced a 3-way edit/create/delete
+ * split that doesn't exist in main — fixed):
  *   licenses:view   — page gate + list
- *   licenses:create — "Add License" button
- *   licenses:edit   — edit form + document upload/remove
- *   licenses:delete — delete action
+ *   licenses:create — "Add License" button, edit form, document upload
+ *   licenses:delete — delete license, remove document
  */
 
 import { useRef, useState } from "react"

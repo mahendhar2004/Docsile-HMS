@@ -36,6 +36,7 @@ export const settingsKeys = {
   surgeries: () => [...settingsKeys.all, "surgeries"] as const,
   discharges: () => [...settingsKeys.all, "discharges"] as const,
   medicineMaster: () => [...settingsKeys.all, "medicine-master"] as const,
+  dropdownOptions: (fieldName: string) => [...settingsKeys.all, "dropdown-options", fieldName] as const,
 } as const
 
 // ─── Service Templates ────────────────────────────────────────────────────────
@@ -604,6 +605,40 @@ export function useDeleteMedicineMaster(onSuccess?: () => void) {
     },
     onError: (err: unknown) => {
       toast.error(err instanceof Error ? err.message : "Failed to delete medicine.")
+    },
+  })
+}
+
+// ─── Dropdown options (tenant-editable doctor-name list) ──────────────────────
+// Reused endpoint — /patient-care/dropdown-options is the same shared
+// DropdownOption table the Patient Registration / IPD Admission wizards use
+// (fieldName="doctorName"). Main's real SurgeryFormDialog
+// (src/app/(hospital)/settings/components/SettingsPage.tsx) calls this
+// directly via getDropdownOptions("doctorName")/addDropdownOption(...) for
+// the surgery template form's Doctor Names / On-Duty Doctors fields; this
+// mirrors that call shape locally rather than importing patient-care's hooks
+// module, to avoid a cross-feature dependency for two small calls.
+
+export function useDropdownOptions(fieldName: string) {
+  return useQuery({
+    queryKey: settingsKeys.dropdownOptions(fieldName),
+    queryFn: () =>
+      apiClient
+        .get<{ fieldName: string; value: string }[]>(
+          `/patient-care/dropdown-options?fieldName=${encodeURIComponent(fieldName)}`,
+        )
+        .then((e) => e.data.map((o) => o.value)),
+    staleTime: 10 * 60 * 1000,
+  })
+}
+
+export function useAddDropdownOption() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (body: { fieldName: string; value: string }) =>
+      apiClient.post("/patient-care/dropdown-options", body),
+    onSuccess: (_, { fieldName }) => {
+      void qc.invalidateQueries({ queryKey: settingsKeys.dropdownOptions(fieldName) })
     },
   })
 }

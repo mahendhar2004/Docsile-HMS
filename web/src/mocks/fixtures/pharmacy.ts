@@ -96,6 +96,7 @@ export let suppliers: PharmacySupplier[] = [
     address: "Plot 12, Industrial Area, Hyderabad - 500016", gstin: "36AADCM1234A1ZQ",
     drugLicenseNo: "DL/HYD/2021/1234", creditDays: 30,
     hospitalId: HOSPITAL_ID, isActive: true, createdAt: "2026-01-05T08:00:00Z", updatedAt: "2026-01-05T08:00:00Z",
+    _count: { purchaseOrders: 0, stockEntries: 0 },
   },
   {
     id: "sup-002", name: "Bharat Pharma Supplies",
@@ -103,6 +104,7 @@ export let suppliers: PharmacySupplier[] = [
     address: "Shop 7, Gandhi Nagar, Hyderabad - 500080", gstin: "36BBBCP5678B2ZR",
     drugLicenseNo: "DL/HYD/2019/5678", creditDays: 15,
     hospitalId: HOSPITAL_ID, isActive: true, createdAt: "2026-01-06T08:00:00Z", updatedAt: "2026-01-06T08:00:00Z",
+    _count: { purchaseOrders: 0, stockEntries: 0 },
   },
   {
     id: "sup-003", name: "Apollo Pharma Wholesale",
@@ -110,6 +112,7 @@ export let suppliers: PharmacySupplier[] = [
     address: "No 45, Secunderabad - 500003", gstin: "36CCCAQ9012C3ZS",
     drugLicenseNo: "DL/SCB/2020/9012", creditDays: 45,
     hospitalId: HOSPITAL_ID, isActive: true, createdAt: "2026-01-07T08:00:00Z", updatedAt: "2026-01-07T08:00:00Z",
+    _count: { purchaseOrders: 0, stockEntries: 0 },
   },
   {
     id: "sup-004", name: "Venkateswara Drug Agency",
@@ -117,6 +120,7 @@ export let suppliers: PharmacySupplier[] = [
     address: "Near Bus Stand, Mehdipatnam, Hyderabad", gstin: null,
     drugLicenseNo: "DL/HYD/2022/3456", creditDays: 7,
     hospitalId: HOSPITAL_ID, isActive: true, createdAt: "2026-01-08T08:00:00Z", updatedAt: "2026-01-08T08:00:00Z",
+    _count: { purchaseOrders: 0, stockEntries: 0 },
   },
   {
     id: "sup-005", name: "Indus Pharma Corporation",
@@ -124,6 +128,7 @@ export let suppliers: PharmacySupplier[] = [
     address: "Unit 3, Pharma City, Shamshabad", gstin: "36DDDIP3456D4ZT",
     drugLicenseNo: "DL/RR/2021/7890", creditDays: 30,
     hospitalId: HOSPITAL_ID, isActive: true, createdAt: "2026-01-09T08:00:00Z", updatedAt: "2026-01-09T08:00:00Z",
+    _count: { purchaseOrders: 0, stockEntries: 0 },
   },
 ]
 

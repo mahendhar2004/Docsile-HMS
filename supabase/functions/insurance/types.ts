@@ -85,7 +85,15 @@ export type AddClaimPayment = z.infer<typeof AddClaimPaymentSchema>;
 export const CompanyListQuerySchema = z.object({
   page: z.coerce.number().int().positive().default(1),
   pageSize: z.coerce.number().int().positive().max(100).default(50),
-  paginated: z.coerce.boolean().default(true),
+  // NOT z.coerce.boolean() — Zod's coerce just calls Boolean(value), and
+  // Boolean("false") is true in JS (any non-empty string is truthy), so
+  // `?paginated=false` was silently coercing to `true` the whole time.
+  // Only the literal string "false" means false; anything else (including
+  // the param being entirely absent) keeps the documented default of true.
+  paginated: z
+    .string()
+    .optional()
+    .transform((v) => v !== "false"),
 });
 export type CompanyListQuery = z.infer<typeof CompanyListQuerySchema>;
 

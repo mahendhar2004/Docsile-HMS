@@ -49,6 +49,7 @@ import {
 } from "./hooks"
 import { apiClient } from "@/lib/api-client"
 import { printReceiptsHtml } from "@/lib/print-receipts"
+import { todayISO } from "@/lib/utils"
 import { useHospitalProfile } from "@/pages/settings/hooks"
 import type { HospitalProfile } from "@/pages/settings/types"
 import type {
@@ -304,13 +305,29 @@ export function BillsTab() {
   const { can } = usePermissions()
   const canCreate = can("pharmacy:create")
 
+  // Bill history panel — two-tier date state matches main's exact UX: the
+  // From/To inputs are freely editable, but the list only refetches for the
+  // *applied* range when "Search" is clicked (main's own loadHistory is an
+  // explicit imperative call, not a reactive effect on every keystroke).
+  const [showHistory, setShowHistory] = useState(false)
+  const [historyDateFrom, setHistoryDateFrom] = useState(todayISO())
+  const [historyDateTo, setHistoryDateTo] = useState(todayISO())
+  const [appliedDateFrom, setAppliedDateFrom] = useState(todayISO())
+  const [appliedDateTo, setAppliedDateTo] = useState(todayISO())
+
   // Bill history pagination
   const {
     data: bills,
     isLoading: billsLoading,
     error: billsError,
     refetch: refetchBills,
-  } = usePharmacyBills()
+  } = usePharmacyBills({ dateFrom: appliedDateFrom, dateTo: appliedDateTo, enabled: showHistory })
+
+  function handleSearchHistory() {
+    setAppliedDateFrom(historyDateFrom)
+    setAppliedDateTo(historyDateTo)
+    void refetchBills()
+  }
 
   const { data: pendingMedicines, isLoading: pendingLoading, refetch: refetchPending } =
     usePendingMedicines()
@@ -361,9 +378,6 @@ export function BillsTab() {
   const [paymentMode, setPaymentMode] = useState("CASH")
   const [paidAmount, setPaidAmount] = useState(0)
   const [paymentRef, setPaymentRef] = useState("")
-
-  // Bill history panel
-  const [showHistory, setShowHistory] = useState(false)
 
   // Calculations
   const subtotal = billItems.reduce((s, it) => s + it.amount, 0)
@@ -1011,16 +1025,37 @@ export function BillsTab() {
         <Card className="p-4">
           <div className="flex items-center justify-between mb-3">
             <h4 className="text-sm font-semibold">Bill History</h4>
-            <Button
-              size="sm"
-              variant="outline"
-              className="h-7 text-xs"
-              onClick={() => void refetchBills()}
-              aria-label="Refresh bills"
-            >
-              <RefreshCw className="h-3.5 w-3.5 mr-1" aria-hidden="true" />
-              Refresh
-            </Button>
+            <div className="flex items-center gap-2">
+              <div className="flex items-center gap-1.5">
+                <Label className="text-xs">From</Label>
+                <Input
+                  type="date"
+                  className="h-7 w-36 text-xs"
+                  value={historyDateFrom}
+                  onChange={(e) => setHistoryDateFrom(e.target.value)}
+                  aria-label="Bill history from date"
+                />
+              </div>
+              <div className="flex items-center gap-1.5">
+                <Label className="text-xs">To</Label>
+                <Input
+                  type="date"
+                  className="h-7 w-36 text-xs"
+                  value={historyDateTo}
+                  onChange={(e) => setHistoryDateTo(e.target.value)}
+                  aria-label="Bill history to date"
+                />
+              </div>
+              <Button
+                size="sm"
+                variant="outline"
+                className="h-7 text-xs"
+                onClick={handleSearchHistory}
+              >
+                <Search className="h-3.5 w-3.5 mr-1" aria-hidden="true" />
+                Search
+              </Button>
+            </div>
           </div>
 
           {billsLoading ? (

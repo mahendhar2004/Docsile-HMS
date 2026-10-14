@@ -4,7 +4,7 @@
  * All data-fetching and mutation hooks for the call-logs module.
  *
  * Query hooks:
- *   useCallLogsList   — GET /call-logs?page&pageSize&date (offset-paginated)
+ *   useCallLogsList   — GET /call-logs?page&pageSize&dateFrom&dateTo (offset-paginated)
  *   useCallStats      — GET /call-logs/stats (today's counts)
  *   useCallAnalytics  — GET /call-logs/analytics?filter&customStart&customEnd
  *   usePatientSearch  — GET /call-logs/patients/search?q=... (enabled ≥ 2 chars)
@@ -50,7 +50,8 @@ export const callLogsKeys = {
  * x-permission: call_logs:view
  */
 export function useCallLogsList(
-  date: string | null,
+  dateFrom: string | null,
+  dateTo: string | null,
   enabled = true,
   filters?: { status?: string; direction?: string; search?: string },
 ) {
@@ -59,13 +60,14 @@ export function useCallLogsList(
   const search = filters?.search ?? ""
 
   return usePaginatedQuery<CallLog>({
-    queryKey: [...callLogsKeys.list(date), status, direction, search],
+    queryKey: [...callLogsKeys.list(`${dateFrom ?? ""}:${dateTo ?? ""}`), status, direction, search],
     queryFn: ({ page, pageSize }) => {
       const params = new URLSearchParams({
         page: String(page),
         pageSize: String(pageSize),
       })
-      if (date) params.set("date", date)
+      if (dateFrom) params.set("dateFrom", dateFrom)
+      if (dateTo) params.set("dateTo", dateTo)
       if (status) params.set("status", status)
       if (direction) params.set("direction", direction)
       if (search) params.set("search", search)

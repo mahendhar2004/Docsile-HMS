@@ -131,34 +131,43 @@ export function PatientsTab({ filter, customStart, customEnd }: Props) {
               ? {
                   direction: overview.patientChange >= 0 ? "up" : "down",
                   delta: `${overview.patientChange > 0 ? "+" : ""}${overview.patientChange}%`,
-                  label: "vs prev period",
+                  label: "vs last period",
                 }
               : undefined
           }
+          // Main shows "vs last period" inline with the change % when a trend
+          // exists, and as a standalone line only when there's no change —
+          // never both at once. The trend's own `label` already covers the
+          // first case.
+          subtitle={!overview || overview.patientChange === 0 ? "vs last period" : undefined}
         />
         <StatCard
           label="New Today"
           value={overview ? fmtCount(overview.newPatientsToday) : "—"}
           icon={<UserPlus size={20} aria-hidden="true" />}
           loading={overviewQ.isLoading}
+          subtitle="Registered today"
         />
         <StatCard
           label="Active Inpatients"
           value={overview ? fmtCount(overview.activeInpatients) : "—"}
           icon={<BedDouble size={20} aria-hidden="true" />}
           loading={overviewQ.isLoading}
+          subtitle="Currently admitted"
         />
         <StatCard
           label="Avg / Day"
           value={overview ? fmtCount(overview.avgDailyPatients) : "—"}
           icon={<Activity size={20} aria-hidden="true" />}
           loading={overviewQ.isLoading}
+          subtitle="Patients per day"
         />
         <StatCard
           label="Surgeries"
           value={overview ? fmtCount(overview.totalSurgeries) : "—"}
           icon={<Scissors size={20} aria-hidden="true" />}
           loading={overviewQ.isLoading}
+          subtitle="This period"
         />
       </div>
 

@@ -38,7 +38,7 @@ const Toaster = ({ className, ...props }: ToasterProps) => (
   <SonnerToaster
     theme="light"
     richColors
-    position="bottom-right"
+    position="top-right"
     closeButton
     className={cn("toaster", className)}
     icons={{

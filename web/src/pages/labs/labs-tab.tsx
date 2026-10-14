@@ -27,7 +27,7 @@ import type { ColumnDef } from "@/components/patterns"
 import { useLabsList, useDeleteLab } from "./hooks"
 import { LabForm } from "./lab-form"
 import { InvestigationAssignmentForm } from "./investigation-assignment-form"
-import type { Lab } from "./types"
+import type { Lab, LabWithCount } from "./types"
 
 export function LabsTab() {
   const { can } = usePermissions()
@@ -56,7 +56,7 @@ export function LabsTab() {
   }
 
   // ── Column definitions ────────────────────────────────────────────────────────
-  const columns: ColumnDef<Lab>[] = [
+  const columns: ColumnDef<LabWithCount>[] = [
     {
       key: "name",
       header: "Lab Name",
@@ -83,6 +83,16 @@ export function LabsTab() {
         ) : (
           <span className="text-sm text-muted-foreground">—</span>
         ),
+    },
+    {
+      key: "investigations",
+      header: "Investigations",
+      align: "center",
+      cell: (lab) => (
+        <Badge variant="secondary" className="font-mono">
+          {lab._count.investigations}
+        </Badge>
+      ),
     },
     {
       key: "status",

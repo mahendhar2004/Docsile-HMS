@@ -1,29 +1,57 @@
 /**
  * followups-tab.tsx
  *
- * Follow-ups list — paginated OPD + IPD follow-up records (sorted soonest-first).
+ * Follow-ups list — paginated OPD + IPD follow-up records (sorted soonest-first,
+ * defaulting to a 5-day window matching main unless the date range is overridden).
  * Overdue records are flagged via isOverdue. The "Send Email" action is available
- * per row when the patient has an email on file and the user has dues:edit.
+ * per row when the patient has an email on file and the user has dues:edit; a
+ * WhatsApp reminder button is always available (read-only external deep link).
  *
- * Data source: GET /dues-followups/followups (offset-paginated)
- * Supporting:  GET /dues-followups/doctors, GET /dues-followups/departments (loaded
- *              for informational reference — the followups endpoint does not currently
- *              accept doctor/department filter query params)
+ * Data source: GET /dues-followups/followups (offset-paginated), with the
+ *              full filter set from main's FollowUpsTab.tsx: notes search,
+ *              type, doctor, department, date range, includeOverdue.
+ * Supporting:  GET /dues-followups/doctors, GET /dues-followups/departments
+ *              (filter dropdown options).
  */
 
 import { useState, forwardRef, useImperativeHandle } from "react"
 import { Mail, CalendarClock } from "lucide-react"
 import { Badge } from "@/components/ui/badge"
+import { Input } from "@/components/ui/input"
+import { Checkbox } from "@/components/ui/checkbox"
 import {
   PaginatedDataTable,
   EmptyState,
   StatCard,
+  SearchBar,
+  SingleSelect,
   type ColumnDef,
+  type SelectOption,
 } from "@/components/patterns"
 import { usePermissions } from "@/hooks/usePermissions"
-import { useFollowups, useFollowupsSummary } from "./hooks"
+import { formatDateLong } from "@/lib/utils"
+import {
+  useFollowups,
+  useFollowupsSummary,
+  useDoctors,
+  useDepartments,
+  type FollowupsFilters,
+} from "./hooks"
 import { SendEmailForm } from "./send-email-form"
-import type { FollowUpRecord } from "./types"
+import { WhatsAppButton } from "./whatsapp-button"
+import type { FollowUpRecord, FollowUpType } from "./types"
+
+// ─── Filter options — matches main's FollowUpsTab.tsx <Select> option set ───
+
+const TYPE_OPTIONS: SelectOption[] = [
+  { value: "ALL", label: "All Types" },
+  { value: "OPD", label: "OPD" },
+  { value: "IPD", label: "IPD" },
+]
+
+function getFollowUpWhatsAppMessage(fu: FollowUpRecord): string {
+  return `Hello ${fu.patientName}, this is a reminder. You have a follow-up appointment scheduled for ${formatDateLong(fu.followUpDate)} with Dr. ${fu.doctorName}. Please visit at your convenience. Thank you.`
+}
 
 // ─── Formatting helpers ───────────────────────────────────────────────────────
 
@@ -63,6 +91,39 @@ export const FollowupsTab = forwardRef<FollowupsTabHandle>(function FollowupsTab
 
   const [emailTarget, setEmailTarget] = useState<FollowUpRecord | null>(null)
 
+  // Filter bar state — matches main's FollowUpsTab.tsx exactly, all reactive
+  // (no Apply button; main's own useEffect(loadFollowUps, [...]) re-fetches
+  // on every change).
+  const [notesSearch, setNotesSearch] = useState("")
+  const [typeFilter, setTypeFilter] = useState<FollowUpType | "ALL">("ALL")
+  const [doctorFilter, setDoctorFilter] = useState("")
+  const [departmentFilter, setDepartmentFilter] = useState("")
+  const [includeOverdue, setIncludeOverdue] = useState(false)
+  const [dateFrom, setDateFrom] = useState("")
+  const [dateTo, setDateTo] = useState("")
+
+  const { data: doctors = [] } = useDoctors()
+  const { data: departments = [] } = useDepartments()
+
+  const doctorOptions: SelectOption[] = [
+    { value: "_all", label: "All Doctors" },
+    ...doctors.map((d) => ({ value: d, label: d })),
+  ]
+  const departmentOptions: SelectOption[] = [
+    { value: "_all", label: "All Departments" },
+    ...departments.map((d) => ({ value: d, label: d })),
+  ]
+
+  const filters: FollowupsFilters = {
+    notesSearch: notesSearch.trim() || undefined,
+    type: typeFilter,
+    doctor: doctorFilter || undefined,
+    department: departmentFilter || undefined,
+    dateFrom: dateFrom || undefined,
+    dateTo: dateTo || undefined,
+    includeOverdue,
+  }
+
   const {
     data,
     total,
@@ -74,7 +135,7 @@ export const FollowupsTab = forwardRef<FollowupsTabHandle>(function FollowupsTab
     pageSize,
     setPage,
     refetch,
-  } = useFollowups()
+  } = useFollowups(filters)
 
   const { data: summary, isLoading: isSummaryLoading } = useFollowupsSummary()
 
@@ -174,12 +235,90 @@ export const FollowupsTab = forwardRef<FollowupsTabHandle>(function FollowupsTab
 
   return (
     <div className="space-y-4">
+      {/* Filter bar — matches main's FollowUpsTab.tsx FilterBar exactly:
+          notes search, type, doctor, department, a From/To date range, and
+          an "Overdue" checkbox. All reactive (no Apply button), resetting to
+          page 1 on every change. The list itself defaults to a 5-day window
+          (today → +4 days) when no explicit date range is set, same as main. */}
+      <div className="flex items-center gap-2.5 flex-wrap">
+        <SearchBar
+          variant="standalone"
+          value={notesSearch}
+          onChange={(v) => {
+            setNotesSearch(v)
+            setPage(1)
+          }}
+          placeholder="Search by notes…"
+          aria-label="Search follow-up notes"
+          className="w-56"
+        />
+        <SingleSelect
+          options={TYPE_OPTIONS}
+          value={typeFilter}
+          onChange={(v) => {
+            setTypeFilter(v as FollowUpType | "ALL")
+            setPage(1)
+          }}
+          className="w-28"
+          aria-label="Filter by type"
+        />
+        <SingleSelect
+          options={doctorOptions}
+          value={doctorFilter || "_all"}
+          onChange={(v) => {
+            setDoctorFilter(v === "_all" ? "" : v)
+            setPage(1)
+          }}
+          className="w-40"
+          aria-label="Filter by doctor"
+        />
+        <SingleSelect
+          options={departmentOptions}
+          value={departmentFilter || "_all"}
+          onChange={(v) => {
+            setDepartmentFilter(v === "_all" ? "" : v)
+            setPage(1)
+          }}
+          className="w-40"
+          aria-label="Filter by department"
+        />
+        <Input
+          type="date"
+          value={dateFrom}
+          onChange={(e) => {
+            setDateFrom(e.target.value)
+            setPage(1)
+          }}
+          className="w-36 h-9"
+          aria-label="From date"
+        />
+        <Input
+          type="date"
+          value={dateTo}
+          onChange={(e) => {
+            setDateTo(e.target.value)
+            setPage(1)
+          }}
+          className="w-36 h-9"
+          aria-label="To date"
+        />
+        <label className="flex items-center gap-1.5 text-xs font-medium cursor-pointer select-none">
+          <Checkbox
+            checked={includeOverdue}
+            onCheckedChange={(v) => {
+              setIncludeOverdue(v === true)
+              setPage(1)
+            }}
+          />
+          <span className="text-muted-foreground whitespace-nowrap">Overdue</span>
+        </label>
+      </div>
+
       {/* Summary tiles — matches main's FollowUpsTab (Today/Tomorrow/Total/
-          Overdue), computed over every follow-up record server-side, not
-          just the current page. "Total" (not main's "Next 5 Days" label):
-          this backend's getFollowups has no default date-window the way
-          main's does, so the count here is genuinely every record, not one
-          bounded to the next 5 days. */}
+          Overdue). Deliberately global (an all-time window, independent of
+          the list's active filters above) — same already-established design
+          as DuesTab's summary tiles — so "Total" here means every follow-up
+          ever, not main's "Next 5 Days" label for the list's current window. */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
         <StatCard label="Today" value={summary?.todayCount ?? 0} loading={isSummaryLoading} />
         <StatCard label="Tomorrow" value={summary?.tomorrowCount ?? 0} loading={isSummaryLoading} />
@@ -200,33 +339,36 @@ export const FollowupsTab = forwardRef<FollowupsTabHandle>(function FollowupsTab
         mode="offset"
         data={data}
         columns={columns}
-        variant={canEdit ? "with-row-actions" : "standard"}
-        rowActions={
-          canEdit
-            ? (row) =>
-                row.email != null ? (
-                  <button
-                    type="button"
-                    onClick={() => setEmailTarget(row)}
-                    title="Send follow-up email"
-                    aria-label={`Send email to ${row.patientName}`}
-                    className="flex items-center gap-1 rounded-md px-2 py-1 text-xs font-medium text-blue-700 hover:bg-blue-50 transition-colors"
-                  >
-                    <Mail className="h-3.5 w-3.5" aria-hidden="true" />
-                    Email
-                  </button>
-                ) : (
-                  <span
-                    className="flex items-center gap-1 px-2 py-1 text-xs text-muted-foreground/50 cursor-not-allowed select-none"
-                    title="Patient has no email address on record"
-                    aria-label="No email on record"
-                  >
-                    <Mail className="h-3.5 w-3.5" aria-hidden="true" />
-                    No email
-                  </span>
-                )
-            : undefined
-        }
+        variant="with-row-actions"
+        rowActions={(row) => (
+          <div className="flex items-center justify-end gap-1">
+            {/* WhatsApp reminder — visible regardless of dues:edit, matching
+                main (it's a read-only external deep link, not a mutation). */}
+            <WhatsAppButton phone={row.phone} message={getFollowUpWhatsAppMessage(row)} />
+            {canEdit &&
+              (row.email != null ? (
+                <button
+                  type="button"
+                  onClick={() => setEmailTarget(row)}
+                  title="Send follow-up email"
+                  aria-label={`Send email to ${row.patientName}`}
+                  className="flex items-center gap-1 rounded-md px-2 py-1 text-xs font-medium text-blue-700 hover:bg-blue-50 transition-colors"
+                >
+                  <Mail className="h-3.5 w-3.5" aria-hidden="true" />
+                  Email
+                </button>
+              ) : (
+                <span
+                  className="flex items-center gap-1 px-2 py-1 text-xs text-muted-foreground/50 cursor-not-allowed select-none"
+                  title="Patient has no email address on record"
+                  aria-label="No email on record"
+                >
+                  <Mail className="h-3.5 w-3.5" aria-hidden="true" />
+                  No email
+                </span>
+              ))}
+          </div>
+        )}
         isLoading={isLoading}
         isFetching={isFetching}
         isError={isError}

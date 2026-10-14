@@ -15,8 +15,9 @@
  *   canDelete — show delete button per row (expenses:delete)
  */
 
-import { useState, useMemo, forwardRef, useImperativeHandle } from "react"
+import { useState, useMemo, useEffect, useRef, forwardRef, useImperativeHandle } from "react"
 import { Search, Pencil, Trash2 } from "lucide-react"
+import { Button } from "@/components/ui/button"
 import {
   Select,
   SelectContent,
@@ -35,7 +36,7 @@ import {
 } from "@/components/patterns"
 import type { DonutChartSlice } from "@/components/patterns"
 import { formatCurrency } from "@/lib/utils"
-import { useExpenses, useCategories, getDateRange } from "./hooks"
+import { useExpenses, useCategories, useSeedCategories, getDateRange } from "./hooks"
 import type { ExpenseWithCategory, TimeFilter } from "./types"
 import { TIME_FILTER_OPTIONS } from "./types"
 
@@ -93,7 +94,23 @@ export const ExpensesSection = forwardRef<ExpensesSectionHandle, ExpensesSection
 
   // ── Data ─────────────────────────────────────────────────────────────────
 
-  const { data: categories = [] } = useCategories()
+  const { data: categories = [], isLoading: categoriesLoading } = useCategories()
+
+  // Main's page.tsx calls seedDefaultCategories() unconditionally on every
+  // server-side page load before rendering (idempotent — no-ops once any
+  // category exists), so a fresh hospital always has the 10 default
+  // categories with zero admin action. This client-rendered port has no
+  // SSR equivalent, so mirror that behavior here: seed once, only if the
+  // first real fetch comes back empty. The ref guard (not a dep-array
+  // check) prevents re-seeding on every render once the fetch resolves.
+  const seedMutation = useSeedCategories()
+  const hasAttemptedSeed = useRef(false)
+  useEffect(() => {
+    if (hasAttemptedSeed.current || categoriesLoading) return
+    hasAttemptedSeed.current = true
+    if (categories.length === 0) seedMutation.mutate()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [categoriesLoading, categories.length])
 
   const {
     data: expenses = [],
@@ -185,6 +202,13 @@ export const ExpensesSection = forwardRef<ExpensesSectionHandle, ExpensesSection
               className="w-[145px] h-8 text-sm"
               aria-label="End date"
             />
+            {/* Matches main's Apply button exactly — functionally redundant
+                there too (main's own fetch effect already reactively refires
+                on every customStart/customEnd change, same as this port's
+                `enabled` flag below), but main shows it, so this does too. */}
+            <Button size="sm" className="h-8" onClick={() => void refetch()}>
+              Apply
+            </Button>
           </div>
         )}
       </div>

@@ -21,38 +21,44 @@ import type {
 
 export const workupKeys = {
   all: ["workup"] as const,
-  queue: () => [...workupKeys.all, "queue"] as const,
-  patient: (patientId: string) => [...workupKeys.all, "patient", patientId] as const,
+  queue: (date: string) => [...workupKeys.all, "queue", date] as const,
+  patient: (patientId: string, date: string) =>
+    [...workupKeys.all, "patient", patientId, date] as const,
 } as const
 
 // ─── Hooks ───────────────────────────────────────────────────────────────────
 
 /**
- * Fetches today's workup queue.
- * Returns patients sorted by appointment time (server-side).
+ * Fetches the workup queue for a given IST calendar date (defaults to today
+ * when omitted). Returns patients sorted by appointment time (server-side).
  */
-export function useWorkupQueue() {
+export function useWorkupQueue(date?: string) {
   return useQuery({
-    queryKey: workupKeys.queue(),
+    queryKey: workupKeys.queue(date ?? "today"),
     queryFn: () =>
       apiClient
-        .get<WorkupQueuePatient[]>("/workup/queue")
+        .get<WorkupQueuePatient[]>(
+          `/workup/queue${date ? `?date=${date}` : ""}`,
+        )
         .then((e) => e.data),
   })
 }
 
 /**
- * Fetches a single patient's data for the workup screen.
- * Includes today's eye readings and prescriptions (nested, filtered server-side).
+ * Fetches a single patient's data for the workup screen, for a given IST
+ * calendar date (defaults to today when omitted).
+ * Includes that day's eye readings and prescriptions (nested, filtered server-side).
  *
  * Only fires when patientId is non-null.
  */
-export function useWorkupPatient(patientId: string | null) {
+export function useWorkupPatient(patientId: string | null, date?: string) {
   return useQuery({
-    queryKey: workupKeys.patient(patientId ?? ""),
+    queryKey: workupKeys.patient(patientId ?? "", date ?? "today"),
     queryFn: () =>
       apiClient
-        .get<WorkupPatient>(`/workup/patients/${patientId!}`)
+        .get<WorkupPatient>(
+          `/workup/patients/${patientId!}${date ? `?date=${date}` : ""}`,
+        )
         .then((e) => e.data),
     enabled: patientId != null,
   })
@@ -82,10 +88,10 @@ export function useSaveEyeReading(patientId: string) {
         .then((e) => e.data),
 
     onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: workupKeys.queue() })
-      void queryClient.invalidateQueries({
-        queryKey: workupKeys.patient(patientId),
-      })
+      // Broad prefix invalidation (not a specific date) — a save always
+      // targets "today" server-side regardless of which date the queue is
+      // currently viewing, so every cached queue/patient date needs refetching.
+      void queryClient.invalidateQueries({ queryKey: workupKeys.all })
       toast.success("Eye reading saved", {
         description: "The reading has been recorded for this patient.",
       })

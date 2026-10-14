@@ -18,13 +18,39 @@ export interface QueueEyeReading {
 }
 
 /**
+ * One billed line item nested in a queue prescription (service name only —
+ * enough for the queue table's Services column; full InvoiceItem fields are
+ * only needed in the billing module itself).
+ */
+export interface QueueInvoiceItem {
+  description: string
+}
+
+/**
+ * One lab bill nested in the doctor queue (today's only, per service.ts).
+ */
+export interface QueueLabBill {
+  id: string
+  total: number
+  lab: { name: string }
+}
+
+/**
  * Prescription row nested in the doctor queue (today's only, per service.ts).
+ * The backend's repository.ts actually selects every Prescription column
+ * (`Prescription(*, items:InvoiceItem(*))`), not just id/status/doctorName —
+ * these extra fields power main's Services/Total/Balance queue columns.
  */
 export interface QueuePrescription {
   id: string
   prescriptionDate: string
   status: string
   doctorName: string | null
+  department: string | null
+  total: number
+  amountPaid: number
+  balanceDue: number
+  items: QueueInvoiceItem[]
   createdAt: string
 }
 
@@ -40,15 +66,21 @@ export interface DoctorQueuePatient {
   lastName: string
   phone: string
   gender: string
+  age?: number | null
+  dateOfBirth?: string | null
   patientType: string
   appointmentDate: string
   /** Computed by service layer — never read directly from DB. */
   status: string
   referredBy?: string | null
+  /** Assigned-at-registration doctor — falls back for today's prescriptions.doctorName. */
+  doctorName?: string | null
   /** Today's eye readings (0 or 1 items after filtering). */
   eyeReadings: QueueEyeReading[]
   /** Today's prescriptions (0 or 1 items after filtering). */
   prescriptions: QueuePrescription[]
+  /** Today's lab bills (repository selects `labBills:LabBill(*, lab:Lab(name), ...)`). */
+  labBills: QueueLabBill[]
 }
 
 // ─── Consultation ─────────────────────────────────────────────────────────────

@@ -18,6 +18,7 @@ import type {
   DuesSummary,
   EmailTemplate,
   FollowUpRecord,
+  FollowupsListQuery,
   FollowUpsSummary,
   MarkPaidInput,
   SendEmailInput,
@@ -27,25 +28,36 @@ import type {
 
 /**
  * Aggregates outstanding balances across OPD, IPD, LAB, and PHARMACY tables.
- * All four tables are queried in parallel (ADR-007: each scoped by hospital_id).
- * Results are merged in memory, sorted by date descending, then paginated.
+ * Queried tables are scoped by `type` (ALL or one of OPD/IPD/LAB/PHARMACY —
+ * skips the others entirely, matching main's getDues()), each filtered by
+ * search/dateFrom/dateTo at the DB level. Results are merged in memory and
+ * sorted per `sortBy` (date/amount, asc/desc — main's exact 4 options), then
+ * paginated.
  */
 export async function getDues(
   s: Session,
   q: DuesListQuery,
 ): Promise<{ data: DueRecord[]; total: number }> {
   const repo = new DuesFollowupsRepository(getSupabaseClient(), s.hospitalId);
+  const filters = { search: q.search, dateFrom: q.dateFrom, dateTo: q.dateTo };
 
   const [opd, ipd, lab, pharmacy] = await Promise.all([
-    repo.getAllOPDDues(),
-    repo.getAllIPDDues(),
-    repo.getAllLABDues(),
-    repo.getAllPharmacyDues(),
+    q.type === 'ALL' || q.type === 'OPD' ? repo.getAllOPDDues(filters) : [],
+    q.type === 'ALL' || q.type === 'IPD' ? repo.getAllIPDDues(filters) : [],
+    q.type === 'ALL' || q.type === 'LAB' ? repo.getAllLABDues(filters) : [],
+    q.type === 'ALL' || q.type === 'PHARMACY' ? repo.getAllPharmacyDues(filters) : [],
   ]);
 
   const all: DueRecord[] = [...opd, ...ipd, ...lab, ...pharmacy];
-  // Sort by date descending (most recent due first)
-  all.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+  all.sort((a, b) => {
+    switch (q.sortBy) {
+      case 'amount_desc': return b.balanceDue - a.balanceDue;
+      case 'amount_asc': return a.balanceDue - b.balanceDue;
+      case 'date_asc': return new Date(a.date).getTime() - new Date(b.date).getTime();
+      case 'date_desc':
+      default: return new Date(b.date).getTime() - new Date(a.date).getTime();
+    }
+  });
 
   const total = all.length;
   const start = (q.page - 1) * q.pageSize;
@@ -57,19 +69,41 @@ export async function getDues(
 // ─── getFollowups ─────────────────────────────────────────────────────────────
 
 /**
- * Returns all OPD and IPD follow-up records (non-null followUpDate).
- * Includes both upcoming and overdue follow-ups; callers use the `isOverdue` flag
- * to distinguish. Sorted by followUpDate ascending (soonest first), then paginated.
+ * Returns OPD and/or IPD follow-up records (non-null followUpDate) within a
+ * date window, filtered by notes/doctor/department. Default window (no
+ * explicit dateFrom/dateTo) matches main exactly: today through the next 5
+ * days, or from 2000-01-01 (i.e. "everything up to now") when includeOverdue
+ * is set and no explicit dateFrom was given — src/app/(hospital)/
+ * dues-followups/actions.ts getFollowUps(). Sorted by followUpDate ascending
+ * (soonest first), then paginated.
  */
 export async function getFollowups(
   s: Session,
-  q: DuesListQuery,
+  q: FollowupsListQuery,
 ): Promise<{ data: FollowUpRecord[]; total: number }> {
   const repo = new DuesFollowupsRepository(getSupabaseClient(), s.hospitalId);
 
+  const now = new Date();
+  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+
+  const dateFromDate = q.dateFrom
+    ? new Date(`${q.dateFrom}T00:00:00`)
+    : (q.includeOverdue ? new Date('2000-01-01') : today);
+  const dateToDate = q.dateTo
+    ? new Date(`${q.dateTo}T23:59:59`)
+    : new Date(today.getTime() + 4 * 24 * 60 * 60 * 1000 + 23 * 60 * 60 * 1000 + 59 * 60 * 1000 + 59 * 1000);
+
+  const followupFilters = {
+    notesSearch: q.notesSearch,
+    doctor: q.doctor,
+    department: q.department,
+    dateFromISO: dateFromDate.toISOString(),
+    dateToISO: dateToDate.toISOString(),
+  };
+
   const [opd, ipd] = await Promise.all([
-    repo.getAllOPDFollowups(),
-    repo.getAllIPDFollowups(),
+    q.type === 'ALL' || q.type === 'OPD' ? repo.getAllOPDFollowups(followupFilters) : [],
+    q.type === 'ALL' || q.type === 'IPD' ? repo.getAllIPDFollowups(followupFilters) : [],
   ]);
 
   const all: FollowUpRecord[] = [...opd, ...ipd];
@@ -123,9 +157,16 @@ export async function getDuesSummary(s: Session): Promise<DuesSummary> {
 export async function getFollowupsSummary(s: Session): Promise<FollowUpsSummary> {
   const repo = new DuesFollowupsRepository(getSupabaseClient(), s.hospitalId);
 
+  // Unfiltered, all-time window — this summary is intentionally global (not
+  // reactive to the list's current filters), same pre-existing design as
+  // getDuesSummary() above.
+  const allTimeFilters = {
+    dateFromISO: new Date('2000-01-01').toISOString(),
+    dateToISO: new Date('2100-01-01').toISOString(),
+  };
   const [opd, ipd] = await Promise.all([
-    repo.getAllOPDFollowups(),
-    repo.getAllIPDFollowups(),
+    repo.getAllOPDFollowups(allTimeFilters),
+    repo.getAllIPDFollowups(allTimeFilters),
   ]);
   const all: FollowUpRecord[] = [...opd, ...ipd];
 
@@ -338,7 +379,14 @@ export async function sendEmail(s: Session, b: SendEmailInput): Promise<void> {
   }
 
   const patientName = [patient.firstName, patient.lastName].filter(Boolean).join(' ');
+  const hospitalName = await getHospitalName(s);
 
+  const formatLongDate = (d: Date) =>
+    d.toLocaleDateString('en-IN', { day: 'numeric', month: 'long', year: 'numeric' });
+
+  // Variables match main's SendEmailModal.tsx exactly (patientName,
+  // hospitalName, followUpDate, date) — customMessage is an extra field this
+  // port's schema allows but main never sends; kept for forward-compat.
   const payload = {
     templateCode: b.templateId,
     to: {
@@ -347,6 +395,9 @@ export async function sendEmail(s: Session, b: SendEmailInput): Promise<void> {
     },
     variables: {
       patientName,
+      hospitalName,
+      followUpDate: b.followUpDate ? formatLongDate(new Date(b.followUpDate)) : '',
+      date: formatLongDate(new Date()),
       customMessage: b.customMessage ?? '',
     },
   };

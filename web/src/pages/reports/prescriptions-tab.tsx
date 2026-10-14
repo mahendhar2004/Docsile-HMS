@@ -2,8 +2,10 @@
  * prescriptions-tab.tsx
  *
  * Patient prescriptions — expandable accordion with medicines, investigations,
- * and clinical notes. Includes a print trigger button (UI only — print flow
- * is out of scope for the reports migration; placeholder action fires toast).
+ * and clinical notes. The print trigger opens the tabbed ReportPrintModal
+ * (Cash Receipt/Prescription/Readings & Findings/Full Report), matching main's
+ * ReportPrintModal mode="prescription" — GET /reports/patients/:id/receipt
+ * already existed server-side, it just had no frontend caller until now.
  * Tab ID: "prescriptions"
  * Endpoint: GET /reports/patients/{patientId}/prescriptions
  * Permission: reports:view (gated by parent)
@@ -25,17 +27,19 @@ import { Button } from "@/components/ui/button"
 import { Skeleton } from "@/components/ui/skeleton"
 import { ErrorState } from "@/components/patterns"
 import { formatDateLong } from "@/lib/utils"
-import { toast } from "@/components/ui/sonner"
 import { usePatientPrescriptions } from "./hooks"
-import type { Medicine } from "./types"
+import { ReportPrintModal } from "./report-print-modal"
+import type { Medicine, PatientSummary } from "./types"
 
 interface PrescriptionsTabProps {
   /** Patient UUID — route param for GET /reports/patients/{id}/prescriptions. */
   patientId: string
+  patient: PatientSummary
 }
 
-export function PrescriptionsTab({ patientId }: PrescriptionsTabProps) {
+export function PrescriptionsTab({ patientId, patient }: PrescriptionsTabProps) {
   const [expandedId, setExpandedId] = useState<string | null>(null)
+  const [printRxId, setPrintRxId] = useState<string | null>(null)
   const { data: prescriptions, isLoading, isError, error, refetch } =
     usePatientPrescriptions(patientId)
 
@@ -180,7 +184,6 @@ export function PrescriptionsTab({ patientId }: PrescriptionsTabProps) {
                   </div>
                 </div>
 
-                {/* Print action — triggers toast since full print modal is out of scope */}
                 <Button
                   variant="ghost"
                   size="sm"
@@ -188,7 +191,7 @@ export function PrescriptionsTab({ patientId }: PrescriptionsTabProps) {
                   className="shrink-0 h-8 w-8 p-0 text-muted-foreground hover:text-primary"
                   onClick={(e) => {
                     e.stopPropagation()
-                    toast.info("Print functionality coming soon.")
+                    setPrintRxId(rx.id)
                   }}
                 >
                   <Printer className="h-4 w-4" aria-hidden="true" />
@@ -318,6 +321,25 @@ export function PrescriptionsTab({ patientId }: PrescriptionsTabProps) {
           </div>
         )
       })}
+
+      {printRxId && (
+        <ReportPrintModal
+          open
+          onClose={() => setPrintRxId(null)}
+          patient={{
+            id: patient.id,
+            patientId: patient.patientId,
+            fullName: patient.fullName,
+            phone: patient.phone,
+            age: patient.age,
+            gender: patient.gender,
+            dateOfBirth: patient.dateOfBirth,
+            address: patient.address,
+          }}
+          mode="prescription"
+          prescriptionId={printRxId}
+        />
+      )}
     </div>
   )
 }

@@ -178,12 +178,12 @@ export function PatientReportView({
       <div className="pt-5" role="tabpanel" id={`tab-panel-${activeTab}`}>
         {activeTab === "visits" && <VisitHistoryTab patientId={patientId} />}
         {activeTab === "prescriptions" && (
-          <PrescriptionsTab patientId={patientId} />
+          <PrescriptionsTab patientId={patientId} patient={patient} />
         )}
         {activeTab === "inpatient" && (
-          <InpatientRecordsTab patientId={patientId} />
+          <InpatientRecordsTab patientId={patientId} patient={patient} />
         )}
-        {activeTab === "labs" && <LabRecordsTab patientId={patientId} />}
+        {activeTab === "labs" && <LabRecordsTab patientId={patientId} patient={patient} />}
         {activeTab === "billing" && <BillingTab patientId={patientId} />}
       </div>
     </div>

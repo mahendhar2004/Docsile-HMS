@@ -17,6 +17,46 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
 import { withId } from '../_shared/db-helpers.ts';
 
+/**
+ * Shared LabBill filter application for findBills/countBills — matches
+ * main's Lab Bills History filter set (dateFrom/dateTo range, lab, status,
+ * patient) from LabBillingTab.tsx's loadHistory. `date` (single day) is
+ * kept for back-compat and only applied when no explicit range is given.
+ */
+function applyLabBillFilters<
+  Q extends {
+    gte: (column: string, value: string) => Q;
+    lte: (column: string, value: string) => Q;
+    eq: (column: string, value: string) => Q;
+  },
+>(
+  query: Q,
+  filters: {
+    date?: string;
+    dateFrom?: string;
+    dateTo?: string;
+    labId?: string;
+    status?: string;
+    patientId?: string;
+  },
+): Q {
+  if (filters.dateFrom) {
+    query = query.gte('createdAt', new Date(`${filters.dateFrom}T00:00:00+05:30`).toISOString());
+  }
+  if (filters.dateTo) {
+    query = query.lte('createdAt', new Date(`${filters.dateTo}T23:59:59+05:30`).toISOString());
+  }
+  if (!filters.dateFrom && !filters.dateTo && filters.date) {
+    query = query
+      .gte('createdAt', new Date(`${filters.date}T00:00:00+05:30`).toISOString())
+      .lte('createdAt', new Date(`${filters.date}T23:59:59+05:30`).toISOString());
+  }
+  if (filters.labId) query = query.eq('labId', filters.labId);
+  if (filters.status) query = query.eq('status', filters.status);
+  if (filters.patientId) query = query.eq('patientId', filters.patientId);
+  return query;
+}
+
 export class LabsRepository {
   constructor(
     private readonly supabase: SupabaseClient,
@@ -457,6 +497,11 @@ export class LabsRepository {
     page: number;
     pageSize: number;
     date?: string;
+    dateFrom?: string;
+    dateTo?: string;
+    labId?: string;
+    status?: string;
+    patientId?: string;
   }): Promise<Record<string, unknown>[]> {
     let query = this.supabase
       .from('LabBill')
@@ -466,11 +511,7 @@ export class LabsRepository {
       .eq('hospital_id', this.hospitalId)
       .order('createdAt', { ascending: false });
 
-    if (filters.date) {
-      const start = new Date(`${filters.date}T00:00:00+05:30`).toISOString();
-      const end = new Date(`${filters.date}T23:59:59+05:30`).toISOString();
-      query = query.gte('createdAt', start).lte('createdAt', end);
-    }
+    query = applyLabBillFilters(query, filters);
 
     const { data, error } = await query
       .range(
@@ -482,17 +523,20 @@ export class LabsRepository {
   }
 
   /** Count LabBills matching the same filters (for pagination total). */
-  async countBills(filters: { date?: string }): Promise<number> {
+  async countBills(filters: {
+    date?: string;
+    dateFrom?: string;
+    dateTo?: string;
+    labId?: string;
+    status?: string;
+    patientId?: string;
+  }): Promise<number> {
     let query = this.supabase
       .from('LabBill')
       .select('*', { count: 'exact', head: true })
       .eq('hospital_id', this.hospitalId);
 
-    if (filters.date) {
-      const start = new Date(`${filters.date}T00:00:00+05:30`).toISOString();
-      const end = new Date(`${filters.date}T23:59:59+05:30`).toISOString();
-      query = query.gte('createdAt', start).lte('createdAt', end);
-    }
+    query = applyLabBillFilters(query, filters);
 
     const { count, error } = await query;
     if (error) throw error;

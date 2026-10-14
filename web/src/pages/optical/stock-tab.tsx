@@ -9,7 +9,7 @@
  */
 
 import { useState, useEffect } from "react"
-import { Plus, Package, AlertTriangle, MoreHorizontal, Pencil } from "lucide-react"
+import { Plus, Package, AlertTriangle, MoreHorizontal, Pencil, Search } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import {
@@ -41,6 +41,9 @@ import {
   useUpdateStock,
 } from "./hooks"
 import type { OpticalStockEntry, CreateOpticalStockBody, UpdateOpticalStockBody } from "./types"
+import { OPTICAL_CATEGORY_OPTIONS } from "./types"
+
+const CATEGORY_FILTER_OPTIONS = [{ value: "All", label: "All Categories" }, ...OPTICAL_CATEGORY_OPTIONS]
 
 // ─── Add Stock Form ────────────────────────────────────────────────────────────
 
@@ -299,12 +302,33 @@ export function StockTab({ canEdit }: StockTabProps) {
 
   const [showAdd, setShowAdd] = useState(false)
   const [editing, setEditing] = useState<OpticalStockEntry | null>(null)
+  // Main filters server-side (getOpticalStock/InventoryTab.tsx's `search`/
+  // `filterCategory`/`filterLowStock` state, matching product name/brand/
+  // modelNumber/batchNumber and quantity<=5 && >0 for "low stock"); this
+  // endpoint returns the full list unpaginated, so filtering client-side
+  // here reaches the same result.
+  const [search, setSearch] = useState("")
+  const [filterCategory, setFilterCategory] = useState("All")
+  const [filterLowStock, setFilterLowStock] = useState(false)
 
   const addMutation = useAddStock(() => setShowAdd(false))
   const updateMutation = useUpdateStock(
     editing?.id ?? "",
     () => setEditing(null),
   )
+
+  const filteredStock = (stock ?? []).filter((s) => {
+    const q = search.toLowerCase()
+    const matchesSearch =
+      !q ||
+      s.product.name.toLowerCase().includes(q) ||
+      (s.product.brand ?? "").toLowerCase().includes(q) ||
+      (s.product.modelNumber ?? "").toLowerCase().includes(q) ||
+      (s.batchNumber ?? "").toLowerCase().includes(q)
+    const matchesCategory = filterCategory === "All" || s.product.category === filterCategory
+    const matchesLowStock = !filterLowStock || (s.quantity <= 5 && s.quantity > 0)
+    return matchesSearch && matchesCategory && matchesLowStock
+  })
 
   const columns: ColumnDef<OpticalStockEntry>[] = [
     {
@@ -443,10 +467,32 @@ export function StockTab({ canEdit }: StockTabProps) {
         </div>
       )}
 
-      <div className="flex items-center justify-between">
-        <p className="text-sm text-muted-foreground">
-          {stock?.length ?? 0} stock entries
-        </p>
+      <div className="flex items-center gap-3">
+        <div className="relative flex-1 max-w-sm">
+          <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" aria-hidden="true" />
+          <Input
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder="Search stock..."
+            className="pl-8"
+            aria-label="Search stock"
+          />
+        </div>
+        <SingleSelect
+          options={CATEGORY_FILTER_OPTIONS}
+          value={filterCategory}
+          onChange={setFilterCategory}
+          className="w-36"
+          aria-label="Filter by category"
+        />
+        <Button
+          variant={filterLowStock ? "primary" : "outline"}
+          size="sm"
+          onClick={() => setFilterLowStock((v) => !v)}
+        >
+          Low Stock
+        </Button>
+        <div className="flex-1" />
         {canEdit && (
           <Button size="sm" onClick={() => setShowAdd(true)}>
             <Plus className="h-4 w-4 mr-1.5" aria-hidden="true" />
@@ -454,6 +500,10 @@ export function StockTab({ canEdit }: StockTabProps) {
           </Button>
         )}
       </div>
+
+      <p className="text-sm text-muted-foreground">
+        {filteredStock.length} stock entries
+      </p>
 
       {stock && stock.length === 0 ? (
         <EmptyState
@@ -465,10 +515,15 @@ export function StockTab({ canEdit }: StockTabProps) {
               : undefined
           }
         />
+      ) : filteredStock.length === 0 ? (
+        <EmptyState
+          title="No matching stock"
+          description="Try a different search term or filter."
+        />
       ) : (
         <DataTable
           columns={columns}
-          data={stock ?? []}
+          data={filteredStock}
           aria-label="Optical stock table"
         />
       )}

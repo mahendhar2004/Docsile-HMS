@@ -29,12 +29,13 @@ export interface Lab {
 }
 
 /**
- * Lab as returned from GET /labs/labs — may include investigation count
- * from the Supabase query. The old Next.js app used Prisma's `_count.investigations`;
- * the new API may surface it differently.
+ * Lab as returned from GET /labs/labs — GET /labs/labs (service.ts getLabs)
+ * attaches an active-investigation count per lab, shaped exactly like main's
+ * Prisma `_count.investigations` (see src/app/(hospital)/labs/actions.ts
+ * getLabs / components/LabsPage.tsx LabWithCount).
  */
 export interface LabWithCount extends Lab {
-  investigationCount?: number
+  _count: { investigations: number }
 }
 
 /**

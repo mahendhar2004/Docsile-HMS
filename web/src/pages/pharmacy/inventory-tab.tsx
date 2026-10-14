@@ -14,21 +14,28 @@ import { useState } from "react"
 import { SegmentedControl, type SegmentOption } from "@/components/patterns"
 import { MedicinesTab } from "./medicines-tab"
 import { StockTab } from "./stock-tab"
+import { useMedicines, useStock } from "./hooks"
 
 type View = "stock" | "medicines"
-
-const VIEW_OPTIONS: SegmentOption<View>[] = [
-  { value: "stock", label: "Stock" },
-  { value: "medicines", label: "Medicines" },
-]
 
 export function InventoryTab() {
   const [view, setView] = useState<View>("stock")
 
+  // Same TanStack Query cache key as StockTab/MedicinesTab's own fetches, so
+  // this doesn't trigger extra network requests — just reads the counts for
+  // the tab labels, matching main's "Stock (N)"/"All Medicines (N)" labels.
+  const { data: stock } = useStock()
+  const { data: medicines } = useMedicines()
+
+  const viewOptions: SegmentOption<View>[] = [
+    { value: "stock", label: `Stock (${stock?.length ?? 0})` },
+    { value: "medicines", label: `All Medicines (${medicines?.length ?? 0})` },
+  ]
+
   return (
     <div className="space-y-4">
       <SegmentedControl
-        options={VIEW_OPTIONS}
+        options={viewOptions}
         value={view}
         onValueChange={setView}
         aria-label="Inventory view"

@@ -261,6 +261,9 @@ export function SuppliersTab() {
                   <Badge variant="secondary" className="text-[10px] px-1.5 py-0 ml-auto">
                     Credit: {supplier.creditDays} days
                   </Badge>
+                  <Badge variant="info" className="text-[10px] px-1.5 py-0">
+                    {supplier._count.purchaseOrders} POs
+                  </Badge>
                 </div>
               </CardContent>
             </Card>

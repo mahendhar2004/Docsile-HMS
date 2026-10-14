@@ -79,8 +79,17 @@ export const UpdateLabInvestigationsSchema = z.object({
 });
 
 // ---- LabBillListQuery ---------------------------------------------------
+// dateFrom/dateTo/labId/status/patientId match the real filter set on main's
+// Lab Bills History panel (src/app/(hospital)/labs/components/LabBillingTab.tsx
+// loadHistory) — `date` (single day) is kept for back-compat with any existing
+// caller, but the frontend history panel now uses the range + extra filters.
 export const LabBillListQuerySchema = z.object({
   page: z.coerce.number().int().positive().default(1),
   pageSize: z.coerce.number().int().positive().max(100).default(50),
   date: z.string().date().optional(),
+  dateFrom: z.string().date().optional(),
+  dateTo: z.string().date().optional(),
+  labId: z.string().optional(),
+  status: z.string().optional(),
+  patientId: z.string().optional(),
 });

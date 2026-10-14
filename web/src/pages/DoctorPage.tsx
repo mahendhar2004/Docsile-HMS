@@ -154,6 +154,7 @@ export default function DoctorPage() {
           onRefetch={() => void queueQuery.refetch()}
           selectedId={selectedPatientId}
           onSelectPatient={setSelectedPatientId}
+          canViewBilling={canViewBilling}
         />
       )}
     </main>

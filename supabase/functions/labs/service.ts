@@ -417,12 +417,29 @@ export async function getPendingLabInvestigations(session: Session): Promise<unk
 /** Paginated list of LabBills with nested lab/patient/items/payments. */
 export async function getLabBills(
   session: Session,
-  query: { page: number; pageSize: number; date?: string },
+  query: {
+    page: number;
+    pageSize: number;
+    date?: string;
+    dateFrom?: string;
+    dateTo?: string;
+    labId?: string;
+    status?: string;
+    patientId?: string;
+  },
 ): Promise<{ data: unknown[]; total: number }> {
   const r = repo(session);
+  const filters = {
+    date: query.date,
+    dateFrom: query.dateFrom,
+    dateTo: query.dateTo,
+    labId: query.labId,
+    status: query.status,
+    patientId: query.patientId,
+  };
   const [data, total] = await Promise.all([
-    r.findBills(query),
-    r.countBills({ date: query.date }),
+    r.findBills({ page: query.page, pageSize: query.pageSize, ...filters }),
+    r.countBills(filters),
   ]);
 
   const sorted = data.map((bill) => ({

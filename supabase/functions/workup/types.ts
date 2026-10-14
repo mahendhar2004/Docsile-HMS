@@ -31,3 +31,12 @@ export const EyeReadingSchema = z.object({
 });
 
 export type EyeReading = z.infer<typeof EyeReadingSchema>;
+
+/**
+ * Query params for GET /workup/queue and GET /workup/patients/:patientId.
+ * Matches the `date` convention used by patient-care's PatientListQuerySchema/
+ * InPatientListQuerySchema — defaults to today (IST) when omitted.
+ */
+export const WorkupDateQuerySchema = z.object({
+  date: z.string().date().optional(),
+});

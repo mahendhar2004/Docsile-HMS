@@ -23,6 +23,8 @@ import { Button } from "@/components/ui/button"
 import { Switch } from "@/components/ui/switch"
 import { Label } from "@/components/ui/label"
 import { Input } from "@/components/ui/input"
+import { SingleSelect } from "@/components/patterns"
+import { HEADER_OPTIONS } from "@/components/receipts/headers/registry"
 import { useCreateLab, useUpdateLab } from "./hooks"
 import type { Lab } from "./types"
 
@@ -126,18 +128,19 @@ export function LabForm({ open, lab, onClose }: LabFormProps) {
             />
           </div>
 
-          {/* Print Header Key */}
+          {/* Receipt Header — matches main's LabForm.tsx exactly: a Select over
+              HEADER_OPTIONS, not free text (users shouldn't have to know/type
+              the raw printHeaderKey string). */}
           <div className="space-y-1.5">
-            <Label htmlFor="lab-header">Print Header Key</Label>
-            <Input
-              id="lab-header"
-              value={printHeaderKey}
-              onChange={(e) => setPrintHeaderKey(e.target.value)}
-              placeholder="e.g., vennala lab"
+            <Label htmlFor="lab-header">Receipt Header</Label>
+            <SingleSelect
+              options={HEADER_OPTIONS.map((o) => ({ value: o.key, label: o.label }))}
+              value={printHeaderKey || "default"}
+              onChange={(v) => setPrintHeaderKey(v === "default" ? "" : (v ?? ""))}
+              aria-label="Receipt header"
             />
             <p className="text-xs text-muted-foreground">
-              Determines which header appears on this lab&apos;s printed receipt.
-              Leave blank to use the hospital default.
+              Choose which header appears on this lab&apos;s printed receipt.
             </p>
           </div>
 

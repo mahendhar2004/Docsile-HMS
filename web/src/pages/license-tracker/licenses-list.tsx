@@ -537,7 +537,7 @@ export const LicensesList = forwardRef<LicensesListHandle, LicensesListProps>(
                             : `${daysLeft}d left`}
                       </span>
 
-                      {can("licenses:edit") && (
+                      {can("licenses:create") && (
                         <button
                           type="button"
                           onClick={() => handleEdit(lic)}
@@ -607,21 +607,25 @@ export const LicensesList = forwardRef<LicensesListHandle, LicensesListProps>(
                                 />
                                 Download
                               </button>
-                              {can("licenses:edit") && (
-                                <button
-                                  type="button"
-                                  onClick={() => setRemoveDocLicense(lic)}
-                                  className="p-1.5 rounded-md text-muted-foreground hover:text-red-500 hover:bg-red-50 transition-colors"
-                                  aria-label={`Remove document for ${lic.name}`}
-                                >
-                                  <X className="h-3.5 w-3.5" aria-hidden="true" />
-                                </button>
-                              )}
+                              {/* No permission gate here — matches main's
+                                  LicenseTrackerPage.tsx exactly, which shows
+                                  this button unconditionally to any user who
+                                  can see the page. The server still enforces
+                                  licenses:delete on the DELETE /document
+                                  route either way (same as main). */}
+                              <button
+                                type="button"
+                                onClick={() => setRemoveDocLicense(lic)}
+                                className="p-1.5 rounded-md text-muted-foreground hover:text-red-500 hover:bg-red-50 transition-colors"
+                                aria-label={`Remove document for ${lic.name}`}
+                              >
+                                <X className="h-3.5 w-3.5" aria-hidden="true" />
+                              </button>
                             </>
                           )}
                         </>
                       ) : (
-                        can("licenses:edit") && (
+                        can("licenses:create") && (
                           <button
                             type="button"
                             onClick={() => handleUploadClick(lic.id)}

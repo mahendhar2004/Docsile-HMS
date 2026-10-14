@@ -113,14 +113,23 @@ export function PageHeader({
     <div>
       <header
         className={cn(
-          "flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 sm:gap-4",
+          "flex flex-col gap-2 sm:gap-4",
+          // A center slot (e.g. Patients' Out-Patients/In-Patients switcher)
+          // needs a true 3-column grid, not `flex justify-between` — with
+          // flex, the middle child lands wherever it falls between the
+          // title and actions blocks, which only looks centered when those
+          // two blocks happen to be equal width. A grid's three equal
+          // fractional columns guarantee the center column — and anything
+          // centered within it — sits at the header's true visual center,
+          // matching main's own `md:grid md:grid-cols-3` layout for this.
+          center ? "sm:grid sm:grid-cols-3 sm:items-center" : "sm:flex-row sm:items-center sm:justify-between",
           "bg-white/80 backdrop-blur-md border-b border-border/60",
           "pl-12 md:pl-6 pr-3 sm:pr-6 py-2.5 sm:py-4 -mx-3 sm:-mx-6 -mt-3 sm:-mt-6 sticky top-0 z-20",
           className,
         )}
       >
-        <div className="flex items-center gap-2 min-w-0">
-          <div className="min-w-0 flex-1">
+        <div className={cn("flex items-center gap-2 min-w-0", center && "sm:justify-self-start")}>
+          <div className={cn("min-w-0", !center && "flex-1")}>
             {hasBreadcrumbs && (
               <div className="mb-1.5">
                 <Breadcrumbs items={breadcrumbs} />
@@ -149,10 +158,15 @@ export function PageHeader({
           )}
         </div>
 
-        {center && <div className="flex md:justify-center">{center}</div>}
+        {center && <div className="flex sm:justify-center">{center}</div>}
 
         {(actions || showBack) && (
-          <div className="flex items-center gap-2 sm:gap-2.5 flex-wrap sm:flex-nowrap sm:shrink-0 [&>*]:min-w-0">
+          <div
+            className={cn(
+              "flex items-center gap-2 sm:gap-2.5 flex-wrap sm:flex-nowrap sm:shrink-0 [&>*]:min-w-0",
+              center && "sm:justify-end",
+            )}
+          >
             {actions}
             {showBack && <BackToDashboard />}
           </div>
