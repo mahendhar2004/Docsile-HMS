@@ -23,12 +23,13 @@ export class SettingsRepository {
 
   // ─── ServiceTemplate ───────────────────────────────────────────────────────
 
-  async listServiceTemplates() {
-    const { data, error } = await this.supabase
+  async listServiceTemplates(includeInactive = false) {
+    let query = this.supabase
       .from('ServiceTemplate')
       .select('*')
-      .eq('hospital_id', this.hospitalId)
-      .eq('isActive', true)
+      .eq('hospital_id', this.hospitalId);
+    if (!includeInactive) query = query.eq('isActive', true);
+    const { data, error } = await query
       .order('category', { ascending: true })
       .order('sortOrder', { ascending: true })
       .order('name', { ascending: true });
@@ -129,13 +130,13 @@ export class SettingsRepository {
 
   // ─── PredefinedTemplate (prescription templates) ──────────────────────────
 
-  async listPrescriptionTemplates() {
-    const { data, error } = await this.supabase
+  async listPrescriptionTemplates(includeInactive = false) {
+    let query = this.supabase
       .from('PredefinedTemplate')
       .select('*')
-      .eq('hospital_id', this.hospitalId)
-      .eq('isActive', true)
-      .order('code', { ascending: true });
+      .eq('hospital_id', this.hospitalId);
+    if (!includeInactive) query = query.eq('isActive', true);
+    const { data, error } = await query.order('code', { ascending: true });
     if (error) throw error;
     return data ?? [];
   }
@@ -192,13 +193,13 @@ export class SettingsRepository {
 
   // ─── InpatientTemplate ────────────────────────────────────────────────────
 
-  async listInpatientTemplates() {
-    const { data, error } = await this.supabase
+  async listInpatientTemplates(includeInactive = false) {
+    let query = this.supabase
       .from('InpatientTemplate')
       .select('*')
-      .eq('hospital_id', this.hospitalId)
-      .eq('isActive', true)
-      .order('code', { ascending: true });
+      .eq('hospital_id', this.hospitalId);
+    if (!includeInactive) query = query.eq('isActive', true);
+    const { data, error } = await query.order('code', { ascending: true });
     if (error) throw error;
     return data ?? [];
   }
@@ -255,13 +256,13 @@ export class SettingsRepository {
 
   // ─── PredefinedPackage ────────────────────────────────────────────────────
 
-  async listPackages() {
-    const { data, error } = await this.supabase
+  async listPackages(includeInactive = false) {
+    let query = this.supabase
       .from('PredefinedPackage')
       .select('*')
-      .eq('hospital_id', this.hospitalId)
-      .eq('isActive', true)
-      .order('name', { ascending: true });
+      .eq('hospital_id', this.hospitalId);
+    if (!includeInactive) query = query.eq('isActive', true);
+    const { data, error } = await query.order('name', { ascending: true });
     if (error) throw error;
     return data ?? [];
   }
@@ -318,12 +319,13 @@ export class SettingsRepository {
 
   // ─── PredefinedSurgery (soft delete) ──────────────────────────────────────
 
-  async listSurgeries() {
-    const { data, error } = await this.supabase
+  async listSurgeries(includeInactive = false) {
+    let query = this.supabase
       .from('PredefinedSurgery')
       .select('*')
-      .eq('hospital_id', this.hospitalId)
-      .eq('isActive', true)
+      .eq('hospital_id', this.hospitalId);
+    if (!includeInactive) query = query.eq('isActive', true);
+    const { data, error } = await query
       .order('sortOrder', { ascending: true })
       .order('name', { ascending: true });
     if (error) throw error;
@@ -372,12 +374,13 @@ export class SettingsRepository {
 
   // ─── PredefinedDischarge (soft delete) ────────────────────────────────────
 
-  async listDischarges() {
-    const { data, error } = await this.supabase
+  async listDischarges(includeInactive = false) {
+    let query = this.supabase
       .from('PredefinedDischarge')
       .select('*')
-      .eq('hospital_id', this.hospitalId)
-      .eq('isActive', true)
+      .eq('hospital_id', this.hospitalId);
+    if (!includeInactive) query = query.eq('isActive', true);
+    const { data, error } = await query
       .order('sortOrder', { ascending: true })
       .order('name', { ascending: true });
     if (error) throw error;
@@ -426,12 +429,13 @@ export class SettingsRepository {
 
   // ─── MedicineMaster ───────────────────────────────────────────────────────
 
-  async listMedicineMaster() {
-    const { data, error } = await this.supabase
+  async listMedicineMaster(includeInactive = false) {
+    let query = this.supabase
       .from('MedicineMaster')
       .select('*')
-      .eq('hospital_id', this.hospitalId)
-      .eq('isActive', true)
+      .eq('hospital_id', this.hospitalId);
+    if (!includeInactive) query = query.eq('isActive', true);
+    const { data, error } = await query
       .order('sortOrder', { ascending: true })
       .order('name', { ascending: true });
     if (error) throw error;

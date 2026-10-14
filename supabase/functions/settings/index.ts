@@ -62,7 +62,7 @@ app.use('*', requireAuth);
 app.onError(handleError);
 
 // ---- Service templates ----
-app.get('/service-templates', requirePermission('settings:view'), async (c) => ok(c, await service.listServiceTemplates(c.get('session') as Session)));
+app.get('/service-templates', requirePermission('settings:view'), async (c) => ok(c, await service.listServiceTemplates(c.get('session') as Session, c.req.query('includeInactive') === 'true')));
 app.post('/service-templates', requirePermission('settings:edit'), async (c) => {
   const s = c.get('session') as Session;
   const b = ServiceTemplateSchema.safeParse(await c.req.json());
@@ -109,7 +109,7 @@ app.patch('/nav-style', requirePermission('settings:edit'), async (c) => {
 });
 
 // ---- Prescription templates ----
-app.get('/prescription-templates', requirePermission('settings:view'), async (c) => ok(c, await service.listPrescriptionTemplates(c.get('session') as Session)));
+app.get('/prescription-templates', requirePermission('settings:view'), async (c) => ok(c, await service.listPrescriptionTemplates(c.get('session') as Session, c.req.query('includeInactive') === 'true')));
 app.post('/prescription-templates', requirePermission('settings:edit'), async (c) => {
   const s = c.get('session') as Session;
   const b = PredefinedTemplateSchema.safeParse(await c.req.json());
@@ -129,7 +129,7 @@ app.delete('/prescription-templates/:id', requirePermission('settings:edit'), as
 });
 
 // ---- Inpatient templates ----
-app.get('/inpatient-templates', requirePermission('settings:view'), async (c) => ok(c, await service.listInpatientTemplates(c.get('session') as Session)));
+app.get('/inpatient-templates', requirePermission('settings:view'), async (c) => ok(c, await service.listInpatientTemplates(c.get('session') as Session, c.req.query('includeInactive') === 'true')));
 app.post('/inpatient-templates', requirePermission('settings:edit'), async (c) => {
   const s = c.get('session') as Session;
   const b = InpatientTemplateSchema.safeParse(await c.req.json());
@@ -149,7 +149,7 @@ app.delete('/inpatient-templates/:id', requirePermission('settings:edit'), async
 });
 
 // ---- Packages ----
-app.get('/packages', requirePermission('settings:view'), async (c) => ok(c, await service.listPackages(c.get('session') as Session)));
+app.get('/packages', requirePermission('settings:view'), async (c) => ok(c, await service.listPackages(c.get('session') as Session, c.req.query('includeInactive') === 'true')));
 app.post('/packages', requirePermission('settings:edit'), async (c) => {
   const s = c.get('session') as Session;
   const b = PredefinedPackageSchema.safeParse(await c.req.json());
@@ -169,7 +169,7 @@ app.delete('/packages/:id', requirePermission('settings:edit'), async (c) => {
 });
 
 // ---- Surgeries ----
-app.get('/surgeries', requirePermission('settings:view'), async (c) => ok(c, await service.listSurgeries(c.get('session') as Session)));
+app.get('/surgeries', requirePermission('settings:view'), async (c) => ok(c, await service.listSurgeries(c.get('session') as Session, c.req.query('includeInactive') === 'true')));
 app.post('/surgeries', requirePermission('settings:edit'), async (c) => {
   const s = c.get('session') as Session;
   const b = PredefinedSurgerySchema.safeParse(await c.req.json());
@@ -189,7 +189,7 @@ app.delete('/surgeries/:id', requirePermission('settings:edit'), async (c) => {
 });
 
 // ---- Discharges ----
-app.get('/discharges', requirePermission('settings:view'), async (c) => ok(c, await service.listDischarges(c.get('session') as Session)));
+app.get('/discharges', requirePermission('settings:view'), async (c) => ok(c, await service.listDischarges(c.get('session') as Session, c.req.query('includeInactive') === 'true')));
 app.post('/discharges', requirePermission('settings:edit'), async (c) => {
   const s = c.get('session') as Session;
   const b = PredefinedDischargeSchema.safeParse(await c.req.json());
@@ -209,7 +209,7 @@ app.delete('/discharges/:id', requirePermission('settings:edit'), async (c) => {
 });
 
 // ---- Medicine master ----
-app.get('/medicine-master', requirePermission('settings:view'), async (c) => ok(c, await service.listMedicineMaster(c.get('session') as Session)));
+app.get('/medicine-master', requirePermission('settings:view'), async (c) => ok(c, await service.listMedicineMaster(c.get('session') as Session, c.req.query('includeInactive') === 'true')));
 app.post('/medicine-master', requirePermission('settings:edit'), async (c) => {
   const s = c.get('session') as Session;
   const b = MedicineMasterSchema.safeParse(await c.req.json());

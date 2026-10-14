@@ -48,7 +48,6 @@ interface ServiceTemplatesProps {
 }
 
 export function ServiceTemplatesSection({ canEdit }: ServiceTemplatesProps) {
-  const { data: templates = [], isLoading, error, refetch } = useServiceTemplates()
   const [search, setSearch] = useState("")
   const [categoryFilter, setCategoryFilter] = useState("All")
   const [showInactive, setShowInactive] = useState(false)
@@ -56,11 +55,17 @@ export function ServiceTemplatesSection({ canEdit }: ServiceTemplatesProps) {
   const [editItem, setEditItem] = useState<ServiceTemplate | null>(null)
   const [deleteId, setDeleteId] = useState<string | null>(null)
 
+  // `showInactive` is a real server-side param (GET ?includeInactive=) — the
+  // backend only ever returns active rows otherwise, so a deactivated item
+  // can't be brought back by a client-side filter over data that was never
+  // fetched in the first place. Category/search stay client-side, matching
+  // main (src/app/(hospital)/settings/components/SettingsPage.tsx).
+  const { data: templates = [], isLoading, error, refetch } = useServiceTemplates(showInactive)
+
   const toggleActiveM = useToggleServiceTemplateActive()
   const deleteM = useDeleteServiceTemplate()
 
   const filtered = templates.filter((s) => {
-    if (!showInactive && !s.isActive) return false
     if (categoryFilter !== "All" && s.category !== categoryFilter) return false
     if (search && !s.name.toLowerCase().includes(search.toLowerCase())) return false
     return true

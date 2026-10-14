@@ -42,8 +42,8 @@ function repo(session: Session): SettingsRepository {
 
 // ─── ServiceTemplate ─────────────────────────────────────────────────────────
 
-export async function listServiceTemplates(session: Session) {
-  return repo(session).listServiceTemplates();
+export async function listServiceTemplates(session: Session, includeInactive = false) {
+  return repo(session).listServiceTemplates(includeInactive);
 }
 
 export async function createServiceTemplate(session: Session, body: ServiceTemplateInput) {
@@ -170,8 +170,8 @@ export async function updateNavStyle(session: Session, navStyle: string) {
 
 // ─── PredefinedTemplate (prescription templates) ──────────────────────────────
 
-export async function listPrescriptionTemplates(session: Session) {
-  return repo(session).listPrescriptionTemplates();
+export async function listPrescriptionTemplates(session: Session, includeInactive = false) {
+  return repo(session).listPrescriptionTemplates(includeInactive);
 }
 
 export async function createPrescriptionTemplate(session: Session, body: PredefinedTemplateInput) {
@@ -233,8 +233,8 @@ export async function deletePrescriptionTemplate(session: Session, id: string) {
 
 // ─── InpatientTemplate ────────────────────────────────────────────────────────
 
-export async function listInpatientTemplates(session: Session) {
-  return repo(session).listInpatientTemplates();
+export async function listInpatientTemplates(session: Session, includeInactive = false) {
+  return repo(session).listInpatientTemplates(includeInactive);
 }
 
 export async function createInpatientTemplate(session: Session, body: InpatientTemplateInput) {
@@ -292,8 +292,8 @@ export async function deleteInpatientTemplate(session: Session, id: string) {
 
 // ─── PredefinedPackage ────────────────────────────────────────────────────────
 
-export async function listPackages(session: Session) {
-  return repo(session).listPackages();
+export async function listPackages(session: Session, includeInactive = false) {
+  return repo(session).listPackages(includeInactive);
 }
 
 export async function createPackage(session: Session, body: PredefinedPackageInput) {
@@ -345,8 +345,8 @@ export async function deletePackage(session: Session, id: string) {
 
 // ─── PredefinedSurgery (soft delete) ─────────────────────────────────────────
 
-export async function listSurgeries(session: Session) {
-  return repo(session).listSurgeries();
+export async function listSurgeries(session: Session, includeInactive = false) {
+  return repo(session).listSurgeries(includeInactive);
 }
 
 export async function createSurgery(session: Session, body: PredefinedSurgeryInput) {
@@ -398,8 +398,8 @@ export async function deleteSurgery(session: Session, id: string) {
 
 // ─── PredefinedDischarge (soft delete) ───────────────────────────────────────
 
-export async function listDischarges(session: Session) {
-  return repo(session).listDischarges();
+export async function listDischarges(session: Session, includeInactive = false) {
+  return repo(session).listDischarges(includeInactive);
 }
 
 export async function createDischarge(session: Session, body: PredefinedDischargeInput) {
@@ -447,8 +447,8 @@ export async function deleteDischarge(session: Session, id: string) {
 
 // ─── MedicineMaster ───────────────────────────────────────────────────────────
 
-export async function listMedicineMaster(session: Session) {
-  return repo(session).listMedicineMaster();
+export async function listMedicineMaster(session: Session, includeInactive = false) {
+  return repo(session).listMedicineMaster(includeInactive);
 }
 
 export async function createMedicineMaster(session: Session, body: MedicineMasterInput) {

@@ -56,7 +56,13 @@ interface PackagesSectionProps {
 }
 
 export function PackagesSection({ canEdit }: PackagesSectionProps) {
-  const { data: packages = [], isLoading, error, refetch } = usePackages()
+  // Packages is the one resource where main has no "Show inactive" checkbox
+  // at all — it always calls getPredefinedPackages(true), showing every
+  // package (active + inactive) unconditionally, distinguished only by the
+  // row's own Status badge + Deactivate/Activate toggle. Matched exactly;
+  // the backend used to hardcode isActive=true-only, so inactive packages
+  // never appeared here at all before this fix.
+  const { data: packages = [], isLoading, error, refetch } = usePackages(true)
   const [dialogOpen, setDialogOpen] = useState(false)
   const [editItem, setEditItem] = useState<PredefinedPackage | null>(null)
   const [deleteId, setDeleteId] = useState<string | null>(null)

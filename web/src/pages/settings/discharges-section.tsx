@@ -44,7 +44,6 @@ interface DischargesSectionProps {
 }
 
 export function DischargesSection({ canEdit }: DischargesSectionProps) {
-  const { data: discharges = [], isLoading, error, refetch } = useDischarges()
   const [search, setSearch] = useState("")
   const [showInactive, setShowInactive] = useState(false)
   const [dialogOpen, setDialogOpen] = useState(false)
@@ -52,10 +51,16 @@ export function DischargesSection({ canEdit }: DischargesSectionProps) {
   const [deleteId, setDeleteId] = useState<string | null>(null)
   const [deleteName, setDeleteName] = useState("")
 
+  // `showInactive` is a real server-side param now — see
+  // service-templates-section.tsx for why a client-side filter alone can't
+  // work (the backend used to unconditionally exclude inactive rows). Note:
+  // main's own Discharges tab has no reactivate button at all — "Delete"
+  // here is a one-way soft-delete (isActive=false), matching main exactly.
+  const { data: discharges = [], isLoading, error, refetch } = useDischarges(showInactive)
+
   const deleteM = useDeleteDischarge()
 
   const filtered = discharges.filter((d) => {
-    if (!showInactive && !d.isActive) return false
     if (!search) return true
     return d.name.toLowerCase().includes(search.toLowerCase())
   })

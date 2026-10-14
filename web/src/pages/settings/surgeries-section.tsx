@@ -50,7 +50,6 @@ interface SurgeriesSectionProps {
 }
 
 export function SurgeriesSection({ canEdit }: SurgeriesSectionProps) {
-  const { data: surgeries = [], isLoading, error, refetch } = useSurgeries()
   const [search, setSearch] = useState("")
   const [showInactive, setShowInactive] = useState(false)
   const [dialogOpen, setDialogOpen] = useState(false)
@@ -58,10 +57,16 @@ export function SurgeriesSection({ canEdit }: SurgeriesSectionProps) {
   const [deleteId, setDeleteId] = useState<string | null>(null)
   const [deleteName, setDeleteName] = useState("")
 
+  // `showInactive` is a real server-side param now — see
+  // service-templates-section.tsx for why a client-side filter alone can't
+  // work (the backend used to unconditionally exclude inactive rows). Note:
+  // main's own Surgeries tab has no reactivate button at all — "Delete" here
+  // is a one-way soft-delete (isActive=false), matching main exactly.
+  const { data: surgeries = [], isLoading, error, refetch } = useSurgeries(showInactive)
+
   const deleteM = useDeleteSurgery()
 
   const filtered = surgeries.filter((s) => {
-    if (!showInactive && !s.isActive) return false
     if (!search) return true
     const q = search.toLowerCase()
     return (

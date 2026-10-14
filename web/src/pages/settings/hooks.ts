@@ -27,25 +27,27 @@ import { parsePrintConfig } from "./types"
 
 export const settingsKeys = {
   all: ["settings"] as const,
-  serviceTemplates: () => [...settingsKeys.all, "service-templates"] as const,
+  serviceTemplates: (includeInactive = false) => [...settingsKeys.all, "service-templates", includeInactive] as const,
   hospitalProfile: () => [...settingsKeys.all, "hospital-profile"] as const,
   printConfig: () => [...settingsKeys.all, "print-config"] as const,
-  prescriptionTemplates: () => [...settingsKeys.all, "prescription-templates"] as const,
-  inpatientTemplates: () => [...settingsKeys.all, "inpatient-templates"] as const,
-  packages: () => [...settingsKeys.all, "packages"] as const,
-  surgeries: () => [...settingsKeys.all, "surgeries"] as const,
-  discharges: () => [...settingsKeys.all, "discharges"] as const,
-  medicineMaster: () => [...settingsKeys.all, "medicine-master"] as const,
+  prescriptionTemplates: (includeInactive = false) => [...settingsKeys.all, "prescription-templates", includeInactive] as const,
+  inpatientTemplates: (includeInactive = false) => [...settingsKeys.all, "inpatient-templates", includeInactive] as const,
+  packages: (includeInactive = false) => [...settingsKeys.all, "packages", includeInactive] as const,
+  surgeries: (includeInactive = false) => [...settingsKeys.all, "surgeries", includeInactive] as const,
+  discharges: (includeInactive = false) => [...settingsKeys.all, "discharges", includeInactive] as const,
+  medicineMaster: (includeInactive = false) => [...settingsKeys.all, "medicine-master", includeInactive] as const,
   dropdownOptions: (fieldName: string) => [...settingsKeys.all, "dropdown-options", fieldName] as const,
 } as const
 
 // ─── Service Templates ────────────────────────────────────────────────────────
 
-export function useServiceTemplates(enabled = true) {
+export function useServiceTemplates(includeInactive = false, enabled = true) {
   return useQuery({
-    queryKey: settingsKeys.serviceTemplates(),
+    queryKey: settingsKeys.serviceTemplates(includeInactive),
     queryFn: () =>
-      apiClient.get<ServiceTemplate[]>("/settings/service-templates").then((e) => e.data),
+      apiClient
+        .get<ServiceTemplate[]>(`/settings/service-templates?includeInactive=${includeInactive}`)
+        .then((e) => e.data),
     enabled,
     staleTime: 2 * 60 * 1000,
   })
@@ -57,7 +59,7 @@ export function useCreateServiceTemplate(onSuccess?: () => void) {
     mutationFn: (body: ServiceTemplateInput) =>
       apiClient.post("/settings/service-templates", body),
     onSuccess: () => {
-      void qc.invalidateQueries({ queryKey: settingsKeys.serviceTemplates() })
+      void qc.invalidateQueries({ queryKey: [...settingsKeys.all, "service-templates"] })
       toast.success("Service template created.")
       onSuccess?.()
     },
@@ -73,7 +75,7 @@ export function useUpdateServiceTemplate(id: string, onSuccess?: () => void) {
     mutationFn: (body: Partial<ServiceTemplateInput>) =>
       apiClient.patch(`/settings/service-templates/${id}`, body),
     onSuccess: () => {
-      void qc.invalidateQueries({ queryKey: settingsKeys.serviceTemplates() })
+      void qc.invalidateQueries({ queryKey: [...settingsKeys.all, "service-templates"] })
       toast.success("Service template updated.")
       onSuccess?.()
     },
@@ -89,7 +91,7 @@ export function useToggleServiceTemplateActive(onSuccess?: () => void) {
     mutationFn: ({ id, isActive }: { id: string; isActive: boolean }) =>
       apiClient.patch(`/settings/service-templates/${id}`, { isActive }),
     onSuccess: () => {
-      void qc.invalidateQueries({ queryKey: settingsKeys.serviceTemplates() })
+      void qc.invalidateQueries({ queryKey: [...settingsKeys.all, "service-templates"] })
       onSuccess?.()
     },
     onError: (err: unknown) => {
@@ -103,7 +105,7 @@ export function useDeleteServiceTemplate(onSuccess?: () => void) {
   return useMutation({
     mutationFn: (id: string) => apiClient.delete(`/settings/service-templates/${id}`),
     onSuccess: () => {
-      void qc.invalidateQueries({ queryKey: settingsKeys.serviceTemplates() })
+      void qc.invalidateQueries({ queryKey: [...settingsKeys.all, "service-templates"] })
       toast.success("Service template deleted.")
       onSuccess?.()
     },
@@ -204,12 +206,12 @@ export function useUpdateNavStyle(onSuccess?: () => void) {
 
 // ─── Prescription Templates ───────────────────────────────────────────────────
 
-export function usePrescriptionTemplates(enabled = true) {
+export function usePrescriptionTemplates(includeInactive = false, enabled = true) {
   return useQuery({
-    queryKey: settingsKeys.prescriptionTemplates(),
+    queryKey: settingsKeys.prescriptionTemplates(includeInactive),
     queryFn: () =>
       apiClient
-        .get<PrescriptionTemplate[]>("/settings/prescription-templates")
+        .get<PrescriptionTemplate[]>(`/settings/prescription-templates?includeInactive=${includeInactive}`)
         .then((e) => e.data),
     enabled,
     staleTime: 2 * 60 * 1000,
@@ -222,7 +224,7 @@ export function useCreatePrescriptionTemplate(onSuccess?: () => void) {
     mutationFn: (body: Omit<PrescriptionTemplate, "id" | "createdAt" | "updatedAt">) =>
       apiClient.post("/settings/prescription-templates", body),
     onSuccess: () => {
-      void qc.invalidateQueries({ queryKey: settingsKeys.prescriptionTemplates() })
+      void qc.invalidateQueries({ queryKey: [...settingsKeys.all, "prescription-templates"] })
       toast.success("Prescription template created.")
       onSuccess?.()
     },
@@ -238,7 +240,7 @@ export function useUpdatePrescriptionTemplate(id: string, onSuccess?: () => void
     mutationFn: (body: Partial<Omit<PrescriptionTemplate, "id">>) =>
       apiClient.patch(`/settings/prescription-templates/${id}`, body),
     onSuccess: () => {
-      void qc.invalidateQueries({ queryKey: settingsKeys.prescriptionTemplates() })
+      void qc.invalidateQueries({ queryKey: [...settingsKeys.all, "prescription-templates"] })
       toast.success("Prescription template updated.")
       onSuccess?.()
     },
@@ -254,7 +256,7 @@ export function useTogglePrescriptionTemplateActive(onSuccess?: () => void) {
     mutationFn: ({ id, isActive }: { id: string; isActive: boolean }) =>
       apiClient.patch(`/settings/prescription-templates/${id}`, { isActive }),
     onSuccess: () => {
-      void qc.invalidateQueries({ queryKey: settingsKeys.prescriptionTemplates() })
+      void qc.invalidateQueries({ queryKey: [...settingsKeys.all, "prescription-templates"] })
       onSuccess?.()
     },
     onError: (err: unknown) => {
@@ -268,7 +270,7 @@ export function useDeletePrescriptionTemplate(onSuccess?: () => void) {
   return useMutation({
     mutationFn: (id: string) => apiClient.delete(`/settings/prescription-templates/${id}`),
     onSuccess: () => {
-      void qc.invalidateQueries({ queryKey: settingsKeys.prescriptionTemplates() })
+      void qc.invalidateQueries({ queryKey: [...settingsKeys.all, "prescription-templates"] })
       toast.success("Prescription template deleted.")
       onSuccess?.()
     },
@@ -280,12 +282,12 @@ export function useDeletePrescriptionTemplate(onSuccess?: () => void) {
 
 // ─── Inpatient Templates ──────────────────────────────────────────────────────
 
-export function useInpatientTemplates(enabled = true) {
+export function useInpatientTemplates(includeInactive = false, enabled = true) {
   return useQuery({
-    queryKey: settingsKeys.inpatientTemplates(),
+    queryKey: settingsKeys.inpatientTemplates(includeInactive),
     queryFn: () =>
       apiClient
-        .get<InpatientTemplate[]>("/settings/inpatient-templates")
+        .get<InpatientTemplate[]>(`/settings/inpatient-templates?includeInactive=${includeInactive}`)
         .then((e) => e.data),
     enabled,
     staleTime: 2 * 60 * 1000,
@@ -298,7 +300,7 @@ export function useCreateInpatientTemplate(onSuccess?: () => void) {
     mutationFn: (body: Omit<InpatientTemplate, "id">) =>
       apiClient.post("/settings/inpatient-templates", body),
     onSuccess: () => {
-      void qc.invalidateQueries({ queryKey: settingsKeys.inpatientTemplates() })
+      void qc.invalidateQueries({ queryKey: [...settingsKeys.all, "inpatient-templates"] })
       toast.success("Inpatient template created.")
       onSuccess?.()
     },
@@ -314,8 +316,28 @@ export function useUpdateInpatientTemplate(id: string, onSuccess?: () => void) {
     mutationFn: (body: Partial<Omit<InpatientTemplate, "id">>) =>
       apiClient.patch(`/settings/inpatient-templates/${id}`, body),
     onSuccess: () => {
-      void qc.invalidateQueries({ queryKey: settingsKeys.inpatientTemplates() })
+      void qc.invalidateQueries({ queryKey: [...settingsKeys.all, "inpatient-templates"] })
       toast.success("Inpatient template updated.")
+      onSuccess?.()
+    },
+    onError: (err: unknown) => {
+      toast.error(err instanceof Error ? err.message : "Failed to update inpatient template.")
+    },
+  })
+}
+
+// Main's own toggle (src/app/(hospital)/settings/components/SettingsPage.tsx
+// `updateInpatientTemplate(tmpl.id, { isActive: !tmpl.isActive })`) has no
+// equivalent UI here — this port's Inpatient Templates tab had no Deactivate/
+// Activate button at all, even though the backend's updateInpatientTemplate
+// already fully supports isActive. Added to match.
+export function useToggleInpatientTemplateActive(onSuccess?: () => void) {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: ({ id, isActive }: { id: string; isActive: boolean }) =>
+      apiClient.patch(`/settings/inpatient-templates/${id}`, { isActive }),
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: [...settingsKeys.all, "inpatient-templates"] })
       onSuccess?.()
     },
     onError: (err: unknown) => {
@@ -329,7 +351,7 @@ export function useDeleteInpatientTemplate(onSuccess?: () => void) {
   return useMutation({
     mutationFn: (id: string) => apiClient.delete(`/settings/inpatient-templates/${id}`),
     onSuccess: () => {
-      void qc.invalidateQueries({ queryKey: settingsKeys.inpatientTemplates() })
+      void qc.invalidateQueries({ queryKey: [...settingsKeys.all, "inpatient-templates"] })
       toast.success("Inpatient template deleted.")
       onSuccess?.()
     },
@@ -341,11 +363,13 @@ export function useDeleteInpatientTemplate(onSuccess?: () => void) {
 
 // ─── Packages ─────────────────────────────────────────────────────────────────
 
-export function usePackages(enabled = true) {
+export function usePackages(includeInactive = false, enabled = true) {
   return useQuery({
-    queryKey: settingsKeys.packages(),
+    queryKey: settingsKeys.packages(includeInactive),
     queryFn: () =>
-      apiClient.get<PredefinedPackage[]>("/settings/packages").then((e) => e.data),
+      apiClient
+        .get<PredefinedPackage[]>(`/settings/packages?includeInactive=${includeInactive}`)
+        .then((e) => e.data),
     enabled,
     staleTime: 2 * 60 * 1000,
   })
@@ -357,7 +381,7 @@ export function useCreatePackage(onSuccess?: () => void) {
     mutationFn: (body: Omit<PredefinedPackage, "id">) =>
       apiClient.post("/settings/packages", body),
     onSuccess: () => {
-      void qc.invalidateQueries({ queryKey: settingsKeys.packages() })
+      void qc.invalidateQueries({ queryKey: [...settingsKeys.all, "packages"] })
       toast.success("Package created.")
       onSuccess?.()
     },
@@ -377,7 +401,7 @@ export function useTogglePackageActive(onSuccess?: () => void) {
     mutationFn: ({ id, isActive }: { id: string; isActive: boolean }) =>
       apiClient.patch(`/settings/packages/${id}`, { isActive }),
     onSuccess: () => {
-      void qc.invalidateQueries({ queryKey: settingsKeys.packages() })
+      void qc.invalidateQueries({ queryKey: [...settingsKeys.all, "packages"] })
       onSuccess?.()
     },
     onError: (err: unknown) => {
@@ -392,7 +416,7 @@ export function useUpdatePackage(id: string, onSuccess?: () => void) {
     mutationFn: (body: Partial<Omit<PredefinedPackage, "id">>) =>
       apiClient.patch(`/settings/packages/${id}`, body),
     onSuccess: () => {
-      void qc.invalidateQueries({ queryKey: settingsKeys.packages() })
+      void qc.invalidateQueries({ queryKey: [...settingsKeys.all, "packages"] })
       toast.success("Package updated.")
       onSuccess?.()
     },
@@ -407,7 +431,7 @@ export function useDeletePackage(onSuccess?: () => void) {
   return useMutation({
     mutationFn: (id: string) => apiClient.delete(`/settings/packages/${id}`),
     onSuccess: () => {
-      void qc.invalidateQueries({ queryKey: settingsKeys.packages() })
+      void qc.invalidateQueries({ queryKey: [...settingsKeys.all, "packages"] })
       toast.success("Package deleted.")
       onSuccess?.()
     },
@@ -419,11 +443,13 @@ export function useDeletePackage(onSuccess?: () => void) {
 
 // ─── Surgeries ────────────────────────────────────────────────────────────────
 
-export function useSurgeries(enabled = true) {
+export function useSurgeries(includeInactive = false, enabled = true) {
   return useQuery({
-    queryKey: settingsKeys.surgeries(),
+    queryKey: settingsKeys.surgeries(includeInactive),
     queryFn: () =>
-      apiClient.get<PredefinedSurgery[]>("/settings/surgeries").then((e) => e.data),
+      apiClient
+        .get<PredefinedSurgery[]>(`/settings/surgeries?includeInactive=${includeInactive}`)
+        .then((e) => e.data),
     enabled,
     staleTime: 2 * 60 * 1000,
   })
@@ -435,7 +461,7 @@ export function useCreateSurgery(onSuccess?: () => void) {
     mutationFn: (body: Omit<PredefinedSurgery, "id">) =>
       apiClient.post("/settings/surgeries", body),
     onSuccess: () => {
-      void qc.invalidateQueries({ queryKey: settingsKeys.surgeries() })
+      void qc.invalidateQueries({ queryKey: [...settingsKeys.all, "surgeries"] })
       toast.success("Surgery template created.")
       onSuccess?.()
     },
@@ -451,7 +477,7 @@ export function useUpdateSurgery(id: string, onSuccess?: () => void) {
     mutationFn: (body: Partial<Omit<PredefinedSurgery, "id">>) =>
       apiClient.patch(`/settings/surgeries/${id}`, body),
     onSuccess: () => {
-      void qc.invalidateQueries({ queryKey: settingsKeys.surgeries() })
+      void qc.invalidateQueries({ queryKey: [...settingsKeys.all, "surgeries"] })
       toast.success("Surgery template updated.")
       onSuccess?.()
     },
@@ -466,7 +492,7 @@ export function useDeleteSurgery(onSuccess?: () => void) {
   return useMutation({
     mutationFn: (id: string) => apiClient.delete(`/settings/surgeries/${id}`),
     onSuccess: () => {
-      void qc.invalidateQueries({ queryKey: settingsKeys.surgeries() })
+      void qc.invalidateQueries({ queryKey: [...settingsKeys.all, "surgeries"] })
       toast.success("Surgery template deleted.")
       onSuccess?.()
     },
@@ -478,11 +504,13 @@ export function useDeleteSurgery(onSuccess?: () => void) {
 
 // ─── Discharges ───────────────────────────────────────────────────────────────
 
-export function useDischarges(enabled = true) {
+export function useDischarges(includeInactive = false, enabled = true) {
   return useQuery({
-    queryKey: settingsKeys.discharges(),
+    queryKey: settingsKeys.discharges(includeInactive),
     queryFn: () =>
-      apiClient.get<PredefinedDischarge[]>("/settings/discharges").then((e) => e.data),
+      apiClient
+        .get<PredefinedDischarge[]>(`/settings/discharges?includeInactive=${includeInactive}`)
+        .then((e) => e.data),
     enabled,
     staleTime: 2 * 60 * 1000,
   })
@@ -494,7 +522,7 @@ export function useCreateDischarge(onSuccess?: () => void) {
     mutationFn: (body: Omit<PredefinedDischarge, "id">) =>
       apiClient.post("/settings/discharges", body),
     onSuccess: () => {
-      void qc.invalidateQueries({ queryKey: settingsKeys.discharges() })
+      void qc.invalidateQueries({ queryKey: [...settingsKeys.all, "discharges"] })
       toast.success("Discharge template created.")
       onSuccess?.()
     },
@@ -510,7 +538,7 @@ export function useUpdateDischarge(id: string, onSuccess?: () => void) {
     mutationFn: (body: Partial<Omit<PredefinedDischarge, "id">>) =>
       apiClient.patch(`/settings/discharges/${id}`, body),
     onSuccess: () => {
-      void qc.invalidateQueries({ queryKey: settingsKeys.discharges() })
+      void qc.invalidateQueries({ queryKey: [...settingsKeys.all, "discharges"] })
       toast.success("Discharge template updated.")
       onSuccess?.()
     },
@@ -525,7 +553,7 @@ export function useDeleteDischarge(onSuccess?: () => void) {
   return useMutation({
     mutationFn: (id: string) => apiClient.delete(`/settings/discharges/${id}`),
     onSuccess: () => {
-      void qc.invalidateQueries({ queryKey: settingsKeys.discharges() })
+      void qc.invalidateQueries({ queryKey: [...settingsKeys.all, "discharges"] })
       toast.success("Discharge template deleted.")
       onSuccess?.()
     },
@@ -537,11 +565,13 @@ export function useDeleteDischarge(onSuccess?: () => void) {
 
 // ─── Medicine Master ──────────────────────────────────────────────────────────
 
-export function useMedicineMaster(enabled = true) {
+export function useMedicineMaster(includeInactive = false, enabled = true) {
   return useQuery({
-    queryKey: settingsKeys.medicineMaster(),
+    queryKey: settingsKeys.medicineMaster(includeInactive),
     queryFn: () =>
-      apiClient.get<MedicineMaster[]>("/settings/medicine-master").then((e) => e.data),
+      apiClient
+        .get<MedicineMaster[]>(`/settings/medicine-master?includeInactive=${includeInactive}`)
+        .then((e) => e.data),
     enabled,
     staleTime: 2 * 60 * 1000,
   })
@@ -553,7 +583,7 @@ export function useCreateMedicineMaster(onSuccess?: () => void) {
     mutationFn: (body: Omit<MedicineMaster, "id">) =>
       apiClient.post("/settings/medicine-master", body),
     onSuccess: () => {
-      void qc.invalidateQueries({ queryKey: settingsKeys.medicineMaster() })
+      void qc.invalidateQueries({ queryKey: [...settingsKeys.all, "medicine-master"] })
       toast.success("Medicine added.")
       onSuccess?.()
     },
@@ -569,7 +599,7 @@ export function useUpdateMedicineMaster(id: string, onSuccess?: () => void) {
     mutationFn: (body: Partial<Omit<MedicineMaster, "id">>) =>
       apiClient.patch(`/settings/medicine-master/${id}`, body),
     onSuccess: () => {
-      void qc.invalidateQueries({ queryKey: settingsKeys.medicineMaster() })
+      void qc.invalidateQueries({ queryKey: [...settingsKeys.all, "medicine-master"] })
       toast.success("Medicine updated.")
       onSuccess?.()
     },
@@ -585,7 +615,7 @@ export function useToggleMedicineMasterActive(onSuccess?: () => void) {
     mutationFn: ({ id, isActive }: { id: string; isActive: boolean }) =>
       apiClient.patch(`/settings/medicine-master/${id}`, { isActive }),
     onSuccess: () => {
-      void qc.invalidateQueries({ queryKey: settingsKeys.medicineMaster() })
+      void qc.invalidateQueries({ queryKey: [...settingsKeys.all, "medicine-master"] })
       onSuccess?.()
     },
     onError: (err: unknown) => {
@@ -599,7 +629,7 @@ export function useDeleteMedicineMaster(onSuccess?: () => void) {
   return useMutation({
     mutationFn: (id: string) => apiClient.delete(`/settings/medicine-master/${id}`),
     onSuccess: () => {
-      void qc.invalidateQueries({ queryKey: settingsKeys.medicineMaster() })
+      void qc.invalidateQueries({ queryKey: [...settingsKeys.all, "medicine-master"] })
       toast.success("Medicine deleted.")
       onSuccess?.()
     },

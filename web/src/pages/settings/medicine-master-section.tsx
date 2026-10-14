@@ -57,7 +57,6 @@ interface MedicineMasterSectionProps {
 }
 
 export function MedicineMasterSection({ canEdit }: MedicineMasterSectionProps) {
-  const { data: medicines = [], isLoading, error, refetch } = useMedicineMaster()
   const [search, setSearch] = useState("")
   const [categoryFilter, setCategoryFilter] = useState("All")
   const [showInactive, setShowInactive] = useState(false)
@@ -66,11 +65,15 @@ export function MedicineMasterSection({ canEdit }: MedicineMasterSectionProps) {
   const [deleteId, setDeleteId] = useState<string | null>(null)
   const [deleteName, setDeleteName] = useState("")
 
+  // `showInactive` is a real server-side param now — see
+  // service-templates-section.tsx for why a client-side filter alone can't
+  // work (the backend used to unconditionally exclude inactive rows).
+  const { data: medicines = [], isLoading, error, refetch } = useMedicineMaster(showInactive)
+
   const toggleActiveM = useToggleMedicineMasterActive()
   const deleteM = useDeleteMedicineMaster()
 
   const filtered = medicines.filter((m) => {
-    if (!showInactive && !m.isActive) return false
     if (categoryFilter !== "All" && m.category !== categoryFilter) return false
     if (search && !m.name.toLowerCase().includes(search.toLowerCase())) return false
     return true

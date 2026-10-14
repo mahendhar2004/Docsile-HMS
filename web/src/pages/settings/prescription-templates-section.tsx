@@ -59,18 +59,21 @@ interface PrescriptionTemplatesSectionProps {
 }
 
 export function PrescriptionTemplatesSection({ canEdit }: PrescriptionTemplatesSectionProps) {
-  const { data: templates = [], isLoading, error, refetch } = usePrescriptionTemplates()
   const [search, setSearch] = useState("")
   const [showInactive, setShowInactive] = useState(false)
   const [dialogOpen, setDialogOpen] = useState(false)
   const [editItem, setEditItem] = useState<PrescriptionTemplate | null>(null)
   const [deleteId, setDeleteId] = useState<string | null>(null)
 
+  // `showInactive` is a real server-side param now — see
+  // service-templates-section.tsx for why a client-side filter alone can't
+  // work (the backend used to unconditionally exclude inactive rows).
+  const { data: templates = [], isLoading, error, refetch } = usePrescriptionTemplates(showInactive)
+
   const toggleActiveM = useTogglePrescriptionTemplateActive()
   const deleteM = useDeletePrescriptionTemplate()
 
   const filtered = templates.filter((t) => {
-    if (!showInactive && !t.isActive) return false
     if (!search) return true
     const q = search.toLowerCase()
     return (

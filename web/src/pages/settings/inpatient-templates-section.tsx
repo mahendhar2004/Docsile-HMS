@@ -9,7 +9,7 @@
  */
 
 import { useState, useEffect } from "react"
-import { Plus, Pencil, Trash2 } from "lucide-react"
+import { Plus, Pencil, Trash2, Power } from "lucide-react"
 import {
   Table,
   TableBody,
@@ -44,6 +44,7 @@ import {
   useCreateInpatientTemplate,
   useUpdateInpatientTemplate,
   useDeleteInpatientTemplate,
+  useToggleInpatientTemplateActive,
   useMedicineMaster,
 } from "./hooks"
 import {
@@ -58,17 +59,21 @@ interface InpatientTemplatesSectionProps {
 }
 
 export function InpatientTemplatesSection({ canEdit }: InpatientTemplatesSectionProps) {
-  const { data: templates = [], isLoading, error, refetch } = useInpatientTemplates()
   const [search, setSearch] = useState("")
   const [showInactive, setShowInactive] = useState(false)
   const [dialogOpen, setDialogOpen] = useState(false)
   const [editItem, setEditItem] = useState<InpatientTemplate | null>(null)
   const [deleteId, setDeleteId] = useState<string | null>(null)
 
+  // `showInactive` is a real server-side param now — see
+  // service-templates-section.tsx for why a client-side filter alone can't
+  // work (the backend used to unconditionally exclude inactive rows).
+  const { data: templates = [], isLoading, error, refetch } = useInpatientTemplates(showInactive)
+
   const deleteM = useDeleteInpatientTemplate()
+  const toggleActiveM = useToggleInpatientTemplateActive()
 
   const filtered = templates.filter((t) => {
-    if (!showInactive && !t.isActive) return false
     if (!search) return true
     const q = search.toLowerCase()
     return (
@@ -211,6 +216,16 @@ export function InpatientTemplatesSection({ canEdit }: InpatientTemplatesSection
                             aria-label={`Edit ${tmpl.name}`}
                           >
                             <Pencil className="h-3.5 w-3.5" aria-hidden="true" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="text-muted-foreground"
+                            onClick={() => toggleActiveM.mutate({ id: tmpl.id, isActive: !tmpl.isActive })}
+                            aria-label={tmpl.isActive ? `Deactivate ${tmpl.name}` : `Activate ${tmpl.name}`}
+                            title={tmpl.isActive ? "Deactivate" : "Activate"}
+                          >
+                            <Power className="h-3.5 w-3.5" aria-hidden="true" />
                           </Button>
                           <Button
                             variant="ghost"
