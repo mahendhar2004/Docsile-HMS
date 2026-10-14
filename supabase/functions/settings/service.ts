@@ -12,6 +12,7 @@
  *   PredefinedSurgery  (4): list, create, update, delete (soft — isActive=false)
  *   PredefinedDischarge(4): list, create, update, delete (soft — isActive=false)
  *   MedicineMaster     (4): list, create, update, delete (hard)
+ *   Doctor             (4): list, create, update, delete (hard)
  *
  * Layer rules:
  * - No DB calls here: all data access delegated to SettingsRepository.
@@ -33,6 +34,7 @@ import type {
   PredefinedSurgeryInput,
   PredefinedDischargeInput,
   MedicineMasterInput,
+  DoctorInput,
 } from './types.ts';
 
 /** Factory: create a SettingsRepository scoped to the caller's hospital. */
@@ -500,4 +502,59 @@ export async function deleteMedicineMaster(session: Session, id: string) {
   const existing = await r.findMedicineMasterById(id);
   if (!existing) throw new NotFoundError('MedicineMaster', id);
   await r.deleteMedicineMaster(id);
+}
+
+// ─── Doctor ───────────────────────────────────────────────────────────────────
+
+export async function listDoctors(session: Session, includeInactive = false) {
+  return repo(session).listDoctors(includeInactive);
+}
+
+export async function createDoctor(session: Session, body: DoctorInput) {
+  const r = repo(session);
+  const nameTrimmed = body.name.trim();
+  const existing = await r.findDoctorByName(nameTrimmed);
+  if (existing) {
+    throw new ConflictError(`Doctor with name "${nameTrimmed}" already exists.`);
+  }
+  const now = new Date().toISOString();
+  return r.insertDoctor({
+    name: nameTrimmed,
+    department: body.department?.trim() || null,
+    specialization: body.specialization?.trim() || null,
+    consultationFee: body.consultationFee ?? null,
+    phone: body.phone?.trim() || null,
+    sortOrder: body.sortOrder ?? 0,
+    isActive: true,
+    createdBy: session.id,
+    createdAt: now,
+    updatedAt: now,
+  });
+}
+
+export async function updateDoctor(
+  session: Session,
+  id: string,
+  body: Partial<DoctorInput>,
+) {
+  const r = repo(session);
+  const existing = await r.findDoctorById(id);
+  if (!existing) throw new NotFoundError('Doctor', id);
+
+  const patch: Record<string, unknown> = {};
+  if (body.name !== undefined) patch.name = body.name.trim();
+  if (body.department !== undefined) patch.department = body.department?.trim() || null;
+  if (body.specialization !== undefined) patch.specialization = body.specialization?.trim() || null;
+  if (body.consultationFee !== undefined) patch.consultationFee = body.consultationFee ?? null;
+  if (body.phone !== undefined) patch.phone = body.phone?.trim() || null;
+  if (body.sortOrder !== undefined) patch.sortOrder = body.sortOrder;
+  if (body.isActive !== undefined) patch.isActive = body.isActive;
+  await r.updateDoctor(id, patch);
+}
+
+export async function deleteDoctor(session: Session, id: string) {
+  const r = repo(session);
+  const existing = await r.findDoctorById(id);
+  if (!existing) throw new NotFoundError('Doctor', id);
+  await r.deleteDoctor(id);
 }

@@ -40,8 +40,8 @@ import {
   useCreateSurgery,
   useUpdateSurgery,
   useDeleteSurgery,
-  useDropdownOptions,
-  useAddDropdownOption,
+  useDoctors,
+  useCreateDoctor,
 } from "./hooks"
 import type { PredefinedSurgery } from "./types"
 
@@ -296,12 +296,15 @@ function SurgeryDialog({ open, onClose, existing }: SurgeryDialogProps) {
     }
   }, [open, existing])
 
-  // Doctor-name autocomplete — matches main's real SurgeryFormDialog, which
-  // feeds both Doctor Names and On-Duty Doctors from the same tenant-editable
-  // DropdownOption list (fieldName="doctorName") used elsewhere (Patient
-  // Registration, IPD Admission), not a plain free-text input.
-  const { data: doctorOptions = [] } = useDropdownOptions("doctorName")
-  const addDropdownOption = useAddDropdownOption()
+  // Doctor-name autocomplete — feeds both Doctor Names and On-Duty Doctors
+  // from the real Doctor master entity (not a plain free-text input), same
+  // as every other "doctor name" picker app-wide (Patient Registration, IPD
+  // Admission). Settings already has settings:edit here (required to edit a
+  // surgery template at all), so "add a new doctor" goes straight through
+  // the full-CRUD create endpoint rather than the reception-side quick-add.
+  const { data: doctors = [] } = useDoctors()
+  const doctorOptions = doctors.map((d) => d.name)
+  const createDoctor = useCreateDoctor()
 
   function updateRow(rows: string[], setter: (v: string[]) => void, i: number, v: string) {
     setter(rows.map((x, j) => (j === i ? v : x)))
@@ -370,7 +373,7 @@ function SurgeryDialog({ open, onClose, existing }: SurgeryDialogProps) {
                       value={d}
                       onValueChange={(v) => updateRow(doctorNames, setDoctorNames, i, v)}
                       onAddOption={async (val) => {
-                        await addDropdownOption.mutateAsync({ fieldName: "doctorName", value: val })
+                        await createDoctor.mutateAsync({ name: val })
                       }}
                       placeholder={`Doctor ${i + 1}`}
                     />
@@ -414,7 +417,7 @@ function SurgeryDialog({ open, onClose, existing }: SurgeryDialogProps) {
                       value={d}
                       onValueChange={(v) => updateRow(onDutyDoctors, setOnDutyDoctors, i, v)}
                       onAddOption={async (val) => {
-                        await addDropdownOption.mutateAsync({ fieldName: "doctorName", value: val })
+                        await createDoctor.mutateAsync({ name: val })
                       }}
                       placeholder={`On-duty doctor ${i + 1}`}
                     />

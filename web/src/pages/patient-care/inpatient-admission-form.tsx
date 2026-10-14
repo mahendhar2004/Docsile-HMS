@@ -59,6 +59,7 @@ import {
   usePatientSearch,
   useCreateInPatient,
   useAddDropdownOption,
+  useQuickCreateDoctor,
 } from "./hooks"
 import type {
   InPatient,
@@ -201,6 +202,7 @@ export function InPatientAdmissionForm({
   }, [formData])
 
   const addDropdownOption = useAddDropdownOption()
+  const quickCreateDoctor = useQuickCreateDoctor()
   const createInPatient = useCreateInPatient((ip) => {
     toast.success("Patient admitted")
     onSuccess(ip)
@@ -888,6 +890,10 @@ export function InPatientAdmissionForm({
                     onRemove={removeDoctorRow}
                     options={doctorOptions}
                     placeholderFn={(i) => `Doctor ${i + 1}`}
+                    onAddOption={async (val) => {
+                      await quickCreateDoctor.mutateAsync({ name: val })
+                      setDoctorOptions((prev) => [...prev, val].sort())
+                    }}
                   />
                   <RowListField
                     label="On-duty doctors"
@@ -897,6 +903,10 @@ export function InPatientAdmissionForm({
                     onRemove={removeOnDutyRow}
                     options={doctorOptions}
                     placeholderFn={(i) => `On-duty doctor ${i + 1}`}
+                    onAddOption={async (val) => {
+                      await quickCreateDoctor.mutateAsync({ name: val })
+                      setDoctorOptions((prev) => [...prev, val].sort())
+                    }}
                   />
                 </div>
               </section>
@@ -1229,6 +1239,7 @@ function RowListField({
   onRemove,
   options,
   placeholderFn,
+  onAddOption,
 }: {
   label: string
   rows: string[]
@@ -1237,6 +1248,7 @@ function RowListField({
   onRemove: (i: number) => void
   options: string[]
   placeholderFn: (i: number) => string
+  onAddOption?: (value: string) => Promise<void>
 }) {
   return (
     <div>
@@ -1258,6 +1270,7 @@ function RowListField({
                 value={d}
                 onValueChange={(v) => onUpdate(i, v)}
                 placeholder={placeholderFn(i)}
+                onAddOption={onAddOption}
               />
             </div>
             <Button

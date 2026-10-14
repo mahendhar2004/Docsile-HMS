@@ -70,6 +70,7 @@ import {
   useUpdatePatient,
   useCreatePrescriptionWithBilling,
   useAddDropdownOption,
+  useQuickCreateDoctor,
 } from "./hooks"
 import type { Patient } from "./types"
 
@@ -220,6 +221,7 @@ export function PatientRegistrationForm({
   }
 
   const addDropdownOption = useAddDropdownOption()
+  const quickCreateDoctor = useQuickCreateDoctor()
 
   // ── Step 2 state ─────────────────────────────────────────────────────────
   const [selectedCategory, setSelectedCategory] = useState("All")
@@ -675,7 +677,7 @@ export function PatientRegistrationForm({
                       defaultValue={fieldDefaults.doctorName}
                       onSetDefault={(v) => toggleDefault("doctorName", v)}
                       onAddOption={async (val) => {
-                        await addDropdownOption.mutateAsync({ fieldName: "doctorName", value: val })
+                        await quickCreateDoctor.mutateAsync({ name: val })
                         setDoctorOptions((prev) => [...prev, val].sort())
                       }}
                     />

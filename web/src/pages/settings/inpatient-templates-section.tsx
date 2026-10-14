@@ -336,7 +336,23 @@ function InpatientFormDialog({ open, onClose, existing }: InpatientFormDialogPro
   }, [open, existing])
 
   function updateMed(i: number, field: keyof InpatientTemplateMed, v: string) {
-    setMeds((prev) => prev.map((m, j) => (j === i ? { ...m, [field]: v } : m)))
+    setMeds((prev) =>
+      prev.map((m, j) => {
+        if (j !== i) return m
+        if (field === "name") {
+          const match = medicineMasterList.find(
+            (x) => x.name.toLowerCase() === v.trim().toLowerCase()
+          )
+          return {
+            ...m,
+            name: v,
+            days: match?.defaultDays ?? m.days,
+            timing: match?.defaultTiming ?? m.timing,
+          }
+        }
+        return { ...m, [field]: v }
+      })
+    )
   }
 
   async function handleSave() {

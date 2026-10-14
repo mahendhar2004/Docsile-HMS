@@ -286,7 +286,11 @@ function ServiceFormDialog({ open, onClose, existing, allNames }: ServiceFormDia
   const [category, setCategory] = useState<string>(existing?.category ?? "Consultation")
   const [description, setDescription] = useState(existing?.description ?? "")
   const [amount, setAmount] = useState(String(existing?.amount ?? ""))
-  const [discount, setDiscount] = useState(String(existing?.discount ?? "0"))
+  // Discount is always stored/saved as a flat ₹ amount (matches the DB
+  // column) — the %/₹ toggle below is purely a data-entry convenience; in
+  // "percent" mode the ₹ amount is derived live from the current Amount.
+  const [discountMode, setDiscountMode] = useState<"amount" | "percent">("amount")
+  const [discountInput, setDiscountInput] = useState(String(existing?.discount ?? "0"))
   const [sortOrder, setSortOrder] = useState(String(existing?.sortOrder ?? "0"))
   const [errors, setErrors] = useState<Record<string, string>>({})
 
@@ -306,7 +310,8 @@ function ServiceFormDialog({ open, onClose, existing, allNames }: ServiceFormDia
       setCategory(existing?.category ?? "Consultation")
       setDescription(existing?.description ?? "")
       setAmount(String(existing?.amount ?? ""))
-      setDiscount(String(existing?.discount ?? "0"))
+      setDiscountMode("amount")
+      setDiscountInput(String(existing?.discount ?? "0"))
       setSortOrder(String(existing?.sortOrder ?? "0"))
       setErrors({})
     }
@@ -324,14 +329,20 @@ function ServiceFormDialog({ open, onClose, existing, allNames }: ServiceFormDia
     return Object.keys(e).length === 0
   }
 
+  const amountNum = parseFloat(amount) || 0
+  const discount =
+    discountMode === "percent"
+      ? Math.round((amountNum * (parseFloat(discountInput) || 0)) / 100)
+      : parseFloat(discountInput) || 0
+
   async function handleSave() {
     if (!validate()) return
     const payload = {
       name: name.trim().toUpperCase(),
       category: category || undefined,
       description: description.trim() || undefined,
-      amount: parseFloat(amount) || 0,
-      discount: parseFloat(discount) || 0,
+      amount: amountNum,
+      discount,
       sortOrder: parseInt(sortOrder) || 0,
     }
     if (existing) {
@@ -407,16 +418,40 @@ function ServiceFormDialog({ open, onClose, existing, allNames }: ServiceFormDia
               />
             </div>
             <div>
-              <Label htmlFor="svc-discount">Discount (₹)</Label>
-              <Input
-                id="svc-discount"
-                type="number"
-                value={discount}
-                onChange={(e) => setDiscount(e.target.value)}
-                className="mt-1"
-                min={0}
-                placeholder="0"
-              />
+              <Label htmlFor="svc-discount">Discount</Label>
+              <div className="mt-1 flex items-center gap-1">
+                <div className="inline-flex rounded-md border border-border overflow-hidden shrink-0">
+                  <button
+                    type="button"
+                    onClick={() => setDiscountMode("amount")}
+                    className={`px-2 py-1.5 text-sm ${discountMode === "amount" ? "bg-primary text-primary-foreground" : "bg-background text-muted-foreground"}`}
+                    aria-pressed={discountMode === "amount"}
+                  >
+                    ₹
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setDiscountMode("percent")}
+                    className={`px-2 py-1.5 text-sm border-l border-border ${discountMode === "percent" ? "bg-primary text-primary-foreground" : "bg-background text-muted-foreground"}`}
+                    aria-pressed={discountMode === "percent"}
+                  >
+                    %
+                  </button>
+                </div>
+                <Input
+                  id="svc-discount"
+                  type="number"
+                  value={discountInput}
+                  onChange={(e) => setDiscountInput(e.target.value)}
+                  min={0}
+                  max={discountMode === "percent" ? 100 : undefined}
+                  placeholder="0"
+                  aria-label={discountMode === "percent" ? "Discount percent" : "Discount amount"}
+                />
+              </div>
+              {discountMode === "percent" && (
+                <p className="text-xs text-muted-foreground mt-1">= ₹{discount.toLocaleString("en-IN")}</p>
+              )}
             </div>
             <div>
               <Label htmlFor="svc-sort">Sort Order</Label>

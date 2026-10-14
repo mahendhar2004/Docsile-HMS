@@ -312,6 +312,27 @@ export interface MedicineMaster {
   isActive: boolean
 }
 
+// ─── Doctor ────────────────────────────────────────────────────────────────────
+
+/**
+ * Verified against supabase/functions/settings/types.ts DoctorSchema.
+ * Net-new master entity (migration 20260922070000) — neither main nor this
+ * port ever had a real Doctor table before; doctors were only a free-text
+ * DropdownOption(fieldName="doctorName") value. DB columns: name (UNIQUE
+ * within hospital), department, specialization, consultationFee, phone,
+ * sortOrder, isActive.
+ */
+export interface Doctor {
+  id: string
+  name: string
+  department?: string | null
+  specialization?: string | null
+  consultationFee?: number | null
+  phone?: string | null
+  sortOrder?: number
+  isActive: boolean
+}
+
 /**
  * Medicine categories — verified from old app SettingsPage.tsx `MEDICINE_CATEGORIES_LIST`.
  */

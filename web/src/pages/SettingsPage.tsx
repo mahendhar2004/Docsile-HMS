@@ -21,6 +21,11 @@
  *   Members" tab. Adding a second tab reusing the same endpoint would be
  *   a redundant surface, not a faithful port of a real main feature.
  *
+ * One deliberate ADDITION beyond main's 9 tabs: "Doctors" (explicit user
+ * request, not a parity gap — main has no Doctor master entity at all,
+ * doctors there are only ever a free-text DropdownOption("doctorName")
+ * value). See migration 20260922070000 and settings/doctors-section.tsx.
+ *
  * Endpoints (33 total across 10 sub-scopes):
  * - Service templates CRUD (/settings/service-templates)
  * - Hospital profile (GET/PATCH /settings/hospital-profile)
@@ -52,13 +57,15 @@ import { PackagesSection } from "./settings/packages-section"
 import { SurgeriesSection } from "./settings/surgeries-section"
 import { DischargesSection } from "./settings/discharges-section"
 import { MedicineMasterSection } from "./settings/medicine-master-section"
+import { DoctorsSection } from "./settings/doctors-section"
 
-// ─── Section registry — flat, main's exact order ─────────────────────────────
+// ─── Section registry — flat, main's exact order (+ "doctors", added) ────────
 
 type SectionId =
   | "services"
   | "prescriptions"
   | "medicines"
+  | "doctors"
   | "packages"
   | "surgeries"
   | "discharges"
@@ -69,6 +76,7 @@ const SECTIONS: { id: SectionId; label: string }[] = [
   { id: "services",      label: "Service Templates" },
   { id: "prescriptions", label: "Prescription Templates" },
   { id: "medicines",     label: "Medicine Templates" },
+  { id: "doctors",       label: "Doctors" },
   { id: "packages",      label: "IPD Packages" },
   { id: "surgeries",     label: "Predefined Surgeries" },
   { id: "discharges",    label: "Discharge Templates" },
@@ -145,6 +153,9 @@ export default function SettingsPage() {
         </TabsContent>
         <TabsContent value="medicines">
           <MedicineMasterSection canEdit={canEdit} />
+        </TabsContent>
+        <TabsContent value="doctors">
+          <DoctorsSection canEdit={canEdit} />
         </TabsContent>
         <TabsContent value="packages">
           <PackagesSection canEdit={canEdit} />

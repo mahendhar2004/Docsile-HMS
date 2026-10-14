@@ -30,6 +30,7 @@
  *   POST   /patient-care/inpatients/:id/discharge        inpatients:discharge
  *   GET    /patient-care/dropdown-options                patients:view
  *   POST   /patient-care/dropdown-options                patients:create
+ *   POST   /patient-care/doctors                         patients:create (quick-add; full CRUD is in the settings function)
  */
 
 import { Hono } from 'hono';
@@ -56,6 +57,7 @@ import {
   DischargeInPatientSchema,
   CreateDropdownOptionSchema,
   DropdownOptionQuerySchema,
+  QuickCreateDoctorSchema,
 } from './types.ts';
 import * as service from './service.ts';
 
@@ -271,6 +273,16 @@ app.post('/dropdown-options', requirePermission('patients:create'), async (c) =>
   if (!body.success) return errorResponse(c, `Invalid dropdown option: ${body.error.errors[0].message}`, 400);
   const option = await service.addDropdownOption(session, body.data);
   return created(c, option, 'Dropdown option created');
+});
+
+// ---- Doctor (quick-add only — full CRUD is in the settings function) ----
+
+app.post('/doctors', requirePermission('patients:create'), async (c) => {
+  const session = c.get('session') as Session;
+  const body = QuickCreateDoctorSchema.safeParse(await c.req.json());
+  if (!body.success) return errorResponse(c, `Invalid doctor: ${body.error.errors[0].message}`, 400);
+  const doctor = await service.quickCreateDoctor(session, body.data.name);
+  return created(c, doctor, 'Doctor created');
 });
 
 Deno.serve(app.fetch);

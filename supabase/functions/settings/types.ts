@@ -127,6 +127,20 @@ export const MedicineMasterSchema = z.object({
   isActive: z.boolean().optional(),
 });
 
+// ─── Doctor (master entity — net-new, see migration 20260922070000) ──────────
+// DB columns: id, name (UNIQUE within hospital), department, specialization,
+//             consultationFee, phone, isActive, sortOrder, createdBy, createdAt,
+//             updatedAt, hospital_id
+export const DoctorSchema = z.object({
+  name: z.string().min(1),
+  department: z.string().nullable().optional(),
+  specialization: z.string().nullable().optional(),
+  consultationFee: z.number().nonnegative().nullable().optional(),
+  phone: z.string().nullable().optional(),
+  sortOrder: z.number().int().optional(),
+  isActive: z.boolean().optional(),
+});
+
 // ─── Inferred input types (used by service.ts) ────────────────────────────────
 export type ServiceTemplateInput = z.infer<typeof ServiceTemplateSchema>;
 export type HospitalProfileInput = z.infer<typeof HospitalProfileSchema>;
@@ -136,3 +150,4 @@ export type PredefinedPackageInput = z.infer<typeof PredefinedPackageSchema>;
 export type PredefinedSurgeryInput = z.infer<typeof PredefinedSurgerySchema>;
 export type PredefinedDischargeInput = z.infer<typeof PredefinedDischargeSchema>;
 export type MedicineMasterInput = z.infer<typeof MedicineMasterSchema>;
+export type DoctorInput = z.infer<typeof DoctorSchema>;

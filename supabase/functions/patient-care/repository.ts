@@ -162,8 +162,9 @@ export class PatientCareRepository {
     hospitalProfile: Record<string, unknown> | null;
     serviceTemplates: Record<string, unknown>[];
     dropdowns: Record<string, unknown>[];
+    doctorNames: string[];
   }> {
-    const [hospitalRes, templatesRes, dropdownRes] = await Promise.all([
+    const [hospitalRes, templatesRes, dropdownRes, doctorsRes] = await Promise.all([
       this.supabase.from('HospitalProfile').select('*').eq('id', this.hospitalId).single(),
       this.supabase
         .from('ServiceTemplate')
@@ -176,14 +177,24 @@ export class PatientCareRepository {
         .from('DropdownOption')
         .select('fieldName, value')
         .eq('hospital_id', this.hospitalId)
-        .in('fieldName', ['doctorName', 'department', 'referredBy', 'address', 'patientCategory', 'city'])
+        // 'doctorName' deliberately excluded — doctor suggestions now come
+        // from the real Doctor master table (see doctorsRes below), not a
+        // free-text DropdownOption value. See migration 20260922070000.
+        .in('fieldName', ['department', 'referredBy', 'address', 'patientCategory', 'city'])
         .order('value', { ascending: true }),
+      this.supabase
+        .from('Doctor')
+        .select('name')
+        .eq('hospital_id', this.hospitalId)
+        .eq('isActive', true)
+        .order('name', { ascending: true }),
     ]);
 
     return {
       hospitalProfile: hospitalRes.data as Record<string, unknown> | null,
       serviceTemplates: (templatesRes.data ?? []) as Record<string, unknown>[],
       dropdowns: (dropdownRes.data ?? []) as Record<string, unknown>[],
+      doctorNames: (doctorsRes.data ?? []).map((row) => row.name as string),
     };
   }
 
@@ -486,14 +497,17 @@ export class PatientCareRepository {
     dropdowns: Record<string, unknown>[];
     predefinedSurgeries: Record<string, unknown>[];
     predefinedPackages: Record<string, unknown>[];
+    doctorNames: string[];
   }> {
-    const [hospitalRes, dropdownRes, surgeriesRes, packagesRes] = await Promise.all([
+    const [hospitalRes, dropdownRes, surgeriesRes, packagesRes, doctorsRes] = await Promise.all([
       this.supabase.from('HospitalProfile').select('*').eq('id', this.hospitalId).single(),
       this.supabase
         .from('DropdownOption')
         .select('fieldName, value')
         .eq('hospital_id', this.hospitalId)
-        .in('fieldName', ['doctorName', 'department', 'referredBy', 'address', 'city'])
+        // 'doctorName' deliberately excluded — see getRegistrationFormData's
+        // identical note above; doctor suggestions now come from doctorsRes.
+        .in('fieldName', ['department', 'referredBy', 'address', 'city'])
         .order('value', { ascending: true }),
       this.supabase
         .from('PredefinedSurgery')
@@ -505,6 +519,12 @@ export class PatientCareRepository {
         .select('*')
         .eq('hospital_id', this.hospitalId)
         .order('name', { ascending: true }),
+      this.supabase
+        .from('Doctor')
+        .select('name')
+        .eq('hospital_id', this.hospitalId)
+        .eq('isActive', true)
+        .order('name', { ascending: true }),
     ]);
 
     return {
@@ -512,6 +532,7 @@ export class PatientCareRepository {
       dropdowns: (dropdownRes.data ?? []) as Record<string, unknown>[],
       predefinedSurgeries: (surgeriesRes.data ?? []) as Record<string, unknown>[],
       predefinedPackages: (packagesRes.data ?? []) as Record<string, unknown>[],
+      doctorNames: (doctorsRes.data ?? []).map((row) => row.name as string),
     };
   }
 
@@ -743,6 +764,58 @@ export class PatientCareRepository {
       .select()
       .single();
 
+    if (error) throw new ServiceUnavailableError('Supabase', error.message);
+    return data as Record<string, unknown>;
+  }
+
+  // ============================================================
+  // Doctor (quick-add only) — full CRUD lives in the settings function's
+  // own repository; this table is shared the same way MedicineMaster is
+  // ("read-shared with doctor module" per that table's own doc comment).
+  // ============================================================
+
+  /** All active doctor names for this hospital, used to populate the
+   * registration/admission forms' "doctor name" picker. */
+  async listActiveDoctorNames(): Promise<string[]> {
+    const { data, error } = await this.supabase
+      .from('Doctor')
+      .select('name')
+      .eq('hospital_id', this.hospitalId)
+      .eq('isActive', true)
+      .order('name', { ascending: true });
+    if (error) throw new ServiceUnavailableError('Supabase', error.message);
+    return (data ?? []).map((row) => row.name as string);
+  }
+
+  async findDoctorByName(name: string): Promise<Record<string, unknown> | null> {
+    const { data, error } = await this.supabase
+      .from('Doctor')
+      .select('*')
+      .eq('name', name)
+      .eq('hospital_id', this.hospitalId)
+      .maybeSingle();
+    if (error) throw new ServiceUnavailableError('Supabase', error.message);
+    return data;
+  }
+
+  /** Quick-add a bare-name Doctor row (other fields null/default) — the
+   * reception-side equivalent of insertDropdownOption above. Doctor has an
+   * `updatedAt` column (unlike DropdownOption), so this uses withTimestamps
+   * (id + updatedAt) rather than withId. */
+  async insertDoctorQuick(name: string, createdBy: string): Promise<Record<string, unknown>> {
+    const { data, error } = await this.supabase
+      .from('Doctor')
+      .insert(
+        withTimestamps({
+          name,
+          isActive: true,
+          sortOrder: 0,
+          createdBy,
+          hospital_id: this.hospitalId,
+        }),
+      )
+      .select()
+      .single();
     if (error) throw new ServiceUnavailableError('Supabase', error.message);
     return data as Record<string, unknown>;
   }

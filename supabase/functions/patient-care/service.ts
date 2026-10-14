@@ -186,10 +186,9 @@ export async function getPatientRegistrationFormData(s: Session): Promise<{
   cityOptions: string[];
 }> {
   const repo = makeRepo(s);
-  const { hospitalProfile, serviceTemplates, dropdowns } = await repo.getRegistrationFormData();
+  const { hospitalProfile, serviceTemplates, dropdowns, doctorNames } = await repo.getRegistrationFormData();
 
   const grouped: Record<string, string[]> = {
-    doctorName: [],
     department: [],
     referredBy: [],
     address: [],
@@ -206,7 +205,7 @@ export async function getPatientRegistrationFormData(s: Session): Promise<{
   return {
     hospitalProfile,
     serviceTemplates,
-    doctorOptions: grouped.doctorName,
+    doctorOptions: doctorNames,
     departmentOptions: grouped.department,
     referralOptions: grouped.referredBy,
     addressOptions: grouped.address,
@@ -812,11 +811,10 @@ export async function getAdmissionFormData(s: Session): Promise<{
   predefinedPackages: Record<string, unknown>[];
 }> {
   const repo = makeRepo(s);
-  const { hospitalProfile, dropdowns, predefinedSurgeries, predefinedPackages } =
+  const { hospitalProfile, dropdowns, predefinedSurgeries, predefinedPackages, doctorNames } =
     await repo.getAdmissionFormData();
 
   const grouped: Record<string, string[]> = {
-    doctorName: [],
     department: [],
     referredBy: [],
     address: [],
@@ -831,7 +829,7 @@ export async function getAdmissionFormData(s: Session): Promise<{
 
   return {
     hospitalProfile,
-    doctorOptions: grouped.doctorName,
+    doctorOptions: doctorNames,
     departmentOptions: grouped.department,
     referralOptions: grouped.referredBy,
     addressOptions: grouped.address,
@@ -1128,4 +1126,22 @@ export async function addDropdownOption(
     return { fieldName: body.fieldName, value: body.value, existed: true };
   }
   return repo.insertDropdownOption(body.fieldName, body.value, s.id);
+}
+
+/**
+ * Quick-add a bare-name Doctor row — reception/registration staff's "type a
+ * new doctor name on the fly" path (same permission tier, patients:create,
+ * as addDropdownOption above, which this replaces for the doctorName field
+ * specifically). Upsert semantics: returns the existing row on a name match
+ * instead of throwing a conflict, matching addDropdownOption's behavior.
+ */
+export async function quickCreateDoctor(
+  s: Session,
+  name: string,
+): Promise<Record<string, unknown>> {
+  const repo = makeRepo(s);
+  const trimmed = name.trim();
+  const existing = await repo.findDoctorByName(trimmed);
+  if (existing) return existing;
+  return repo.insertDoctorQuick(trimmed, s.id);
 }

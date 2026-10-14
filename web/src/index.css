@@ -20,7 +20,10 @@
   --leading-relaxed: 1.625;
 
   /* ─── Base Colors ───────────────────────────────── */
-  --color-background: #f0f2f5;
+  /* Page background is a true off-white (was a cool gray, #f0f2f5) — cards
+     and the page now sit close in tone, so --color-border below is the
+     thing doing the work of separating surfaces, not a gray/white contrast. */
+  --color-background: #f7f7f8;
   --color-foreground: #111827;
 
   --color-card: #ffffff;
@@ -32,8 +35,12 @@
   --color-muted: #f1f5f9;
   --color-muted-foreground: #64748b;
 
-  --color-border: #e2e8f0;
-  --color-input: #e2e8f0;
+  /* Darkened from #e2e8f0 — on a near-white page, a hairline this light was
+     nearly invisible, leaving cards/tables feeling edge-less. This also
+     strengthens every --shadow-card usage app-wide for free, since
+     --shadow-border below is a 1px ring rendered in this same color. */
+  --color-border: #cbd5e1;
+  --color-input: #cbd5e1;
   --color-ring: #2563eb;
 
   /* ─── Primary (Apple Blue) ──────────────────────── */
@@ -91,7 +98,7 @@
   /* ─── Sidebar ────────────────────────────────────── */
   --color-sidebar: #ffffff;
   --color-sidebar-foreground: #111827;
-  --color-sidebar-border: #e2e8f0;
+  --color-sidebar-border: #cbd5e1;
   --color-sidebar-active: #ffffff;
   --color-sidebar-active-foreground: #2563eb;
 
@@ -183,7 +190,12 @@
 }
 
 html {
-  font-size: 16px;
+  /* Bumped from 16px — since nearly every size in the app (Tailwind's
+     text-* scale, spacing, icon sizing) is rem-based, this single change
+     scales the whole UI up proportionally (text, tabs, buttons, icons)
+     without touching individual components or breaking any existing
+     size-hierarchy relationships. */
+  font-size: 17px;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   text-rendering: optimizeLegibility;

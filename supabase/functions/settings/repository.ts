@@ -491,4 +491,69 @@ export class SettingsRepository {
       .eq('hospital_id', this.hospitalId);
     if (error) throw error;
   }
+
+  // ─── Doctor ─────────────────────────────────────────────────────────────────
+
+  async listDoctors(includeInactive = false) {
+    let query = this.supabase
+      .from('Doctor')
+      .select('*')
+      .eq('hospital_id', this.hospitalId);
+    if (!includeInactive) query = query.eq('isActive', true);
+    const { data, error } = await query
+      .order('sortOrder', { ascending: true })
+      .order('name', { ascending: true });
+    if (error) throw error;
+    return data ?? [];
+  }
+
+  async findDoctorById(id: string) {
+    const { data, error } = await this.supabase
+      .from('Doctor')
+      .select('*')
+      .eq('id', id)
+      .eq('hospital_id', this.hospitalId)
+      .maybeSingle();
+    if (error) throw error;
+    return data;
+  }
+
+  async findDoctorByName(name: string) {
+    const { data, error } = await this.supabase
+      .from('Doctor')
+      .select('id')
+      .eq('name', name)
+      .eq('hospital_id', this.hospitalId)
+      .maybeSingle();
+    if (error) throw error;
+    return data;
+  }
+
+  async insertDoctor(row: Record<string, unknown>) {
+    const { data, error } = await this.supabase
+      .from('Doctor')
+      .insert(withTimestamps({ ...row, hospital_id: this.hospitalId }))
+      .select()
+      .single();
+    if (error) throw error;
+    return data;
+  }
+
+  async updateDoctor(id: string, patch: Record<string, unknown>) {
+    const { error } = await this.supabase
+      .from('Doctor')
+      .update({ ...patch, updatedAt: new Date().toISOString() })
+      .eq('id', id)
+      .eq('hospital_id', this.hospitalId);
+    if (error) throw error;
+  }
+
+  async deleteDoctor(id: string) {
+    const { error } = await this.supabase
+      .from('Doctor')
+      .delete()
+      .eq('id', id)
+      .eq('hospital_id', this.hospitalId);
+    if (error) throw error;
+  }
 }

@@ -243,7 +243,13 @@ const DEFAULT_INCLUSION: PackageInclusion = { name: "Surgery Charges", amount: 0
 
 function PackageDialog({ open, onClose, existing }: PackageDialogProps) {
   const [name, setName] = useState(existing?.name ?? "")
-  const [discount, setDiscount] = useState(existing?.discount ?? 0)
+  // Discount is always stored/saved as a flat ₹ amount (matches the DB column
+  // and every downstream consumer — e.g. inpatient-admission-form.tsx reads
+  // `template.discount` as a plain ₹ number). The %/₹ toggle here is purely a
+  // data-entry convenience: in "percent" mode the ₹ amount is derived live
+  // from the current Total Amount, so it stays correct as inclusions change.
+  const [discountMode, setDiscountMode] = useState<"amount" | "percent">("amount")
+  const [discountInput, setDiscountInput] = useState(String(existing?.discount ?? ""))
   const [inclusions, setInclusions] = useState<PackageInclusion[]>(() => {
     try {
       const parsed = JSON.parse(existing?.inclusions ?? "[]") as PackageInclusion[]
@@ -263,7 +269,8 @@ function PackageDialog({ open, onClose, existing }: PackageDialogProps) {
   useEffect(() => {
     if (open) {
       setName(existing?.name ?? "")
-      setDiscount(existing?.discount ?? 0)
+      setDiscountMode("amount")
+      setDiscountInput(String(existing?.discount ?? ""))
       try {
         const parsed = JSON.parse(existing?.inclusions ?? "[]") as PackageInclusion[]
         setInclusions(parsed.length > 0 ? parsed : [{ ...DEFAULT_INCLUSION, subItems: [] }])
@@ -274,6 +281,10 @@ function PackageDialog({ open, onClose, existing }: PackageDialogProps) {
   }, [open, existing])
 
   const totalAmount = inclusions.reduce((s, i) => s + i.amount, 0)
+  const discount =
+    discountMode === "percent"
+      ? Math.round((totalAmount * (parseFloat(discountInput) || 0)) / 100)
+      : parseFloat(discountInput) || 0
 
   function updateInclusion(idx: number, field: "name" | "amount", val: string) {
     setInclusions((prev) =>
@@ -390,15 +401,42 @@ function PackageDialog({ open, onClose, existing }: PackageDialogProps) {
               </div>
             </div>
             <div>
-              <Label htmlFor="pkg-discount">Discount (₹)</Label>
-              <Input
-                id="pkg-discount"
-                type="number"
-                value={discount || ""}
-                onChange={(e) => setDiscount(parseFloat(e.target.value) || 0)}
-                className="mt-1 w-28"
-                min={0}
-              />
+              <Label htmlFor="pkg-discount">Discount</Label>
+              <div className="mt-1 flex items-center gap-2">
+                <div className="inline-flex rounded-md border border-border overflow-hidden shrink-0">
+                  <button
+                    type="button"
+                    onClick={() => setDiscountMode("amount")}
+                    className={`px-2.5 py-1.5 text-sm ${discountMode === "amount" ? "bg-primary text-primary-foreground" : "bg-background text-muted-foreground"}`}
+                    aria-pressed={discountMode === "amount"}
+                  >
+                    ₹
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setDiscountMode("percent")}
+                    className={`px-2.5 py-1.5 text-sm border-l border-border ${discountMode === "percent" ? "bg-primary text-primary-foreground" : "bg-background text-muted-foreground"}`}
+                    aria-pressed={discountMode === "percent"}
+                  >
+                    %
+                  </button>
+                </div>
+                <Input
+                  id="pkg-discount"
+                  type="number"
+                  value={discountInput}
+                  onChange={(e) => setDiscountInput(e.target.value)}
+                  className="w-28"
+                  min={0}
+                  max={discountMode === "percent" ? 100 : undefined}
+                  aria-label={discountMode === "percent" ? "Discount percent" : "Discount amount"}
+                />
+                {discountMode === "percent" && (
+                  <span className="text-xs text-muted-foreground whitespace-nowrap">
+                    = ₹{discount.toLocaleString("en-IN")}
+                  </span>
+                )}
+              </div>
             </div>
           </div>
 

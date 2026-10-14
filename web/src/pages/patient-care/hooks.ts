@@ -529,3 +529,22 @@ export function useAddDropdownOption() {
     },
   })
 }
+
+/**
+ * Quick-add a new doctor by name while registering/admitting a patient — the
+ * reception-side "type a brand-new doctor on the fly" path, replacing the
+ * old addDropdownOption({fieldName:"doctorName"}) call for this one field
+ * now that doctors are a real master entity (see migration 20260922070000).
+ * Full doctor CRUD (department/specialization/fee/phone) lives in Settings →
+ * Doctors; this just creates a bare-name row an admin can flesh out later.
+ */
+export function useQuickCreateDoctor() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (body: { name: string }) => apiClient.post("/patient-care/doctors", body),
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: patientCareKeys.registrationForm() })
+      void qc.invalidateQueries({ queryKey: patientCareKeys.admissionForm() })
+    },
+  })
+}

@@ -54,7 +54,15 @@ export function getInitials(name: string): string {
 }
 
 export function todayISO(): string {
-  return toLocalDateISO(new Date())
+  // Hard-anchored to IST (same approach as the backend's `toISTDateISO()` in
+  // supabase/functions/workup/repository.ts), not the browser/OS's ambient
+  // local timezone — this hospital operates in IST regardless of what
+  // timezone an individual workstation's clock happens to be set to. Using
+  // `toLocalDateISO(new Date())` here would silently roll the "today" pill
+  // to the wrong calendar day (and therefore query the wrong day's queue)
+  // on any machine not set to IST, especially right around the IST midnight
+  // boundary when UTC and IST disagree on the calendar date entirely.
+  return new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Kolkata" }).format(new Date())
 }
 
 export function toLocalDateISO(date: Date): string {

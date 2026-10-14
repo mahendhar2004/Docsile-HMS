@@ -19,6 +19,7 @@ import type {
   PredefinedSurgery,
   PredefinedDischarge,
   MedicineMaster,
+  Doctor,
   DefaultPrintItem,
 } from "./types"
 import { parsePrintConfig } from "./types"
@@ -36,7 +37,7 @@ export const settingsKeys = {
   surgeries: (includeInactive = false) => [...settingsKeys.all, "surgeries", includeInactive] as const,
   discharges: (includeInactive = false) => [...settingsKeys.all, "discharges", includeInactive] as const,
   medicineMaster: (includeInactive = false) => [...settingsKeys.all, "medicine-master", includeInactive] as const,
-  dropdownOptions: (fieldName: string) => [...settingsKeys.all, "dropdown-options", fieldName] as const,
+  doctors: (includeInactive = false) => [...settingsKeys.all, "doctors", includeInactive] as const,
 } as const
 
 // ─── Service Templates ────────────────────────────────────────────────────────
@@ -639,36 +640,83 @@ export function useDeleteMedicineMaster(onSuccess?: () => void) {
   })
 }
 
-// ─── Dropdown options (tenant-editable doctor-name list) ──────────────────────
-// Reused endpoint — /patient-care/dropdown-options is the same shared
-// DropdownOption table the Patient Registration / IPD Admission wizards use
-// (fieldName="doctorName"). Main's real SurgeryFormDialog
-// (src/app/(hospital)/settings/components/SettingsPage.tsx) calls this
-// directly via getDropdownOptions("doctorName")/addDropdownOption(...) for
-// the surgery template form's Doctor Names / On-Duty Doctors fields; this
-// mirrors that call shape locally rather than importing patient-care's hooks
-// module, to avoid a cross-feature dependency for two small calls.
+// ─── Doctor ────────────────────────────────────────────────────────────────────
+// Net-new master entity (migration 20260922070000) — replaces the old
+// DropdownOption(fieldName="doctorName") free-text list as the real source
+// of truth for "doctor name" everywhere it's picked app-wide (Patient
+// Registration, IPD Admission, Predefined Surgeries below).
 
-export function useDropdownOptions(fieldName: string) {
+export function useDoctors(includeInactive = false, enabled = true) {
   return useQuery({
-    queryKey: settingsKeys.dropdownOptions(fieldName),
+    queryKey: settingsKeys.doctors(includeInactive),
     queryFn: () =>
       apiClient
-        .get<{ fieldName: string; value: string }[]>(
-          `/patient-care/dropdown-options?fieldName=${encodeURIComponent(fieldName)}`,
-        )
-        .then((e) => e.data.map((o) => o.value)),
-    staleTime: 10 * 60 * 1000,
+        .get<Doctor[]>(`/settings/doctors?includeInactive=${includeInactive}`)
+        .then((e) => e.data),
+    enabled,
+    staleTime: 2 * 60 * 1000,
   })
 }
 
-export function useAddDropdownOption() {
+export function useCreateDoctor(onSuccess?: () => void) {
   const qc = useQueryClient()
   return useMutation({
-    mutationFn: (body: { fieldName: string; value: string }) =>
-      apiClient.post("/patient-care/dropdown-options", body),
-    onSuccess: (_, { fieldName }) => {
-      void qc.invalidateQueries({ queryKey: settingsKeys.dropdownOptions(fieldName) })
+    mutationFn: (body: Omit<Doctor, "id" | "isActive">) =>
+      apiClient.post("/settings/doctors", body),
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: [...settingsKeys.all, "doctors"] })
+      toast.success("Doctor added.")
+      onSuccess?.()
+    },
+    onError: (err: unknown) => {
+      toast.error(err instanceof Error ? err.message : "Failed to add doctor.")
     },
   })
 }
+
+export function useUpdateDoctor(id: string, onSuccess?: () => void) {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (body: Partial<Omit<Doctor, "id">>) =>
+      apiClient.patch(`/settings/doctors/${id}`, body),
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: [...settingsKeys.all, "doctors"] })
+      toast.success("Doctor updated.")
+      onSuccess?.()
+    },
+    onError: (err: unknown) => {
+      toast.error(err instanceof Error ? err.message : "Failed to update doctor.")
+    },
+  })
+}
+
+export function useToggleDoctorActive(onSuccess?: () => void) {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: ({ id, isActive }: { id: string; isActive: boolean }) =>
+      apiClient.patch(`/settings/doctors/${id}`, { isActive }),
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: [...settingsKeys.all, "doctors"] })
+      onSuccess?.()
+    },
+    onError: (err: unknown) => {
+      toast.error(err instanceof Error ? err.message : "Failed to update doctor.")
+    },
+  })
+}
+
+export function useDeleteDoctor(onSuccess?: () => void) {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (id: string) => apiClient.delete(`/settings/doctors/${id}`),
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: [...settingsKeys.all, "doctors"] })
+      toast.success("Doctor deleted.")
+      onSuccess?.()
+    },
+    onError: (err: unknown) => {
+      toast.error(err instanceof Error ? err.message : "Failed to delete doctor.")
+    },
+  })
+}
+

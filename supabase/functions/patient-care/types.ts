@@ -193,6 +193,14 @@ export const CreateDropdownOptionSchema = z.object({
   value: z.string().min(1),
 });
 
+// ---- Doctor (quick-add only — full CRUD lives in the settings function) ----
+// Reception/registration staff can type a brand-new doctor name on the fly
+// while registering a patient or admission, same convenience the old
+// addDropdownOption({fieldName:"doctorName"}) gave them — see POST /doctors.
+export const QuickCreateDoctorSchema = z.object({
+  name: z.string().min(1),
+});
+
 // ---- Prescription + Billing (created within patient-care) ----
 
 export const InvoiceItemSchema = z.object({

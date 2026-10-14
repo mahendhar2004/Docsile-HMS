@@ -35,6 +35,10 @@
  *   POST   /settings/medicine-master                 settings:edit
  *   PATCH  /settings/medicine-master/:id             settings:edit
  *   DELETE /settings/medicine-master/:id             settings:edit
+ *   GET    /settings/doctors                         settings:view
+ *   POST   /settings/doctors                         settings:edit
+ *   PATCH  /settings/doctors/:id                     settings:edit
+ *   DELETE /settings/doctors/:id                     settings:edit
  */
 
 import { Hono } from 'hono';
@@ -53,6 +57,7 @@ import {
   PredefinedSurgerySchema,
   PredefinedDischargeSchema,
   MedicineMasterSchema,
+  DoctorSchema,
 } from './types.ts';
 import * as service from './service.ts';
 
@@ -226,6 +231,26 @@ app.patch('/medicine-master/:id', requirePermission('settings:edit'), async (c) 
 app.delete('/medicine-master/:id', requirePermission('settings:edit'), async (c) => {
   await service.deleteMedicineMaster(c.get('session') as Session, c.req.param('id'));
   return ok(c, null, 'Medicine master deleted');
+});
+
+// ---- Doctor ----
+app.get('/doctors', requirePermission('settings:view'), async (c) => ok(c, await service.listDoctors(c.get('session') as Session, c.req.query('includeInactive') === 'true')));
+app.post('/doctors', requirePermission('settings:edit'), async (c) => {
+  const s = c.get('session') as Session;
+  const b = DoctorSchema.safeParse(await c.req.json());
+  if (!b.success) return errorResponse(c, `Invalid doctor: ${b.error.errors[0].message}`, 400);
+  return created(c, await service.createDoctor(s, b.data), 'Doctor created');
+});
+app.patch('/doctors/:id', requirePermission('settings:edit'), async (c) => {
+  const s = c.get('session') as Session;
+  const b = DoctorSchema.partial().safeParse(await c.req.json());
+  if (!b.success) return errorResponse(c, `Invalid doctor: ${b.error.errors[0].message}`, 400);
+  await service.updateDoctor(s, c.req.param('id'), b.data);
+  return ok(c, null, 'Doctor updated');
+});
+app.delete('/doctors/:id', requirePermission('settings:edit'), async (c) => {
+  await service.deleteDoctor(c.get('session') as Session, c.req.param('id'));
+  return ok(c, null, 'Doctor deleted');
 });
 
 Deno.serve(app.fetch);
