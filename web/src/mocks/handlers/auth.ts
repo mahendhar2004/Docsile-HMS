@@ -1,7 +1,7 @@
 import { http } from "msw"
 import { ok } from "../envelope"
 import { ALL_PERMISSIONS } from "@/lib/permissions"
-import type { SessionUser } from "@/store/session"
+import type { RawSessionUser } from "@/store/session"
 
 function allPermissionKeys(): string[] {
   const keys: string[] = []
@@ -15,9 +15,13 @@ function allPermissionKeys(): string[] {
  * Mock session — ADMIN bypasses every permission check in usePermissions(),
  * so every page's gates pass regardless of the permissions array content.
  * The full catalog is included anyway for any code that reads it directly.
+ *
+ * Shaped as RawSessionUser (userId, not id) — the real /auth/login and
+ * /auth/refresh responses are mapped through mapSessionUser() on the
+ * frontend, so the mock must match that same raw wire shape.
  */
-const MOCK_ADMIN: SessionUser = {
-  id: "mock-admin-id",
+const MOCK_ADMIN: RawSessionUser = {
+  userId: "mock-admin-id",
   name: "Dr. Admin (Mock)",
   role: "ADMIN",
   permissions: allPermissionKeys(),

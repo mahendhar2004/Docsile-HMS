@@ -41,8 +41,8 @@ app.post('/refresh', async (c) => {
   if (!refreshToken) {
     return errorResponse(c, 'Refresh token cookie (docsile-refresh) is missing. Please log in.', 401);
   }
-  const tokens = await service.refresh(refreshToken);
-  const response = ok(c, null, 'Token refreshed');
+  const { tokens, user } = await service.refresh(refreshToken);
+  const response = ok(c, user, 'Token refreshed');
   response.headers.append('Set-Cookie', buildSessionCookie(tokens.accessToken, 900));
   response.headers.append('Set-Cookie', buildRefreshCookie(tokens.refreshToken, 604800));
   return response;

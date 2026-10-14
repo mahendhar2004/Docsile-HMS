@@ -26,8 +26,8 @@ import { TextInput } from "@/components/patterns/forms/text-input"
 import { FormFieldRow } from "@/components/patterns/forms/form-section"
 import { apiClient } from "@/lib/api-client"
 import { queryClient } from "@/lib/query-client"
-import { useSessionStore } from "@/store/session"
-import type { SessionUser } from "@/store/session"
+import { useSessionStore, mapSessionUser } from "@/store/session"
+import type { RawSessionUser } from "@/store/session"
 import medicineIllustration from "@/assets/undraw-medicine.svg"
 
 // Mirrors the real sidebar's module list (web/src/components/patterns/navigation/sidebar.tsx)
@@ -74,11 +74,11 @@ export default function LoginPage() {
     }
     setLoading(true)
     try {
-      const envelope = await apiClient.post<SessionUser>("/auth/login", {
+      const envelope = await apiClient.post<RawSessionUser>("/auth/login", {
         email: email.trim(),
         password,
       })
-      setUser(envelope.data)
+      setUser(mapSessionUser(envelope.data))
       queryClient.clear()
       navigate("/dashboard", { replace: true })
     } catch (err) {

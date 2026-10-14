@@ -6,7 +6,12 @@
  * - Response envelope: { statusCode, message, data, meta? }
  * - On 401: attempts one POST /auth/refresh, then retries the original request once.
  *   If refresh also fails, redirects to /login.
+ * - checkSession() exposes the same refresh call for the app-boot flow (router.tsx),
+ *   so a hard reload can silently re-authenticate from the HttpOnly refresh cookie
+ *   instead of bouncing straight to /login.
  */
+
+import { useSessionStore, mapSessionUser, type RawSessionUser } from "@/store/session"
 
 // Falls back to "" (relative paths) rather than leaving this `undefined` — an
 // unset env var must never end up interpolated as the literal string
@@ -48,33 +53,47 @@ export class ApiError extends Error {
   }
 }
 
-let isRefreshing = false
-let refreshFailed = false
+let refreshPromise: Promise<boolean> | null = null
 
-async function attemptRefresh(): Promise<boolean> {
-  if (isRefreshing) {
-    // Another call is already refreshing — wait briefly then assume it succeeded
-    await new Promise((r) => setTimeout(r, 500))
-    return !refreshFailed
-  }
-  isRefreshing = true
+async function doRefresh(): Promise<boolean> {
   try {
     const res = await fetch(`${BASE_URL}/auth/refresh`, {
       method: "POST",
       credentials: "include",
     })
     if (!res.ok) {
-      refreshFailed = true
+      useSessionStore.getState().setUser(null)
       return false
     }
-    refreshFailed = false
+    const envelope = (await res.json()) as ApiEnvelope<RawSessionUser>
+    useSessionStore.getState().setUser(mapSessionUser(envelope.data))
     return true
   } catch {
-    refreshFailed = true
+    useSessionStore.getState().setUser(null)
     return false
-  } finally {
-    isRefreshing = false
   }
+}
+
+/** De-dupes concurrent refresh attempts — every caller awaits the same in-flight request. */
+async function attemptRefresh(): Promise<boolean> {
+  if (!refreshPromise) {
+    refreshPromise = doRefresh().finally(() => {
+      refreshPromise = null
+    })
+  }
+  return refreshPromise
+}
+
+/**
+ * Attempts silent re-authentication from the HttpOnly refresh cookie, populating
+ * the session store on success. Used once at app boot (see AppRouter in
+ * router.tsx) to decide whether a hard reload should land on /login or restore
+ * the previous session — bypasses `request()`'s own 401-redirect-to-/login
+ * handling, since a boot-time failure here is an expected "not logged in yet"
+ * outcome, not a mid-session error.
+ */
+export async function checkSession(): Promise<boolean> {
+  return attemptRefresh()
 }
 
 async function request<T>(

@@ -5,6 +5,7 @@ import { ReactQueryDevtools } from "@tanstack/react-query-devtools"
 import { queryClient } from "@/lib/query-client"
 import { AppRouter } from "@/router"
 import { Toaster } from "@/components/ui/sonner"
+import { PwaUpdatePrompt } from "@/components/layout/pwa-update-prompt"
 import "./index.css"
 
 const rootElement = document.getElementById("root")
@@ -32,6 +33,7 @@ prepare().then(() => {
       <QueryClientProvider client={queryClient}>
         <AppRouter />
         <Toaster position="top-right" richColors />
+        <PwaUpdatePrompt />
         {import.meta.env.DEV && <ReactQueryDevtools initialIsOpen={false} />}
       </QueryClientProvider>
     </StrictMode>,

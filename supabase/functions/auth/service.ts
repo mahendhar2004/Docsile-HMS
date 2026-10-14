@@ -149,6 +149,7 @@ export async function login(
       name: userRow.fullName,
       role: userRow.role,
       hospitalId: userRow.hospital_id,
+      permissions,
     },
   };
 }
@@ -164,7 +165,9 @@ export async function login(
  * embedded in the refresh token if the Role row returns empty (log + carry forward
  * rather than downgrade an active session silently).
  */
-export async function refresh(refreshToken: string): Promise<TokenPair> {
+export async function refresh(
+  refreshToken: string,
+): Promise<{ tokens: TokenPair; user: LoginResponseData }> {
   const correlationId = crypto.randomUUID();
 
   let payload: Record<string, unknown>;
@@ -253,7 +256,16 @@ export async function refresh(refreshToken: string): Promise<TokenPair> {
     action: 'refresh',
   });
 
-  return { accessToken: access.token, refreshToken: newRefresh.token };
+  return {
+    tokens: { accessToken: access.token, refreshToken: newRefresh.token },
+    user: {
+      userId: sub,
+      name: jwtPayload.fullName,
+      role,
+      hospitalId,
+      permissions,
+    },
+  };
 }
 
 // ─── logout ──────────────────────────────────────────────────────────────────

@@ -17,6 +17,7 @@ export const LoginResponseDataSchema = z.object({
   name: z.string(),
   role: z.string(),
   hospitalId: z.string(),
+  permissions: z.array(z.string()),
 });
 
 export type LoginResponseData = z.infer<typeof LoginResponseDataSchema>;
