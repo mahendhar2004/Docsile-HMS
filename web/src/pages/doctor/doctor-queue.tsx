@@ -137,9 +137,18 @@ export function DoctorQueue({
     }
   }
 
+  // Card container — matches main's exact queue-table wrapper (`rounded-xl
+  // border border-border/60 bg-white overflow-hidden shadow-sm`, same card
+  // treatment on every state). Previously only the loading skeleton had a
+  // (partial) wrapper; error/empty/data sat flat against the page
+  // background with no visual separation, unlike every other table in the
+  // app (which goes through the shared PaginatedDataTable, which already
+  // supplies this wrapper).
+  const cardClass = "rounded-[var(--radius-lg)] bg-[var(--color-card)] overflow-hidden shadow-[var(--shadow-card)]"
+
   if (loading) {
     return (
-      <div className="rounded-[var(--radius-lg)] border border-border overflow-hidden" aria-label="Loading doctor queue">
+      <div className={cardClass} aria-label="Loading doctor queue">
         <div className="bg-muted/50 px-4 py-2.5 border-b border-border flex gap-8">
           {Array.from({ length: 6 }).map((_, i) => (
             // eslint-disable-next-line react/no-array-index-key
@@ -151,15 +160,21 @@ export function DoctorQueue({
   }
 
   if (error) {
-    return <ErrorState title="Could not load queue" error={error} onRetry={onRefetch} />
+    return (
+      <div className={cardClass}>
+        <ErrorState title="Could not load queue" error={error} onRetry={onRefetch} />
+      </div>
+    )
   }
 
   if (patients.length === 0) {
     return (
-      <EmptyState
-        title="No patients yet"
-        description="Today's OPD queue is empty. Patients will appear as they register."
-      />
+      <div className={cardClass}>
+        <EmptyState
+          title="No patients yet"
+          description="Today's OPD queue is empty. Patients will appear as they register."
+        />
+      </div>
     )
   }
 
@@ -289,13 +304,15 @@ export function DoctorQueue({
 
   return (
     <>
-      <DataTable<DoctorQueuePatient>
-        aria-label="Doctor's patient queue"
-        data={patients}
-        columns={columns}
-        onRowClick={(p) => onSelectPatient(p.patientId)}
-        rowClassName={(p) => (p.patientId === selectedId ? "bg-primary/8" : undefined)}
-      />
+      <div className={cardClass}>
+        <DataTable<DoctorQueuePatient>
+          aria-label="Doctor's patient queue"
+          data={patients}
+          columns={columns}
+          onRowClick={(p) => onSelectPatient(p.patientId)}
+          rowClassName={(p) => (p.patientId === selectedId ? "bg-primary/8" : undefined)}
+        />
+      </div>
       {quickPrintData && (
         <QuickPrintRenderer ref={quickPrintRef} data={quickPrintData} items={defaultPrintItems} />
       )}

@@ -1,17 +1,19 @@
 /**
  * DashboardPage — static module-navigation grid, matching main's
  * DashboardClient.tsx exactly (src/app/(hospital)/dashboard/DashboardClient.tsx
- * + page.tsx on main). No live data: a greeting banner (time-of-day based) +
- * a rotating medical quote, followed by a grouped grid of module nav cards.
+ * + page.tsx on main) for the grid of module nav cards.
  *
  * Main's `enabledModules` admin-config gate doesn't exist in this app (no
  * equivalent hospital-wide module-enablement system was migrated), so
  * per-tile visibility uses the same permission keys as the Sidebar instead
  * — main's own comment notes permission checks are "currently disabled at
  * the app level" there anyway, so this is at least as permissive as main.
+ *
+ * Deliberate deviation from main (2026-10-14, explicit request): the
+ * greeting banner + rotating quote block main has above the grid is
+ * removed — straight into the module grid instead.
  */
 
-import { useEffect, useState } from "react"
 import { Link } from "react-router-dom"
 import {
   Users,
@@ -31,26 +33,9 @@ import {
   UserCog,
   Settings,
   ArrowRight,
-  Quote,
-  Heart,
   type LucideIcon,
 } from "lucide-react"
 import { usePermissions } from "@/hooks/usePermissions"
-
-// ─── Rotating quotes (verbatim from main) ────────────────────────────────────
-
-const quotes = [
-  { text: "The good physician treats the disease; the great physician treats the patient who has the disease.", author: "Sir William Osler" },
-  { text: "Wherever the art of medicine is loved, there is also a love of humanity.", author: "Hippocrates" },
-  { text: "The art of medicine consists of amusing the patient while nature cures the disease.", author: "Voltaire" },
-  { text: "Medicine is not only a science; it is also an art. It does not consist of compounding pills and plasters; it deals with the very processes of life.", author: "Paracelsus" },
-  { text: "The best doctor gives the least medicines.", author: "Benjamin Franklin" },
-  { text: "Healing is a matter of time, but it is sometimes also a matter of opportunity.", author: "Hippocrates" },
-  { text: "Let food be thy medicine and medicine be thy food.", author: "Hippocrates" },
-  { text: "The doctor of the future will give no medicine, but will instruct his patients in care of the human frame.", author: "Thomas Edison" },
-  { text: "People pay the doctor for his trouble; for his kindness they still remain in his debt.", author: "Seneca" },
-  { text: "A doctor who cannot take a good history and a patient who cannot give one are in danger of giving and receiving bad treatment.", author: "Paul Dudley White" },
-]
 
 // ─── Module sections (labels/descriptions/icon tints verbatim from main) ────
 
@@ -113,12 +98,6 @@ const sections: DashboardSection[] = [
   },
 ]
 
-function getGreeting(hour: number): string {
-  if (hour < 12) return "Good morning"
-  if (hour < 17) return "Good afternoon"
-  return "Good evening"
-}
-
 export default function DashboardPage() {
   const { can } = usePermissions()
 
@@ -129,63 +108,11 @@ export default function DashboardPage() {
     }))
     .filter((s) => s.items.length > 0)
 
-  const [quoteIndex, setQuoteIndex] = useState(0)
-
-  useEffect(() => {
-    setQuoteIndex(Math.floor(Math.random() * quotes.length))
-  }, [])
-
-  useEffect(() => {
-    const interval = setInterval(() => {
-      setQuoteIndex((prev) => (prev + 1) % quotes.length)
-    }, 10000)
-    return () => clearInterval(interval)
-  }, [])
-
-  const quote = quotes[quoteIndex]
-  const greeting = getGreeting(new Date().getHours())
-
   return (
     <div className="-mx-3 -my-4 md:-mx-4 md:-my-6 lg:-mx-6 lg:-mb-8 min-h-[calc(100vh-4rem)] bg-white">
       <div className="max-w-6xl mx-auto px-3 py-4 md:px-4 md:py-6 lg:px-6 lg:pt-6 lg:pb-8">
-        {/* Greeting + Quote Banner */}
-        <div className="relative overflow-hidden rounded-2xl bg-slate-50 border border-slate-200/70 px-4 sm:px-8 py-5 sm:py-7 mt-8 md:mt-0 mb-6 sm:mb-10">
-          <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3 sm:gap-8">
-            <div>
-              <h1 className="text-xl sm:text-2xl font-semibold text-foreground tracking-tight">
-                {greeting}
-              </h1>
-              <p className="text-xs sm:text-sm text-muted-foreground mt-1">
-                Here&apos;s your hospital overview for today
-              </p>
-            </div>
-            <div className="flex items-center gap-2 text-xs text-muted-foreground">
-              <Heart className="h-3.5 w-3.5 text-rose-400" aria-hidden="true" />
-              <span>
-                {new Date().toLocaleDateString("en-IN", {
-                  weekday: "long",
-                  day: "numeric",
-                  month: "long",
-                  year: "numeric",
-                })}
-              </span>
-            </div>
-          </div>
-
-          {/* Inspirational Quote */}
-          <div className="mt-5 flex items-start gap-3">
-            <Quote className="h-4 w-4 text-primary/40 shrink-0 mt-0.5" aria-hidden="true" />
-            <div>
-              <p className="text-sm text-foreground/70 italic leading-relaxed">
-                &ldquo;{quote?.text}&rdquo;
-              </p>
-              <p className="text-xs text-muted-foreground mt-1">&mdash; {quote?.author}</p>
-            </div>
-          </div>
-        </div>
-
         {/* Sectioned Modules */}
-        <div className="space-y-8 sm:space-y-10">
+        <div className="space-y-8 sm:space-y-10 mt-8 md:mt-0">
           {visibleSections.map((section) => (
             <section key={section.label} aria-label={section.label}>
               <div className="flex items-center gap-3 mb-4">
@@ -222,7 +149,7 @@ export default function DashboardPage() {
                       <h3 className="text-[15px] font-semibold text-slate-900 tracking-tight mb-1">
                         {mod.label}
                       </h3>
-                      <p className="text-xs text-slate-500 leading-relaxed line-clamp-2">
+                      <p className="text-xs text-slate-600 leading-relaxed line-clamp-2">
                         {mod.description}
                       </p>
                     </div>

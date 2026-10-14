@@ -30,12 +30,11 @@
  */
 
 import { useMemo, useState } from "react"
-import { ArrowLeft, Sparkles, Stethoscope } from "lucide-react"
+import { ArrowLeft, Stethoscope } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { PageHeader, SearchBar, StatBadge, ErrorState, EmptyState } from "@/components/patterns"
 import { usePermissions } from "@/hooks/usePermissions"
 import { useSessionStore } from "@/store/session"
-import { useAiContextStore } from "@/store/ai-context"
 import { useDoctorQueue } from "./doctor/hooks"
 import { DoctorQueue } from "./doctor/doctor-queue"
 import { ConsultationView } from "./doctor/consultation-view"
@@ -45,8 +44,6 @@ import { ConsultationView } from "./doctor/consultation-view"
 export default function DoctorPage() {
   const { can } = usePermissions()
   const user = useSessionStore((s) => s.user)
-  const toggleSitha = useAiContextStore((s) => s.toggleOpen)
-  const sithaOpen = useAiContextStore((s) => s.open)
 
   const hasView = can("doctor:view")
   const canConsult = can("doctor:consult")
@@ -103,16 +100,6 @@ export default function DoctorPage() {
                 Back to queue
               </Button>
             )}
-            <Button
-              variant={sithaOpen ? "primary" : "outline"}
-              size="sm"
-              onClick={toggleSitha}
-              aria-label="Ask Sitha AI"
-              className={!sithaOpen ? "bg-primary/5 border-primary/20 text-primary hover:bg-primary/10" : undefined}
-            >
-              <Sparkles className="h-3.5 w-3.5 mr-1.5" aria-hidden="true" />
-              {sithaOpen ? "Hide Sitha" : "Ask Sitha"}
-            </Button>
           </>
         }
         toolbar={

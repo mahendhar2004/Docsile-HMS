@@ -157,13 +157,15 @@ export async function searchPatients(
 /**
  * Preview the next sequential patient ID without creating a patient.
  *
- * Calls next_patient_number() which DOES advance the Postgres sequence — gaps are
- * acceptable and expected when users open the form without completing registration.
- * The definitive ID is generated again at createPatient time.
+ * Calls peek_patient_number(), which reads the sequence's current state
+ * without advancing it — opening/closing the registration dialog any number
+ * of times never consumes a slot. The definitive ID is generated fresh via
+ * next_patient_number() at actual createPatient time regardless of what this
+ * preview showed, so there's never a correctness dependency on this value.
  */
 export async function getNextPatientId(s: Session): Promise<{ nextPatientId: string }> {
   const repo = makeRepo(s);
-  const nextNum = await repo.getNextPatientNumber();
+  const nextNum = await repo.peekNextPatientNumber();
   return { nextPatientId: String(nextNum).padStart(4, '0') };
 }
 
@@ -783,11 +785,14 @@ function flattenInPatientPatient(row: Record<string, unknown>): Record<string, u
 
 /**
  * Preview the next IP number without creating an inpatient record.
- * Advances ip_number_seq — gaps are acceptable (H-3 design).
+ * Calls peek_ip_number() — reads the sequence's current state without
+ * advancing it, so opening/closing the admission dialog never burns a slot.
+ * The definitive number is generated fresh via next_ip_number() at actual
+ * createInPatient time regardless of what this preview showed.
  */
 export async function getNextInPatientId(s: Session): Promise<{ nextIpNumber: string }> {
   const repo = makeRepo(s);
-  const nextNum = await repo.getNextIpNumber();
+  const nextNum = await repo.peekNextIpNumber();
   return { nextIpNumber: `IP-${String(nextNum).padStart(4, '0')}` };
 }
 
@@ -801,6 +806,7 @@ export async function getAdmissionFormData(s: Session): Promise<{
   doctorOptions: string[];
   departmentOptions: string[];
   referralOptions: string[];
+  addressOptions: string[];
   cityOptions: string[];
   predefinedSurgeries: Record<string, unknown>[];
   predefinedPackages: Record<string, unknown>[];
@@ -813,6 +819,7 @@ export async function getAdmissionFormData(s: Session): Promise<{
     doctorName: [],
     department: [],
     referredBy: [],
+    address: [],
     city: [],
   };
 
@@ -827,6 +834,7 @@ export async function getAdmissionFormData(s: Session): Promise<{
     doctorOptions: grouped.doctorName,
     departmentOptions: grouped.department,
     referralOptions: grouped.referredBy,
+    addressOptions: grouped.address,
     cityOptions: grouped.city,
     predefinedSurgeries,
     predefinedPackages,

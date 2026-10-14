@@ -16,8 +16,7 @@
  */
 
 import { useEffect, useState } from "react"
-import { ClipboardList, Sparkles } from "lucide-react"
-import { Button } from "@/components/ui/button"
+import { ClipboardList } from "lucide-react"
 import { PageHeader, ErrorState } from "@/components/patterns"
 import { usePermissions } from "@/hooks/usePermissions"
 import { useAiContextStore } from "@/store/ai-context"
@@ -33,8 +32,6 @@ export default function ReportsPage() {
 
   const setAiContext = useAiContextStore((s) => s.setAiContext)
   const clearAiContext = useAiContextStore((s) => s.clearAiContext)
-  const toggleSitha = useAiContextStore((s) => s.toggleOpen)
-  const sithaOpen = useAiContextStore((s) => s.open)
   useEffect(() => {
     setAiContext({ patientId: selectedPatient?.patientId ?? null, module: null })
     return () => clearAiContext()
@@ -62,22 +59,10 @@ export default function ReportsPage() {
       <PageHeader
         title="Patient Reports"
         actions={
-          <>
-            <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
-              <ClipboardList className="h-3.5 w-3.5" aria-hidden />
-              <span>Complete Patient History</span>
-            </div>
-            <Button
-              variant={sithaOpen ? "primary" : "outline"}
-              size="sm"
-              onClick={toggleSitha}
-              aria-label="Ask Sitha AI"
-              className={!sithaOpen ? "bg-primary/5 border-primary/20 text-primary hover:bg-primary/10" : undefined}
-            >
-              <Sparkles className="h-3.5 w-3.5 mr-1.5" aria-hidden />
-              {sithaOpen ? "Hide Sitha" : "Ask Sitha"}
-            </Button>
-          </>
+          <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+            <ClipboardList className="h-3.5 w-3.5" aria-hidden />
+            <span>Complete Patient History</span>
+          </div>
         }
       />
 

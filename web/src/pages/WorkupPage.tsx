@@ -36,7 +36,7 @@
 
 import * as React from "react"
 import type { UseQueryResult } from "@tanstack/react-query"
-import { ArrowLeft, Sparkles } from "lucide-react"
+import { ArrowLeft } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Skeleton } from "@/components/ui/skeleton"
 import { PageHeader, SearchBar, StatBadge, ErrorState, StatusPill } from "@/components/patterns"
@@ -124,8 +124,6 @@ export default function WorkupPage() {
   // detail view's sidebar; cleared on deselect/unmount.
   const setAiContext = useAiContextStore((s) => s.setAiContext)
   const clearAiContext = useAiContextStore((s) => s.clearAiContext)
-  const toggleSitha = useAiContextStore((s) => s.toggleOpen)
-  const sithaOpen = useAiContextStore((s) => s.open)
   React.useEffect(() => {
     if (!selectedPatient) return
     setAiContext({ patientId: selectedPatient.patientId, module: "workup" })
@@ -233,16 +231,6 @@ export default function WorkupPage() {
               {selectedPatient.gender && <> · {selectedPatient.gender}</>}
             </span>
             <StatusPill status={selectedPatient.status} dot />
-            <Button
-              variant={sithaOpen ? "primary" : "outline"}
-              size="sm"
-              className={!sithaOpen ? "ml-auto bg-primary/5 border-primary/20 text-primary hover:bg-primary/10" : "ml-auto"}
-              onClick={toggleSitha}
-              aria-label="Ask Sitha AI"
-            >
-              <Sparkles className="h-3.5 w-3.5 mr-1.5" aria-hidden />
-              {sithaOpen ? "Hide Sitha" : "Ask Sitha"}
-            </Button>
           </div>
           <PatientWorkupDetail patientId={selectedPatient.patientId} date={date} hasCreate={hasCreate} />
         </div>

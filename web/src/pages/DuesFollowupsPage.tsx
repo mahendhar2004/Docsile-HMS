@@ -17,9 +17,7 @@
  */
 
 import { useEffect, useRef, useState } from "react"
-import { Sparkles } from "lucide-react"
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs"
-import { Button } from "@/components/ui/button"
 import { PageHeader, ErrorState } from "@/components/patterns"
 import { usePermissions } from "@/hooks/usePermissions"
 import { useAiContextStore } from "@/store/ai-context"
@@ -36,8 +34,6 @@ export default function DuesFollowupsPage() {
 
   const setAiContext = useAiContextStore((s) => s.setAiContext)
   const clearAiContext = useAiContextStore((s) => s.clearAiContext)
-  const toggleSitha = useAiContextStore((s) => s.toggleOpen)
-  const sithaOpen = useAiContextStore((s) => s.open)
   useEffect(() => {
     setAiContext({ patientId: null, module: "duesFollowups" })
     return () => clearAiContext()
@@ -58,9 +54,8 @@ export default function DuesFollowupsPage() {
   // ── Render ───────────────────────────────────────────────────────────────────
   // Tabs embedded in the header's center slot, matching main's placement
   // (main puts the Dues/Follow-Ups switch directly in the sticky header
-  // bar, not below it). onRefresh and Ask Sitha now wired, matching main —
-  // previously documented as an accepted gap; fixed via the same
-  // forwardRef-per-tab pattern used by Patients' OPD/IPD tabs.
+  // bar, not below it). onRefresh wired via the same forwardRef-per-tab
+  // pattern used by Patients' OPD/IPD tabs.
   return (
     <Tabs
       value={activeTab}
@@ -78,18 +73,6 @@ export default function DuesFollowupsPage() {
               <TabsTrigger value="dues">Dues</TabsTrigger>
               <TabsTrigger value="followups">Follow-Ups</TabsTrigger>
             </TabsList>
-          }
-          actions={
-            <Button
-              variant={sithaOpen ? "primary" : "outline"}
-              size="sm"
-              onClick={toggleSitha}
-              aria-label="Ask Sitha AI"
-              className={!sithaOpen ? "bg-primary/5 border-primary/20 text-primary hover:bg-primary/10" : undefined}
-            >
-              <Sparkles className="h-3.5 w-3.5 mr-1.5" aria-hidden />
-              {sithaOpen ? "Hide Sitha" : "Ask Sitha"}
-            </Button>
           }
         />
 

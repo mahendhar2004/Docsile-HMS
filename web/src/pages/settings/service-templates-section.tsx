@@ -3,7 +3,7 @@
  * Permission: settings:view (read) / settings:edit (write)
  */
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Plus } from "lucide-react"
 import {
   Table,
@@ -288,8 +288,14 @@ function ServiceFormDialog({ open, onClose, existing, allNames }: ServiceFormDia
   const createM = useCreateServiceTemplate(() => onClose())
   const updateM = useUpdateServiceTemplate(existing?.id ?? "", () => onClose())
 
-  // Reset form when dialog opens
-  useState(() => {
+  // Reset form when dialog opens — this component is mounted once and kept
+  // alive (only its `open` prop toggles visibility), so `useState(existing
+  // ?.name ?? "")` above only ever seeds the very first render; without this
+  // effect, reopening for "Add" after an edit (or editing a different row)
+  // left every field showing whatever was last typed/loaded. Was previously
+  // written as `useState(() => {...})` — a no-op after the first mount,
+  // since useState's argument is a lazy initializer, never a re-run effect.
+  useEffect(() => {
     if (open) {
       setName(existing?.name ?? "")
       setCategory(existing?.category ?? "Consultation")
@@ -299,7 +305,7 @@ function ServiceFormDialog({ open, onClose, existing, allNames }: ServiceFormDia
       setSortOrder(String(existing?.sortOrder ?? "0"))
       setErrors({})
     }
-  })
+  }, [open, existing])
 
   const nameTrimmedUpper = name.trim().toUpperCase()
   const isDuplicate =

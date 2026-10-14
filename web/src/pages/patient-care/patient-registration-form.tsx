@@ -59,7 +59,6 @@ import {
   CurrencyInput,
   SegmentedControl,
   AddressFields,
-  type AddressValue,
 } from "@/components/patterns"
 import { CashReceipt } from "@/components/receipts/CashReceipt"
 import { printReceiptsHtml } from "@/lib/print-receipts"
@@ -93,7 +92,7 @@ interface PatientFormData {
   gender: string
   phone: string
   email: string
-  address: AddressValue
+  address: string
   guardianName: string
   referredBy: string
   doctorName: string
@@ -142,11 +141,6 @@ const GENDER_OPTIONS = [
   { value: "Other", label: "Other" },
 ]
 
-/** Joins the structured address fields into one display line (receipts, etc). */
-function formatAddress(a: AddressValue): string {
-  return [a.addressLine, a.area, a.city, a.state, a.pincode].filter(Boolean).join(", ")
-}
-
 // ─── Component ────────────────────────────────────────────────────────────────
 
 export interface PatientRegistrationFormProps {
@@ -176,7 +170,7 @@ export function PatientRegistrationForm({
     gender: "",
     phone: "",
     email: "",
-    address: {},
+    address: "",
     guardianName: "",
     referredBy: "",
     doctorName: "",
@@ -194,7 +188,7 @@ export function PatientRegistrationForm({
   const [departmentOptions, setDepartmentOptions] = useState<string[]>([])
   const [referredByOptions, setReferredByOptions] = useState<string[]>([])
   const [patientCategoryOptions, setPatientCategoryOptions] = useState<string[]>(["Regular"])
-  const [cityOptions, setCityOptions] = useState<string[]>([])
+  const [addressOptions, setAddressOptions] = useState<string[]>([])
 
   useEffect(() => {
     if (!formData) return
@@ -202,7 +196,7 @@ export function PatientRegistrationForm({
     setDepartmentOptions(formData.departmentOptions)
     setReferredByOptions(formData.referralOptions)
     setPatientCategoryOptions(["Regular", ...formData.patientCategoryOptions.filter((o) => o !== "Regular")])
-    setCityOptions(formData.cityOptions)
+    setAddressOptions(formData.addressOptions)
   }, [formData])
 
   // ── Per-field "set as default" (localStorage-only — see file header) ──────
@@ -314,7 +308,7 @@ export function PatientRegistrationForm({
       gender: "",
       phone: "",
       email: "",
-      address: {},
+      address: "",
       guardianName: "",
       referredBy: savedRef,
       doctorName: savedDoctor,
@@ -381,11 +375,7 @@ export function PatientRegistrationForm({
       gender: patientData.gender as Patient["gender"],
       phone: patientData.phone.trim(),
       email: patientData.email.trim() || undefined,
-      addressLine: patientData.address.addressLine?.trim() || undefined,
-      area: patientData.address.area?.trim() || undefined,
-      city: patientData.address.city?.trim() || undefined,
-      state: patientData.address.state?.trim() || undefined,
-      pincode: patientData.address.pincode?.trim() || undefined,
+      address: patientData.address.trim() || undefined,
       guardianName: patientData.guardianName.trim() || undefined,
       referredBy: patientData.referredBy.trim() || undefined,
       doctorName: patientData.doctorName.trim() || undefined,
@@ -647,6 +637,18 @@ export function PatientRegistrationForm({
                 </div>
 
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                  {/* Address spans 2 of 3 columns, Patient Type takes the
+                      third — matches main's exact same-row layout. */}
+                  <AddressFields
+                    value={patientData.address}
+                    onChange={(address) => setPatientData((prev) => ({ ...prev, address }))}
+                    options={addressOptions}
+                    onAddOption={async (val) => {
+                      await addDropdownOption.mutateAsync({ fieldName: "address", value: val })
+                      setAddressOptions((prev) => [...prev, val].sort())
+                    }}
+                    className="sm:col-span-2"
+                  />
                   <FormField label="Patient Type">
                     <EditableComboboxWithAdd
                       options={patientCategoryOptions}
@@ -660,16 +662,6 @@ export function PatientRegistrationForm({
                     />
                   </FormField>
                 </div>
-
-                <AddressFields
-                  value={patientData.address}
-                  onChange={(address) => setPatientData((prev) => ({ ...prev, address }))}
-                  cityOptions={cityOptions}
-                  onAddCity={async (val) => {
-                    await addDropdownOption.mutateAsync({ fieldName: "city", value: val })
-                    setCityOptions((prev) => [...prev, val].sort())
-                  }}
-                />
               </FormSection>
 
               <FormSection title="Doctor Information">
@@ -1028,7 +1020,7 @@ export function PatientRegistrationForm({
                   mobile: patientData.phone || "—",
                   gender: receiptData.gender,
                   age: receiptData.age || "—",
-                  address: formatAddress(patientData.address) || "—",
+                  address: patientData.address || "—",
                   referredBy: patientData.referredBy || undefined,
                   receiptNo: receiptData.prescriptionNumber ?? undefined,
                   doctorName: receiptData.doctorName || "—",

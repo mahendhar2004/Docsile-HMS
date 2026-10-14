@@ -17,9 +17,7 @@
 import { useEffect, useState } from "react"
 import { format } from "date-fns"
 import type { DateRange } from "react-day-picker"
-import { Sparkles } from "lucide-react"
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs"
-import { Button } from "@/components/ui/button"
 import {
   PageHeader,
   SegmentedControl,
@@ -71,8 +69,6 @@ export default function AnalyticsPage() {
   // page is open; cleared on unmount so it doesn't leak into other pages.
   const setAiContext = useAiContextStore((s) => s.setAiContext)
   const clearAiContext = useAiContextStore((s) => s.clearAiContext)
-  const toggleSitha = useAiContextStore((s) => s.toggleOpen)
-  const sithaOpen = useAiContextStore((s) => s.open)
   useEffect(() => {
     setAiContext({ patientId: null, module: "analytics" })
     return () => clearAiContext()
@@ -106,18 +102,6 @@ export default function AnalyticsPage() {
       <PageHeader
         title="Analytics"
         description="Hospital analytics — revenue, patient trends, doctor performance, and operational insights."
-        actions={
-          <Button
-            variant={sithaOpen ? "primary" : "outline"}
-            size="sm"
-            onClick={toggleSitha}
-            aria-label="Ask Sitha AI"
-            className={!sithaOpen ? "bg-primary/5 border-primary/20 text-primary hover:bg-primary/10" : undefined}
-          >
-            <Sparkles className="h-3.5 w-3.5 mr-1.5" aria-hidden />
-            {sithaOpen ? "Hide Sitha" : "Ask Sitha"}
-          </Button>
-        }
         toolbar={
           <>
             <SegmentedControl

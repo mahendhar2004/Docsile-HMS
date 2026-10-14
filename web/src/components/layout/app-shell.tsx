@@ -1,6 +1,5 @@
 import type { ReactNode } from "react"
 import { Sidebar } from "@/components/patterns/navigation/sidebar"
-import { SithaWidget } from "./sitha-widget"
 import { InstallPrompt } from "./install-prompt"
 
 /**
@@ -15,8 +14,11 @@ import { InstallPrompt } from "./install-prompt"
  * can wrap the routed content in its own Suspense boundary while the
  * sidebar stays mounted during route-level code-split loading.
  *
- * Also mounts the two persistent, page-independent overlays: the global
- * Sitha AI floating widget and the PWA install prompt.
+ * The global Sitha AI floating widget (`./sitha-widget`) is deliberately
+ * NOT mounted — explicit product decision (2026-10-14): AI isn't part of
+ * reception/front-desk workflows for now. Per-page "Ask Sitha" header
+ * buttons were removed to match. The component itself is untouched, so
+ * re-enabling later is a two-line change (re-add the import + mount here).
  */
 export function AppShell({ children }: { children: ReactNode }) {
   return (
@@ -27,7 +29,6 @@ export function AppShell({ children }: { children: ReactNode }) {
           {children}
         </div>
       </main>
-      <SithaWidget />
       <InstallPrompt />
     </div>
   )

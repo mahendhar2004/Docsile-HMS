@@ -7,7 +7,7 @@
  * - old app SettingsPage.tsx MedicineMasterRow type + MedicinesTab
  */
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Plus } from "lucide-react"
 import {
   Table,
@@ -315,8 +315,9 @@ function MedicineFormDialog({ open, onClose, existing }: MedicineFormDialogProps
   const createM = useCreateMedicineMaster(() => onClose())
   const updateM = useUpdateMedicineMaster(existing?.id ?? "", () => onClose())
 
-  // Reset when opening
-  useState(() => {
+  // Reset when opening — see service-templates-section.tsx for why this
+  // must be useEffect, not useState (same copy-pasted bug, fixed there first).
+  useEffect(() => {
     if (open) {
       setName(existing?.name ?? "")
       setCategory(existing?.category ?? "")
@@ -326,7 +327,7 @@ function MedicineFormDialog({ open, onClose, existing }: MedicineFormDialogProps
       setSortOrder(String(existing?.sortOrder ?? "0"))
       setErrors({})
     }
-  })
+  }, [open, existing])
 
   async function handleSave() {
     const e: Record<string, string> = {}

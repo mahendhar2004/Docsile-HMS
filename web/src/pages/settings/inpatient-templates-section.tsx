@@ -8,7 +8,7 @@
  * IMPORTANT: field is `provisionDiagnosis` (NOT `provisionalDiagnosis`)
  */
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Plus, Pencil, Trash2 } from "lucide-react"
 import {
   Table,
@@ -297,6 +297,28 @@ function InpatientFormDialog({ open, onClose, existing }: InpatientFormDialogPro
 
   const createM = useCreateInpatientTemplate(() => onClose())
   const updateM = useUpdateInpatientTemplate(existing?.id ?? "", () => onClose())
+
+  // Reset when opening — this dialog is mounted once and kept alive (only
+  // `open` toggles visibility), so the useState initializers above only
+  // seed the very first render (same bug found and fixed in
+  // service-templates-section.tsx).
+  useEffect(() => {
+    if (open) {
+      setCode(existing?.code ?? "")
+      setName(existing?.name ?? "")
+      setOperationName(existing?.operationName ?? "")
+      setProvisionDiagnosis(existing?.provisionDiagnosis ?? "")
+      try {
+        const parsed = JSON.parse(existing?.medicines ?? "[]") as InpatientTemplateMed[]
+        setMeds(parsed.length > 0 ? parsed : [{ ...EMPTY_MED }])
+      } catch {
+        setMeds([{ ...EMPTY_MED }])
+      }
+      setFollowUpDays(String(existing?.followUpDays ?? ""))
+      setAdditionalNotes(existing?.additionalNotes ?? "")
+      setErrors({})
+    }
+  }, [open, existing])
 
   function updateMed(i: number, field: keyof InpatientTemplateMed, v: string) {
     setMeds((prev) => prev.map((m, j) => (j === i ? { ...m, [field]: v } : m)))

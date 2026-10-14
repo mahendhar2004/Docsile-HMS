@@ -157,35 +157,53 @@ export function WorkupQueue({ query, onSelectPatient }: WorkupQueueProps) {
   const { data, isLoading, error, refetch } = query
   const columns = React.useMemo(() => buildColumns(), [])
 
+  // Card container — matches main's exact queue-table wrapper (`rounded-xl
+  // border border-border/60 bg-white overflow-hidden shadow-sm`, same card
+  // treatment on every state: loading/error/empty/data). Previously missing
+  // here, so the queue sat flat against the page background with no visual
+  // separation, unlike every other table in the app (which goes through the
+  // shared PaginatedDataTable, which already supplies this wrapper).
+  const cardClass = "rounded-[var(--radius-lg)] bg-[var(--color-card)] overflow-hidden shadow-[var(--shadow-card)]"
+
   if (isLoading) {
-    return <WorkupQueueSkeleton />
+    return (
+      <div className={cardClass}>
+        <WorkupQueueSkeleton />
+      </div>
+    )
   }
 
   if (error) {
     return (
-      <ErrorState
-        title="Could not load workup queue"
-        error={error}
-        onRetry={() => void refetch()}
-      />
+      <div className={cardClass}>
+        <ErrorState
+          title="Could not load workup queue"
+          error={error}
+          onRetry={() => void refetch()}
+        />
+      </div>
     )
   }
 
   if (!data || data.length === 0) {
     return (
-      <EmptyState
-        title="No patients in the workup queue"
-        description="There are no OPD patients with appointments or prescriptions today."
-      />
+      <div className={cardClass}>
+        <EmptyState
+          title="No patients in the workup queue"
+          description="There are no OPD patients with appointments or prescriptions today."
+        />
+      </div>
     )
   }
 
   return (
-    <DataTable<WorkupQueuePatient>
-      data={data}
-      columns={columns}
-      aria-label="Today's workup queue"
-      onRowClick={onSelectPatient}
-    />
+    <div className={cardClass}>
+      <DataTable<WorkupQueuePatient>
+        data={data}
+        columns={columns}
+        aria-label="Today's workup queue"
+        onRowClick={onSelectPatient}
+      />
+    </div>
   )
 }

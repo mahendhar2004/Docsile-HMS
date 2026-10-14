@@ -51,7 +51,6 @@ import {
   PhoneInput,
   CurrencyInput,
   AddressFields,
-  type AddressValue,
 } from "@/components/patterns"
 import { cn, calculateAge, formatCurrency, todayISO } from "@/lib/utils"
 import {
@@ -81,7 +80,7 @@ interface WizardState {
   gender: string
   dateOfBirth: string
   phone: string
-  address: AddressValue
+  address: string
   guardianName: string
   referredBy: string
   admissionNotes: string
@@ -113,7 +112,7 @@ const EMPTY_STATE: WizardState = {
   gender: "",
   dateOfBirth: "",
   phone: "",
-  address: {},
+  address: "",
   guardianName: "",
   referredBy: "",
   admissionNotes: "",
@@ -191,14 +190,14 @@ export function InPatientAdmissionForm({
   const [doctorOptions, setDoctorOptions] = useState<string[]>([])
   const [departmentOptions, setDepartmentOptions] = useState<string[]>([])
   const [referralOptions, setReferralOptions] = useState<string[]>([])
-  const [cityOptions, setCityOptions] = useState<string[]>([])
+  const [addressOptions, setAddressOptions] = useState<string[]>([])
 
   useEffect(() => {
     if (!formData) return
     setDoctorOptions(formData.doctorOptions)
     setDepartmentOptions(formData.departmentOptions)
     setReferralOptions(formData.referralOptions)
-    setCityOptions(formData.cityOptions)
+    setAddressOptions(formData.addressOptions)
   }, [formData])
 
   const addDropdownOption = useAddDropdownOption()
@@ -230,13 +229,7 @@ export function InPatientAdmissionForm({
       age: r.age != null ? String(r.age) : prev.age,
       gender: r.gender ? r.gender.toUpperCase() : prev.gender,
       phone: r.phone ?? prev.phone,
-      address: {
-        addressLine: r.addressLine ?? prev.address.addressLine,
-        area: r.area ?? prev.address.area,
-        city: r.city ?? prev.address.city,
-        state: r.state ?? prev.address.state,
-        pincode: r.pincode ?? prev.address.pincode,
-      },
+      address: r.address ?? prev.address,
       guardianName: r.guardianName ?? prev.guardianName,
       dateOfBirth: r.dateOfBirth ? r.dateOfBirth.slice(0, 10) : prev.dateOfBirth,
     }))
@@ -449,11 +442,7 @@ export function InPatientAdmissionForm({
         gender: state.gender as "MALE" | "FEMALE" | "OTHER",
         phone: state.phone.trim(),
         dateOfBirth: state.dateOfBirth || undefined,
-        addressLine: state.address.addressLine?.trim() || undefined,
-        area: state.address.area?.trim() || undefined,
-        city: state.address.city?.trim() || undefined,
-        state: state.address.state?.trim() || undefined,
-        pincode: state.address.pincode?.trim() || undefined,
+        address: state.address.trim() || undefined,
         guardianName: state.guardianName.trim() || undefined,
         referredBy: state.referredBy.trim() || undefined,
         admissionDate: state.admissionDate,
@@ -701,10 +690,10 @@ export function InPatientAdmissionForm({
                       <AddressFields
                         value={state.address}
                         onChange={(address) => setState((p) => ({ ...p, address }))}
-                        cityOptions={cityOptions}
-                        onAddCity={async (val) => {
-                          await addDropdownOption.mutateAsync({ fieldName: "city", value: val })
-                          setCityOptions((prev) => [...prev, val].sort())
+                        options={addressOptions}
+                        onAddOption={async (val) => {
+                          await addDropdownOption.mutateAsync({ fieldName: "address", value: val })
+                          setAddressOptions((prev) => [...prev, val].sort())
                         }}
                       />
                     </div>

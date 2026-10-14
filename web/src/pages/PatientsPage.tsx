@@ -11,8 +11,6 @@
  *   - Stats — unconditional on both tabs, matching main exactly (main's own
  *     Stats modal is OPD-scoped regardless of which tab is active too, so
  *     this isn't a fabricated behavior, just main's own quirk preserved)
- *   - Ask Sitha (toggles the same global panel every page's header button
- *     shares, via useAiContextStore)
  *   - Add Patient — unconditional on both tabs (gated per-tab by
  *     patients:create / inpatients:create, matching main exactly); opens
  *     OPD's Register dialog inline, or the IPD admission wizard inline
@@ -40,7 +38,7 @@
 
 import { useRef, useState } from "react"
 import { useNavigate } from "react-router-dom"
-import { BarChart2, Plus, Sparkles } from "lucide-react"
+import { BarChart2, Plus } from "lucide-react"
 import {
   Tabs,
   TabsList,
@@ -51,7 +49,6 @@ import { Button } from "@/components/ui/button"
 import { PageHeader } from "@/components/patterns"
 import { ErrorState } from "@/components/patterns"
 import { usePermissions } from "@/hooks/usePermissions"
-import { useAiContextStore } from "@/store/ai-context"
 import { OpdTab, type OpdTabHandle } from "./patient-care/opd-tab"
 import { IpdTab, type IpdTabHandle } from "./patient-care/ipd-tab"
 import { InPatientAdmissionForm } from "./patient-care/inpatient-admission-form"
@@ -62,8 +59,6 @@ import { toLocalDateISO } from "@/lib/utils"
 export default function PatientsPage() {
   const { can } = usePermissions()
   const navigate = useNavigate()
-  const toggleSitha = useAiContextStore((s) => s.toggleOpen)
-  const sithaOpen = useAiContextStore((s) => s.open)
 
   // Resolve all permissions up front (all hooks called unconditionally).
   const canViewOPD = can("patients:view")
@@ -118,7 +113,12 @@ export default function PatientsPage() {
       onValueChange={(v) => setActiveTab(v as "opd" | "ipd")}
       variant="underline"
     >
-      <main className="space-y-5">
+      {/* No space-y wrapper here — OpdTab/IpdTab's own toolbar (PageToolbar)
+          must sit flush against PageHeader with zero gap, matching main's
+          real FilterBar (identical classes, no margin-top of its own —
+          the gap after it is FilterBar's OWN mb-3/mb-5, not an outer one).
+          Each tab's root div supplies its own internal spacing instead. */}
+      <main>
         <PageHeader
           title="Patients"
           description="Registration & management"
@@ -146,17 +146,6 @@ export default function PatientsPage() {
               >
                 <BarChart2 className="h-3.5 w-3.5 mr-1.5" aria-hidden />
                 Stats
-              </Button>
-
-              <Button
-                variant={sithaOpen ? "primary" : "outline"}
-                size="sm"
-                onClick={toggleSitha}
-                aria-label="Ask Sitha AI"
-                className={!sithaOpen ? "bg-primary/5 border-primary/20 text-primary hover:bg-primary/10" : undefined}
-              >
-                <Sparkles className="h-3.5 w-3.5 mr-1.5" aria-hidden />
-                {sithaOpen ? "Hide Sitha" : "Ask Sitha"}
               </Button>
 
               {(activeTab === "opd" ? canCreatePatient : canCreateInPatient) && (

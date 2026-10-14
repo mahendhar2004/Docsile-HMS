@@ -64,7 +64,6 @@ import {
   TextInput,
   PhoneInput,
   SingleSelect,
-  AddressFields,
   ConfirmationModal,
   EmptyState,
   PageToolbar,
@@ -88,11 +87,7 @@ const editSchema = z.object({
   email: z.string().email("Invalid email").optional().or(z.literal("")),
   gender: z.enum(["Male", "Female", "Other"]),
   dateOfBirth: z.date().optional(),
-  addressLine: z.string().optional(),
-  area: z.string().optional(),
-  city: z.string().optional(),
-  state: z.string().optional(),
-  pincode: z.string().optional(),
+  address: z.string().optional(),
   patientType: z.string().min(1, "Patient type is required"),
   appointmentDate: z.date(),
   referredBy: z.string().optional(),
@@ -128,7 +123,7 @@ function PatientEditForm({ patient, open, onOpenChange, onSuccess }: PatientEdit
     onOpenChange(false)
   })
 
-  const { register, control, handleSubmit, reset, watch, setValue, formState: { errors } } = useForm<EditFormValues>({
+  const { register, control, handleSubmit, reset, formState: { errors } } = useForm<EditFormValues>({
     resolver: zodResolver(editSchema),
   })
 
@@ -141,11 +136,7 @@ function PatientEditForm({ patient, open, onOpenChange, onSuccess }: PatientEdit
         email: patient.email ?? "",
         gender: patient.gender,
         dateOfBirth: patient.dateOfBirth ? new Date(patient.dateOfBirth) : undefined,
-        addressLine: patient.addressLine ?? "",
-        area: patient.area ?? "",
-        city: patient.city ?? "",
-        state: patient.state ?? "",
-        pincode: patient.pincode ?? "",
+        address: patient.address ?? "",
         patientType: patient.patientType,
         appointmentDate: new Date(patient.appointmentDate),
         referredBy: patient.referredBy ?? "",
@@ -162,11 +153,7 @@ function PatientEditForm({ patient, open, onOpenChange, onSuccess }: PatientEdit
       email: values.email || null,
       gender: values.gender,
       dateOfBirth: values.dateOfBirth ? format(values.dateOfBirth, "yyyy-MM-dd") : null,
-      addressLine: values.addressLine || null,
-      area: values.area || null,
-      city: values.city || null,
-      state: values.state || null,
-      pincode: values.pincode || null,
+      address: values.address || null,
       patientType: values.patientType,
       appointmentDate: format(values.appointmentDate, "yyyy-MM-dd"),
       referredBy: values.referredBy || null,
@@ -208,28 +195,9 @@ function PatientEditForm({ patient, open, onOpenChange, onSuccess }: PatientEdit
                 )} />
               </FormField>
             </div>
-            <Controller
-              name="addressLine"
-              control={control}
-              render={() => (
-                <AddressFields
-                  value={{
-                    addressLine: watch("addressLine"),
-                    area: watch("area"),
-                    city: watch("city"),
-                    state: watch("state"),
-                    pincode: watch("pincode"),
-                  }}
-                  onChange={(address) => {
-                    setValue("addressLine", address.addressLine ?? "")
-                    setValue("area", address.area ?? "")
-                    setValue("city", address.city ?? "")
-                    setValue("state", address.state ?? "")
-                    setValue("pincode", address.pincode ?? "")
-                  }}
-                />
-              )}
-            />
+            <FormField label="Address" htmlFor={`${formId}-addr`}>
+              <TextInput id={`${formId}-addr`} placeholder="Patient address / region" {...register("address")} />
+            </FormField>
           </FormSection>
           <FormSection title="Visit Information">
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -642,59 +610,61 @@ export const OpdTab = forwardRef<OpdTabHandle, OpdTabProps>(function OpdTab({
   return (
     <div className="space-y-4">
       {/* ── Toolbar ──────────────────────────────────────────────────────── */}
+      {/* Explicit layout deviation from main per user request (2026-10-14):
+          filters/configuration on the left, date + search pushed to the
+          far right (main itself puts Date+Search on the left) — not a
+          main-parity change. */}
       <PageToolbar className="items-start sm:items-center">
-        {/* Date navigator — matches main's DateNavigator exactly (prev/date/next + Today) */}
-        <DateNavigator
-          date={dateStr}
-          onDateChange={(iso) => {
-            onViewDateChange(new Date(iso + "T00:00:00"))
-            setPage(1)
-          }}
-          onPrev={() => navigateDate(-1)}
-          onNext={() => navigateDate(1)}
-          onToday={() => {
-            onViewDateChange(new Date())
-            setPage(1)
-          }}
-          isToday={dateStr === format(new Date(), "yyyy-MM-dd")}
-        />
-
-        {/* Existing patient search */}
-        <div className="flex-1 max-w-sm">
-          <SearchBar<Patient>
-            variant="with-autocomplete"
-            value={searchQ}
-            onChange={setSearchQ}
-            suggestions={searchSuggestions}
-            onSuggestionSelect={handleSearchSelect}
-            onSearch={handleListFilterSearch}
-            isLoadingSuggestions={isSearching}
-            placeholder="Search patient by name, phone, ID…"
-            aria-label="Search existing patients"
-            renderSuggestion={(s) => (
-              <div className="flex flex-col gap-0.5">
-                <span className="font-medium">{s.label}</span>
-                <span className="text-xs text-[var(--color-muted-foreground)]">
-                  {s.value.patientId} · {s.value.phone}
-                </span>
-              </div>
-            )}
-          />
-        </div>
-
-        {/* Configurations shortcut — matches main's FilterBar placement exactly
-            (main's Register/Add Patient button lives in the page header
-            instead, one level up, not in this toolbar). */}
         <IconButton
           variant="outline"
           size="sm"
-          className="ml-auto"
           onClick={onOpenSettings}
           aria-label="Open configurations"
           title="Configurations"
         >
           <Settings className="h-4 w-4" aria-hidden />
         </IconButton>
+
+        <div className="flex items-start sm:items-center gap-2 sm:gap-3 ml-auto">
+          {/* Date navigator — matches main's DateNavigator exactly (prev/date/next + Today) */}
+          <DateNavigator
+            date={dateStr}
+            onDateChange={(iso) => {
+              onViewDateChange(new Date(iso + "T00:00:00"))
+              setPage(1)
+            }}
+            onPrev={() => navigateDate(-1)}
+            onNext={() => navigateDate(1)}
+            onToday={() => {
+              onViewDateChange(new Date())
+              setPage(1)
+            }}
+            isToday={dateStr === format(new Date(), "yyyy-MM-dd")}
+          />
+
+          {/* Existing patient search */}
+          <div className="max-w-sm">
+            <SearchBar<Patient>
+              variant="with-autocomplete"
+              value={searchQ}
+              onChange={setSearchQ}
+              suggestions={searchSuggestions}
+              onSuggestionSelect={handleSearchSelect}
+              onSearch={handleListFilterSearch}
+              isLoadingSuggestions={isSearching}
+              placeholder="Search patient by name, phone, ID…"
+              aria-label="Search existing patients"
+              renderSuggestion={(s) => (
+                <div className="flex flex-col gap-0.5">
+                  <span className="font-medium">{s.label}</span>
+                  <span className="text-xs text-[var(--color-muted-foreground)]">
+                    {s.value.patientId} · {s.value.phone}
+                  </span>
+                </div>
+              )}
+            />
+          </div>
+        </div>
       </PageToolbar>
 
       {/* ── Patient table ─────────────────────────────────────────────────── */}

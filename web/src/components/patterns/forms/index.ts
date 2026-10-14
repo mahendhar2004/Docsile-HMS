@@ -14,4 +14,4 @@ export { PhoneInput } from "./phone-input"
 export type { PhoneInputProps, PhoneInputSize } from "./phone-input"
 
 export { AddressFields } from "./address-fields"
-export type { AddressFieldsProps, AddressValue } from "./address-fields"
+export type { AddressFieldsProps } from "./address-fields"

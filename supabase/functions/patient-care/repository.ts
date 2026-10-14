@@ -131,9 +131,22 @@ export class PatientCareRepository {
   /**
    * Advance the patient_number_seq sequence and return the next value.
    * H-3 fix: replaces the old "SELECT MAX + 1" race-condition pattern.
+   * Consumes a slot — only call this when actually creating a patient.
    */
   async getNextPatientNumber(): Promise<number> {
     const { data, error } = await this.supabase.rpc('next_patient_number');
+    if (error) throw new ServiceUnavailableError('Supabase', error.message);
+    return data as number;
+  }
+
+  /**
+   * Preview what next_patient_number() would return, without consuming a
+   * sequence slot (reads the sequence's own state, doesn't call nextval()).
+   * Use for display-only previews (GET /patients/next-id) — never for an
+   * actual patientId assignment, which must call getNextPatientNumber().
+   */
+  async peekNextPatientNumber(): Promise<number> {
+    const { data, error } = await this.supabase.rpc('peek_patient_number');
     if (error) throw new ServiceUnavailableError('Supabase', error.message);
     return data as number;
   }
@@ -444,9 +457,20 @@ export class PatientCareRepository {
   /**
    * Advance the ip_number_seq sequence and return the next value.
    * H-3 fix: replaces the old "SELECT MAX + 1" race-condition pattern.
+   * Consumes a slot — only call this when actually creating an inpatient.
    */
   async getNextIpNumber(): Promise<number> {
     const { data, error } = await this.supabase.rpc('next_ip_number');
+    if (error) throw new ServiceUnavailableError('Supabase', error.message);
+    return data as number;
+  }
+
+  /**
+   * Preview what next_ip_number() would return, without consuming a
+   * sequence slot. Use for display-only previews (GET /inpatients/next-id).
+   */
+  async peekNextIpNumber(): Promise<number> {
+    const { data, error } = await this.supabase.rpc('peek_ip_number');
     if (error) throw new ServiceUnavailableError('Supabase', error.message);
     return data as number;
   }
@@ -469,7 +493,7 @@ export class PatientCareRepository {
         .from('DropdownOption')
         .select('fieldName, value')
         .eq('hospital_id', this.hospitalId)
-        .in('fieldName', ['doctorName', 'department', 'referredBy', 'city'])
+        .in('fieldName', ['doctorName', 'department', 'referredBy', 'address', 'city'])
         .order('value', { ascending: true }),
       this.supabase
         .from('PredefinedSurgery')

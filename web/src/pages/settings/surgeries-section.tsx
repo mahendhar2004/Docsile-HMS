@@ -10,7 +10,7 @@
  * (old app uses JSON.parse on them).
  */
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Plus } from "lucide-react"
 import {
   Table,
@@ -263,6 +263,33 @@ function SurgeryDialog({ open, onClose, existing }: SurgeryDialogProps) {
 
   const createM = useCreateSurgery(() => onClose())
   const updateM = useUpdateSurgery(existing?.id ?? "", () => onClose())
+
+  // Reset when opening — this dialog is mounted once and kept alive (only
+  // `open` toggles visibility), so the useState initializers above only
+  // seed the very first render (same bug found and fixed in
+  // service-templates-section.tsx).
+  useEffect(() => {
+    if (open) {
+      setName(existing?.name ?? "")
+      setDepartment(existing?.department ?? "")
+      if (!existing) {
+        setDoctorNames([""])
+        setOnDutyDoctors([""])
+      } else {
+        try {
+          const parsed = JSON.parse(existing.doctorNames ?? "[]") as string[]
+          setDoctorNames(parsed.length > 0 ? parsed : [""])
+        } catch { setDoctorNames([""]) }
+        try {
+          const parsed = JSON.parse(existing.onDutyDoctors ?? "[]") as string[]
+          setOnDutyDoctors(parsed.length > 0 ? parsed : [""])
+        } catch { setOnDutyDoctors([""]) }
+      }
+      setProvisionDiagnosis(existing?.provisionDiagnosis ?? "")
+      setOperationProcedure(existing?.operationProcedure ?? "")
+      setOperationDetails(existing?.operationDetails ?? "")
+    }
+  }, [open, existing])
 
   // Doctor-name autocomplete — matches main's real SurgeryFormDialog, which
   // feeds both Doctor Names and On-Duty Doctors from the same tenant-editable

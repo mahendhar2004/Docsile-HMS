@@ -7,7 +7,7 @@
  * - old app SettingsPage.tsx DischargeRow type + DischargeFormDialog
  */
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Plus } from "lucide-react"
 import {
   Table,
@@ -237,6 +237,21 @@ function DischargeDialog({ open, onClose, existing }: DischargeDialogProps) {
 
   const createM = useCreateDischarge(() => onClose())
   const updateM = useUpdateDischarge(existing?.id ?? "", () => onClose())
+
+  // Reset when opening — this dialog is mounted once and kept alive (only
+  // `open` toggles visibility), so the useState initializers above only
+  // seed the very first render. Without this, reopening for "Add" after an
+  // edit (or editing a different row) left every field showing whatever was
+  // last loaded/typed (same bug found and fixed in service-templates-section.tsx).
+  useEffect(() => {
+    if (open) {
+      setName(existing?.name ?? "")
+      setDischargeDiagnosis(existing?.dischargeDiagnosis ?? "")
+      setConditionAtDischarge(existing?.conditionAtDischarge ?? "")
+      setDischargeMedications(existing?.dischargeMedications ?? "")
+      setFollowUpInstructions(existing?.followUpInstructions ?? "")
+    }
+  }, [open, existing])
 
   async function handleSave() {
     if (!name.trim()) return

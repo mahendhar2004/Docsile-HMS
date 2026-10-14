@@ -431,6 +431,7 @@ export interface AdmissionFormData {
   doctorOptions: string[]
   departmentOptions: string[]
   referralOptions: string[]
+  addressOptions: string[]
   cityOptions: string[]
   predefinedSurgeries: PredefinedSurgery[]
   predefinedPackages: PredefinedPackage[]

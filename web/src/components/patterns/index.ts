@@ -42,7 +42,6 @@ export type {
   PhoneInputProps,
   PhoneInputSize,
   AddressFieldsProps,
-  AddressValue,
 } from "./forms"
 
 // Selection

@@ -7,7 +7,7 @@
  * - old app SettingsPage.tsx PrescriptionTemplateRow + PrescriptionFormDialog
  */
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Plus } from "lucide-react"
 import {
   Table,
@@ -314,6 +314,35 @@ function PrescriptionFormDialog({ open, onClose, existing }: PrescriptionFormDia
 
   const createM = useCreatePrescriptionTemplate(() => onClose())
   const updateM = useUpdatePrescriptionTemplate(existing?.id ?? "", () => onClose())
+
+  // Reset when opening — this dialog is mounted once and kept alive (only
+  // `open` toggles visibility), so the useState initializers above only
+  // seed the very first render (same bug found and fixed in
+  // service-templates-section.tsx).
+  useEffect(() => {
+    if (open) {
+      setCode(existing?.code ?? "")
+      setName(existing?.name ?? "")
+      setPresentComplaint(existing?.presentComplaint ?? "")
+      setPreviousHistory(existing?.previousHistory ?? "")
+      setProvisionalDiagnosis(existing?.provisionalDiagnosis ?? "")
+      try {
+        const parsed = JSON.parse(existing?.medicines ?? "[]") as PrescriptionTemplateMed[]
+        setMeds(parsed.length > 0 ? parsed : [{ ...EMPTY_MED }])
+      } catch {
+        setMeds([{ ...EMPTY_MED }])
+      }
+      try {
+        const parsed = JSON.parse(existing?.investigations ?? "[]") as string[]
+        setInvestigations(parsed.length > 0 ? parsed : [""])
+      } catch {
+        setInvestigations([""])
+      }
+      setFollowUpDays(String(existing?.followUpDays ?? ""))
+      setAdditionalNotes(existing?.additionalNotes ?? "")
+      setErrors({})
+    }
+  }, [open, existing])
 
   function updateMed(i: number, field: keyof PrescriptionTemplateMed, v: string) {
     setMeds((prev) => prev.map((m, j) => (j === i ? { ...m, [field]: v } : m)))
