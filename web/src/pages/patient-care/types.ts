@@ -61,16 +61,30 @@ export interface Patient {
   id: string
   patientId: string
   firstName: string
-  lastName: string
+  lastName?: string | null
   phone: string
   email?: string | null
   gender: PatientGender
   dateOfBirth?: string | null
+  age?: number | null
+  /** Kept for backward-compat display reads — new writes use the structured fields below. */
   address?: string | null
+  addressLine?: string | null
+  area?: string | null
+  city?: string | null
+  state?: string | null
+  pincode?: string | null
+  guardianName?: string | null
+  guardianRelation?: string | null
+  doctorName?: string | null
+  department?: string | null
+  /** Open, tenant-editable "patient type" tag (e.g. "Regular") — unrelated to patientType (OPD/IPD). */
+  patientCategory?: string | null
   patientType: string
   appointmentDate: string
   status?: string | null
   referredBy?: string | null
+  notes?: string | null
   createdById?: string | null
   hospitalId: string
   createdAt: string
@@ -90,15 +104,27 @@ export interface Patient {
  */
 export interface CreatePatientBody {
   firstName: string
-  lastName: string
+  lastName?: string | null
   phone: string
   email?: string | null
   gender: PatientGender
   dateOfBirth?: string | null
+  age?: number | null
   address?: string | null
+  addressLine?: string | null
+  area?: string | null
+  city?: string | null
+  state?: string | null
+  pincode?: string | null
+  guardianName?: string | null
+  guardianRelation?: string | null
+  doctorName?: string | null
+  department?: string | null
+  patientCategory?: string | null
   patientType: string
   appointmentDate: string
   referredBy?: string | null
+  notes?: string | null
 }
 
 /**
@@ -125,57 +151,119 @@ export interface MovePatientDateBody {
 
 export type InPatientStatus = "admitted" | "discharged"
 
+export interface PackageInclusion {
+  name: string
+  amount: number
+}
+
+export interface PaymentRecord {
+  date: string
+  amountType: string
+  paymentMode: string
+  amount: number
+  notes?: string
+}
+
 /**
- * InPatient record — mirrors the InPatient schema in openapi.yaml, plus real
- * DB columns openapi.yaml under-documents (confirmed in
- * db/create-hospital-db.sql's InPatient table DDL): `operationName` (TEXT)
- * and `balanceAmount` (DOUBLE PRECISION), both already returned by
- * `.select('*')` in repository.ts, just never declared here before.
- * `onDutyDoctors`, `paymentRecords`, `prescriptions` are JSON-encoded arrays.
+ * InPatient record — a self-contained demographic + admission + operation +
+ * billing record in main (not a thin link to Patient); `patientId` is only
+ * an optional reference to an existing OPD patient found via lookup, never
+ * a required FK. Note the DB stores doctorNames/onDutyDoctors/
+ * packageInclusions/paymentRecords as JSON-encoded strings — parse before
+ * display, stringify before sending.
  */
 export interface InPatient {
   id: string
   ipNumber: string
-  patientId: string
+  patientId?: string | null
+  name: string
+  age: number
+  gender: "MALE" | "FEMALE" | "OTHER"
+  phone: string
+  /** Kept for backward-compat display reads — new writes use the structured fields below. */
+  address?: string | null
+  addressLine?: string | null
+  area?: string | null
+  city?: string | null
+  state?: string | null
+  pincode?: string | null
+  dateOfBirth?: string | null
+  guardianName?: string | null
   admissionDate: string
-  dischargeDate?: string | null
-  status: InPatientStatus
-  ward?: string | null
-  bedNumber?: string | null
+  admissionNotes?: string | null
+  referredBy?: string | null
+  department?: string | null
+  doctorNames: string
   onDutyDoctors: string
-  paymentRecords: string
-  prescriptions: string
   operationName?: string | null
-  balanceAmount?: number
+  operationDate?: string | null
+  operationProcedure?: string | null
+  operationDetails?: string | null
+  provisionDiagnosis?: string | null
+  dischargeDate?: string | null
+  dischargeNotes?: string | null
+  packageAmount: number
+  packageInclusions?: string | null
+  discount: number
+  netAmount: number
+  totalReceivedAmount: number
+  balanceAmount: number
+  paymentRecords?: string | null
+  prescriptions?: string | null
+  status: string
   hospitalId: string
   createdById?: string | null
   createdAt: string
   /**
-   * Joined from Patient (InPatient.patientId -> Patient.id) by
-   * listInPatients/getInPatientById in the backend — previously undeclared
-   * here even though the comment said "backend may join," and in fact the
-   * backend never did, so every row fell back to a truncated UUID.
+   * Legacy fields the quick-glance IPD tab list (`ipd-tab.tsx`) still reads —
+   * `ward`/`bedNumber` don't match the real DB column (`wardName`) and have
+   * likely always been undefined there (a separate, pre-existing issue, not
+   * introduced by the admission wizard rebuild); `firstName`/`lastName` come
+   * from the backend's Patient join. Kept optional for backward compat with
+   * that list view, which is out of scope for this change.
    */
+  ward?: string | null
+  bedNumber?: string | null
   firstName?: string
   lastName?: string
-  phone?: string
-  gender?: string
-  dateOfBirth?: string | null
 }
 
 /**
  * Request body for POST /patient-care/inpatients (admission).
- * Server assigns id, ipNumber, hospitalId, createdById, createdAt.
+ * Server assigns id, ipNumber, hospitalId, createdById, createdAt, status,
+ * and computes netAmount/totalReceivedAmount/balanceAmount from
+ * packageAmount/discount/paymentRecords.
  */
 export interface CreateInPatientBody {
-  patientId: string
+  patientId?: string | null
+  name: string
+  age: number
+  gender: "MALE" | "FEMALE" | "OTHER"
+  phone: string
+  address?: string | null
+  addressLine?: string | null
+  area?: string | null
+  city?: string | null
+  state?: string | null
+  pincode?: string | null
+  dateOfBirth?: string | null
+  guardianName?: string | null
   admissionDate: string
-  status?: InPatientStatus
-  ward?: string | null
-  bedNumber?: string | null
-  onDutyDoctors?: string
-  paymentRecords?: string
-  prescriptions?: string
+  admissionNotes?: string | null
+  referredBy?: string | null
+  department?: string | null
+  doctorNames: string[]
+  onDutyDoctors: string[]
+  operationName?: string | null
+  operationDate?: string | null
+  operationProcedure?: string | null
+  operationDetails?: string | null
+  provisionDiagnosis?: string | null
+  dischargeDate?: string | null
+  packageAmount: number
+  packageInclusions?: PackageInclusion[]
+  discount?: number
+  paymentRecords?: PaymentRecord[]
 }
 
 /**
@@ -203,6 +291,41 @@ export interface AddServiceBody {
   serviceTemplateId: string
   paymentMode: string
   amount?: number
+}
+
+/** One line item in CreatePrescriptionWithBillingBody.invoiceItems. */
+export interface InvoiceItemBody {
+  description: string
+  category?: string | null
+  quantity: number
+  unitPrice: number
+  amount: number
+}
+
+/**
+ * Request body for POST /patient-care/patients/{id}/prescriptions — the
+ * generic multi-item billing endpoint the registration wizard's Services &
+ * Payment step uses (as opposed to /services, which only takes one
+ * ServiceTemplate at a time). Reuses the service-layer's "roll into today's
+ * existing Prescription" behavior.
+ */
+export interface CreatePrescriptionWithBillingBody {
+  prescription?: {
+    prescriptionDate?: string
+    discount?: number
+    discountReason?: string
+    diagnosis?: string
+  }
+  invoiceItems?: InvoiceItemBody[]
+  payment?: {
+    paymentMode: string
+    amount: number
+  }
+}
+
+export interface CreatePrescriptionWithBillingResponse {
+  prescriptionId: string
+  prescriptionNumber: string
 }
 
 // ─── Dropdown options ─────────────────────────────────────────────────────────
@@ -240,32 +363,77 @@ export interface NextIpNumberData {
 
 /**
  * Reference data for the patient registration form
- * (GET /patient-care/patients/registration-form).
- * Shape is not detailed in the spec — using a loose type.
+ * (GET /patient-care/patients/registration-form) — matches
+ * service.ts's getPatientRegistrationFormData() return shape exactly.
  */
 export interface RegistrationFormData {
-  serviceTemplates?: ServiceTemplate[]
-  patientTypes?: string[]
-  referralSources?: string[]
-  [key: string]: unknown
+  hospitalProfile: HospitalProfileSummary | null
+  serviceTemplates: ServiceTemplate[]
+  doctorOptions: string[]
+  departmentOptions: string[]
+  referralOptions: string[]
+  addressOptions: string[]
+  patientCategoryOptions: string[]
+  cityOptions: string[]
+}
+
+/** Just the fields the registration wizard's receipt step and registration-fee toggle need. */
+export interface HospitalProfileSummary {
+  name: string
+  displayName?: string | null
+  address?: string | null
+  phone?: string | null
+  email?: string | null
+  website?: string | null
+  registrationNo?: string | null
+  logoUrl?: string | null
+  registrationFeeEnabled?: boolean
+  registrationFeeAmount?: number | null
+  registrationFeeDefaultChecked?: boolean
 }
 
 export interface ServiceTemplate {
   id: string
   name: string
   amount: number
-  category?: string
+  category: string
+  discount: number
+  isActive: boolean
+  sortOrder: number
+}
+
+export interface PredefinedSurgery {
+  id: string
+  name: string
+  department?: string | null
+  doctorNames: string
+  onDutyDoctors: string
+  provisionDiagnosis?: string | null
+  operationProcedure?: string | null
+  operationDetails?: string | null
+}
+
+export interface PredefinedPackage {
+  id: string
+  name: string
+  totalAmount: number
+  inclusions: string
+  discount?: number | null
 }
 
 /**
- * Reference data for the inpatient admission form
- * (GET /patient-care/inpatients/admission-form).
+ * Reference data for the inpatient admission form, bundled in one call
+ * (GET /patient-care/inpatients/admission-form) — mirrors main's
+ * getInPatientAdmissionFormData exactly.
  */
 export interface AdmissionFormData {
-  wards?: string[]
-  surgeryTypes?: string[]
-  doctors?: string[]
-  [key: string]: unknown
+  hospitalProfile: HospitalProfileSummary | null
+  doctorOptions: string[]
+  departmentOptions: string[]
+  referralOptions: string[]
+  cityOptions: string[]
+  predefinedSurgeries: PredefinedSurgery[]
+  predefinedPackages: PredefinedPackage[]
 }
 
 // ─── Receipt data (GET /patient-care/patients/{id}/receipt) ───────────────────

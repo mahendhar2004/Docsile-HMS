@@ -54,3 +54,4 @@ web/.vite
 # Supabase Edge Functions local dev artifacts
 supabase/.branches
 supabase/.temp
+.claude/TODO.md

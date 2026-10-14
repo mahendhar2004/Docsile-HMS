@@ -26,6 +26,8 @@
  *   - useDeleteInPatient
  *   - useUpdateInPatientStatus
  *   - useAddService
+ *   - useCreatePrescriptionWithBilling
+ *   - useAddDropdownOption
  */
 
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query"
@@ -48,6 +50,8 @@ import type {
   UpdateInPatientStatusBody,
   UpdateInPatientBasicInfoBody,
   AddServiceBody,
+  CreatePrescriptionWithBillingBody,
+  CreatePrescriptionWithBillingResponse,
   PatientReceiptData,
 } from "./types"
 
@@ -479,6 +483,49 @@ export function useAddService(patientId: string, onSuccess?: () => void) {
     onSuccess: () => {
       void qc.invalidateQueries({ queryKey: patientCareKeys.patientDetail(patientId) })
       onSuccess?.()
+    },
+  })
+}
+
+/**
+ * Create (or roll into today's existing) prescription with an arbitrary set
+ * of billed line items + one payment — the registration wizard's Step 2
+ * ("Services & Payment") uses this generic endpoint rather than /services
+ * (which only accepts one ServiceTemplate at a time).
+ * Endpoint: POST /patient-care/patients/{id}/prescriptions
+ * Permission: billing:create
+ */
+export function useCreatePrescriptionWithBilling(patientId: string) {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (body: CreatePrescriptionWithBillingBody) =>
+      apiClient
+        .post<CreatePrescriptionWithBillingResponse>(
+          `/patient-care/patients/${patientId}/prescriptions`,
+          body,
+        )
+        .then((e) => e.data),
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: patientCareKeys.patients() })
+      void qc.invalidateQueries({ queryKey: patientCareKeys.patientDetail(patientId) })
+    },
+  })
+}
+
+/**
+ * Add a new value to an open, tenant-editable dropdown list (Doctor Name,
+ * Department, Referred By, Address, Patient Type) — the registration
+ * wizard's "Add '<value>' to list" affordance on each EditableComboboxWithAdd.
+ * Endpoint: POST /patient-care/dropdown-options
+ */
+export function useAddDropdownOption() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (body: { fieldName: string; value: string }) =>
+      apiClient.post("/patient-care/dropdown-options", body),
+    onSuccess: (_, { fieldName }) => {
+      void qc.invalidateQueries({ queryKey: patientCareKeys.dropdownOptions(fieldName) })
+      void qc.invalidateQueries({ queryKey: patientCareKeys.registrationForm() })
     },
   })
 }

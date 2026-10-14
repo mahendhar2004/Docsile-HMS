@@ -29,7 +29,7 @@ export type { StatCardProps, StatCardTrend, TrendDirection } from "./cards"
 // Forms
 export { FormField, FormFieldRow, FormSection } from "./forms"
 export type { FormFieldProps, FormFieldRowProps, FormSectionProps } from "./forms"
-export { TextInput, NumberInput, CurrencyInput, PhoneInput } from "./forms"
+export { TextInput, NumberInput, CurrencyInput, PhoneInput, AddressFields } from "./forms"
 export type {
   TextInputProps,
   TextInputType,
@@ -41,6 +41,8 @@ export type {
   CurrencyInputSize,
   PhoneInputProps,
   PhoneInputSize,
+  AddressFieldsProps,
+  AddressValue,
 } from "./forms"
 
 // Selection

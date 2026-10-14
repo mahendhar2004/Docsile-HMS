@@ -292,18 +292,18 @@ const columns: ColumnDef<InPatient>[] = [
           </div>
         </div>
       ) : (
-        ip.patientId.slice(0, 8) + "…"
+        ip.name
       ),
   },
   {
     key: "doctors",
     header: "Doctor(s)",
     cell: (ip) => {
-      if (!ip.onDutyDoctors || ip.onDutyDoctors === "[]") {
+      if (!ip.doctorNames || ip.doctorNames === "[]") {
         return <span className="text-[var(--color-muted-foreground)]">—</span>
       }
       try {
-        const doctors = JSON.parse(ip.onDutyDoctors) as string[]
+        const doctors = JSON.parse(ip.doctorNames) as string[]
         return <span className="text-sm">{doctors.join(", ") || "—"}</span>
       } catch {
         return <span className="text-[var(--color-muted-foreground)]">—</span>

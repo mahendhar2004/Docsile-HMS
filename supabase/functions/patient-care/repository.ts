@@ -163,7 +163,7 @@ export class PatientCareRepository {
         .from('DropdownOption')
         .select('fieldName, value')
         .eq('hospital_id', this.hospitalId)
-        .in('fieldName', ['doctorName', 'department', 'referredBy', 'address', 'patientCategory'])
+        .in('fieldName', ['doctorName', 'department', 'referredBy', 'address', 'patientCategory', 'city'])
         .order('value', { ascending: true }),
     ]);
 
@@ -469,7 +469,7 @@ export class PatientCareRepository {
         .from('DropdownOption')
         .select('fieldName, value')
         .eq('hospital_id', this.hospitalId)
-        .in('fieldName', ['doctorName', 'department', 'referredBy'])
+        .in('fieldName', ['doctorName', 'department', 'referredBy', 'city'])
         .order('value', { ascending: true }),
       this.supabase
         .from('PredefinedSurgery')
@@ -580,7 +580,11 @@ export class PatientCareRepository {
   async getTodaysPrescriptionForPatient(
     sequentialPatientId: string,
   ): Promise<Record<string, unknown> | null> {
-    const today = new Date().toISOString().slice(0, 10); // YYYY-MM-DD
+    // IST calendar date, not UTC — toISOString().slice(0,10) would compute
+    // "yesterday" for the first ~5.5 hours of every IST day (00:00-05:29 IST
+    // is still the previous UTC day), causing a spurious new Prescription
+    // instead of merging into today's real one during that window.
+    const today = new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Kolkata' }); // YYYY-MM-DD
     const { data, error } = await this.supabase
       .from('Prescription')
       .select('*, items:InvoiceItem(*)')

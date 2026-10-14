@@ -6,7 +6,8 @@
  * - Existing-patient autocomplete search (cursor-based API, useQuery + debounce)
  * - Offset-paginated patient table via PaginatedDataTable
  * - Register new patient (PatientRegistrationForm)
- * - Patient detail panel (PatientDetailPanel / Sheet)
+ * - Patient detail — navigates to /patients/:id (full-page view, matching
+ *   main — not a slide-in Sheet/drawer)
  * - Edit patient (inline edit form)
  * - Delete with ConfirmationModal
  *
@@ -15,11 +16,10 @@
  *   patients:create  — shows Register button
  *   patients:edit    — shows edit actions
  *   patients:delete  — shows delete action
- *   billing:create   — shows Add Service in detail panel
- *   billing:view     — shows Print Receipt in detail panel
  */
 
 import { useState, useEffect, useId, useMemo, useRef, forwardRef, useImperativeHandle } from "react"
+import { useNavigate } from "react-router-dom"
 import { useForm, Controller } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { z } from "zod"
@@ -52,7 +52,6 @@ import {
   DialogTitle,
   DialogDescription,
 } from "@/components/ui/dialog"
-import { Textarea } from "@/components/ui/textarea"
 import {
   PaginatedDataTable,
   ColumnDef,
@@ -65,6 +64,7 @@ import {
   TextInput,
   PhoneInput,
   SingleSelect,
+  AddressFields,
   ConfirmationModal,
   EmptyState,
   PageToolbar,
@@ -77,7 +77,6 @@ import {
   useDeletePatient,
 } from "./hooks"
 import { PatientRegistrationForm } from "./patient-registration-form"
-import { PatientDetailPanel } from "./patient-detail-panel"
 import type { Patient, PatientReceiptData } from "./types"
 
 // ─── Edit form schema ──────────────────────────────────────────────────────────
@@ -89,7 +88,11 @@ const editSchema = z.object({
   email: z.string().email("Invalid email").optional().or(z.literal("")),
   gender: z.enum(["Male", "Female", "Other"]),
   dateOfBirth: z.date().optional(),
-  address: z.string().optional(),
+  addressLine: z.string().optional(),
+  area: z.string().optional(),
+  city: z.string().optional(),
+  state: z.string().optional(),
+  pincode: z.string().optional(),
   patientType: z.string().min(1, "Patient type is required"),
   appointmentDate: z.date(),
   referredBy: z.string().optional(),
@@ -125,7 +128,7 @@ function PatientEditForm({ patient, open, onOpenChange, onSuccess }: PatientEdit
     onOpenChange(false)
   })
 
-  const { register, control, handleSubmit, reset, formState: { errors } } = useForm<EditFormValues>({
+  const { register, control, handleSubmit, reset, watch, setValue, formState: { errors } } = useForm<EditFormValues>({
     resolver: zodResolver(editSchema),
   })
 
@@ -133,12 +136,16 @@ function PatientEditForm({ patient, open, onOpenChange, onSuccess }: PatientEdit
     if (open) {
       reset({
         firstName: patient.firstName,
-        lastName: patient.lastName,
+        lastName: patient.lastName ?? undefined,
         phone: patient.phone,
         email: patient.email ?? "",
         gender: patient.gender,
         dateOfBirth: patient.dateOfBirth ? new Date(patient.dateOfBirth) : undefined,
-        address: patient.address ?? "",
+        addressLine: patient.addressLine ?? "",
+        area: patient.area ?? "",
+        city: patient.city ?? "",
+        state: patient.state ?? "",
+        pincode: patient.pincode ?? "",
         patientType: patient.patientType,
         appointmentDate: new Date(patient.appointmentDate),
         referredBy: patient.referredBy ?? "",
@@ -155,7 +162,11 @@ function PatientEditForm({ patient, open, onOpenChange, onSuccess }: PatientEdit
       email: values.email || null,
       gender: values.gender,
       dateOfBirth: values.dateOfBirth ? format(values.dateOfBirth, "yyyy-MM-dd") : null,
-      address: values.address || null,
+      addressLine: values.addressLine || null,
+      area: values.area || null,
+      city: values.city || null,
+      state: values.state || null,
+      pincode: values.pincode || null,
       patientType: values.patientType,
       appointmentDate: format(values.appointmentDate, "yyyy-MM-dd"),
       referredBy: values.referredBy || null,
@@ -197,9 +208,28 @@ function PatientEditForm({ patient, open, onOpenChange, onSuccess }: PatientEdit
                 )} />
               </FormField>
             </div>
-            <FormField label="Address" htmlFor={`${formId}-addr`}>
-              <Textarea id={`${formId}-addr`} rows={2} className="resize-none" {...register("address")} />
-            </FormField>
+            <Controller
+              name="addressLine"
+              control={control}
+              render={() => (
+                <AddressFields
+                  value={{
+                    addressLine: watch("addressLine"),
+                    area: watch("area"),
+                    city: watch("city"),
+                    state: watch("state"),
+                    pincode: watch("pincode"),
+                  }}
+                  onChange={(address) => {
+                    setValue("addressLine", address.addressLine ?? "")
+                    setValue("area", address.area ?? "")
+                    setValue("city", address.city ?? "")
+                    setValue("state", address.state ?? "")
+                    setValue("pincode", address.pincode ?? "")
+                  }}
+                />
+              )}
+            />
           </FormSection>
           <FormSection title="Visit Information">
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -244,9 +274,12 @@ function PatientEditForm({ patient, open, onOpenChange, onSuccess }: PatientEdit
  * PatientTable (tokenMap sorts the whole day ascending by createdAt and
  * assigns 1, 2, 3…). The migrated table paginates server-side (offset,
  * newest first), so the same numbering is reconstructed from total/page/
- * pageSize rather than re-sorting the current page alone.
+ * pageSize — keyed by patientId (not render position) so it stays correct
+ * even when the table is click-sorted by a different column (main's own
+ * tokenMap is similarly position-independent, looked up by patient.id).
  */
 function buildColumns(args: {
+  data: Patient[]
   total: number
   page: number
   pageSize: number
@@ -255,18 +288,22 @@ function buildColumns(args: {
   printingId: string | null
   onQuickPrint: (patient: Patient) => void
 }): ColumnDef<Patient>[] {
-  const { total, page, pageSize, canViewReceipt, defaultPrintConfigured, printingId, onQuickPrint } =
+  const { data, total, page, pageSize, canViewReceipt, defaultPrintConfigured, printingId, onQuickPrint } =
     args
+
+  const tokenByPatientId = new Map(
+    data.map((p, i) => [p.patientId, total - ((page - 1) * pageSize + i)]),
+  )
 
   return [
     {
       key: "token",
       header: "Token",
-      cell: (_p, index) => {
-        const token = total - ((page - 1) * pageSize + index)
+      cell: (p) => {
+        const token = tokenByPatientId.get(p.patientId)
         return (
           <span className="inline-flex items-center justify-center h-6 min-w-7 rounded bg-primary/10 border border-primary/20 border-dashed text-xs font-bold text-primary tabular-nums px-1.5">
-            {token}
+            {token ?? "—"}
           </span>
         )
       },
@@ -280,11 +317,14 @@ function buildColumns(args: {
           {format(new Date(p.createdAt), "hh:mm a")}
         </span>
       ),
+      // Matches main's PatientTable.tsx sortKey "createdAt".
+      sortValue: (p) => new Date(p.createdAt).getTime(),
     },
     {
       key: "patientId",
       header: "ID",
       cell: (p) => <span className="font-mono text-xs">{p.patientId}</span>,
+      sortValue: (p) => p.patientId,
     },
     {
       key: "name",
@@ -294,6 +334,7 @@ function buildColumns(args: {
           {p.firstName} {p.lastName}
         </span>
       ),
+      sortValue: (p) => p.firstName + (p.lastName ?? ""),
     },
     {
       key: "ageGender",
@@ -330,6 +371,7 @@ function buildColumns(args: {
       key: "status",
       header: "Status",
       cell: (p) => <StatusPill status={p.status ?? "REGISTERED"} size="sm" />,
+      sortValue: (p) => p.status ?? "REGISTERED",
     },
     {
       key: "services",
@@ -475,17 +517,15 @@ export const OpdTab = forwardRef<OpdTabHandle, OpdTabProps>(function OpdTab({
   canCreate,
   canEdit,
   canDelete,
-  canAddServices,
   canViewReceipt,
   viewDate,
   onViewDateChange,
   onListFilterChange,
   onOpenSettings,
 }, ref) {
+  const navigate = useNavigate()
   const [searchQ, setSearchQ] = useState("")
   const [listFilter, setListFilter] = useState("")
-  const [selectedPatientId, setSelectedPatientId] = useState<string | null>(null)
-  const [showDetail, setShowDetail] = useState(false)
   const [showRegister, setShowRegister] = useState(false)
   const [editPatient, setEditPatient] = useState<Patient | null>(null)
   const [deleteTarget, setDeleteTarget] = useState<Patient | null>(null)
@@ -525,8 +565,7 @@ export const OpdTab = forwardRef<OpdTabHandle, OpdTabProps>(function OpdTab({
 
   function handleSearchSelect(suggestion: Suggestion<Patient>) {
     setSearchQ(`${suggestion.value.firstName} ${suggestion.value.lastName} — ${suggestion.value.phone}`)
-    setSelectedPatientId(suggestion.value.id)
-    setShowDetail(true)
+    navigate(`/patients/${suggestion.value.id}`)
   }
 
   // Enter with no suggestion highlighted filters the day's list by the typed
@@ -583,6 +622,7 @@ export const OpdTab = forwardRef<OpdTabHandle, OpdTabProps>(function OpdTab({
   const columns = useMemo(
     () =>
       buildColumns({
+        data,
         total,
         page,
         pageSize,
@@ -591,7 +631,7 @@ export const OpdTab = forwardRef<OpdTabHandle, OpdTabProps>(function OpdTab({
         printingId,
         onQuickPrint: (p) => void handleQuickPrint(p),
       }),
-    [total, page, pageSize, canViewReceipt, defaultPrintConfigured, printingId],
+    [data, total, page, pageSize, canViewReceipt, defaultPrintConfigured, printingId],
   )
 
   useImperativeHandle(ref, () => ({
@@ -677,10 +717,7 @@ export const OpdTab = forwardRef<OpdTabHandle, OpdTabProps>(function OpdTab({
           showPageSizeSelector
           aria-label="OPD patients table"
           rowClassName={() => "group"}
-          onRowClick={(patient) => {
-            setSelectedPatientId(patient.id)
-            setShowDetail(true)
-          }}
+          onRowClick={(patient) => navigate(`/patients/${patient.id}`)}
           rowActions={(patient) => (
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
@@ -725,22 +762,6 @@ export const OpdTab = forwardRef<OpdTabHandle, OpdTabProps>(function OpdTab({
           }
         />
       </TooltipProvider>
-
-      {/* ── Patient detail panel ──────────────────────────────────────────── */}
-      <PatientDetailPanel
-        patientId={selectedPatientId}
-        open={showDetail}
-        onOpenChange={setShowDetail}
-        onDeleted={refetch}
-        canEdit={canEdit}
-        canDelete={canDelete}
-        canAddServices={canAddServices}
-        canViewReceipt={canViewReceipt}
-        onEdit={(patient) => {
-          setEditPatient(patient)
-          setShowDetail(false)
-        }}
-      />
 
       {/* ── Patient registration form ─────────────────────────────────────── */}
       <PatientRegistrationForm

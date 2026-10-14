@@ -15,12 +15,10 @@
  *     shares, via useAiContextStore)
  *   - Add Patient — unconditional on both tabs (gated per-tab by
  *     patients:create / inpatients:create, matching main exactly); opens
- *     OPD's Register dialog inline, or navigates to /inpatients for IPD
- *     (that page owns the real admission flow — an already-established
- *     decision not to duplicate it here, main itself opens the same modal
- *     inline for both, which this doesn't replicate 1:1, but the button's
- *     constant presence — the part that was actually causing a visible
- *     layout shift between tabs — now matches)
+ *     OPD's Register dialog inline, or the IPD admission wizard inline
+ *     (InPatientAdmissionForm) — matching main's own PatientsPage, which
+ *     owns both dialogs' open state directly rather than delegating to a
+ *     separate page.
  *
  * Placement note: main embeds the Out-Patients/In-Patients Tabs switcher
  * directly in the sticky header bar itself (center column of a 3-column
@@ -56,6 +54,7 @@ import { usePermissions } from "@/hooks/usePermissions"
 import { useAiContextStore } from "@/store/ai-context"
 import { OpdTab, type OpdTabHandle } from "./patient-care/opd-tab"
 import { IpdTab, type IpdTabHandle } from "./patient-care/ipd-tab"
+import { InPatientAdmissionForm } from "./patient-care/inpatient-admission-form"
 import { useOpdPatientsStats } from "./patient-care/hooks"
 import { StatsModal } from "./patient-care/stats-modal"
 import { toLocalDateISO } from "@/lib/utils"
@@ -83,6 +82,7 @@ export default function PatientsPage() {
   const [viewDate, setViewDate] = useState(() => new Date())
   const [listFilter, setListFilter] = useState("")
   const [showStats, setShowStats] = useState(false)
+  const [showAdmit, setShowAdmit] = useState(false)
 
   const opdRef = useRef<OpdTabHandle>(null)
   const ipdRef = useRef<IpdTabHandle>(null)
@@ -164,7 +164,7 @@ export default function PatientsPage() {
                   size="sm"
                   onClick={() => {
                     if (activeTab === "opd") opdRef.current?.openRegister()
-                    else navigate("/inpatients")
+                    else setShowAdmit(true)
                   }}
                 >
                   <Plus className="h-4 w-4 mr-1.5" aria-hidden />
@@ -210,6 +210,12 @@ export default function PatientsPage() {
         date={dateStr}
         patients={statsQuery.data}
         isLoading={statsQuery.isLoading}
+      />
+
+      <InPatientAdmissionForm
+        open={showAdmit}
+        onOpenChange={setShowAdmit}
+        onSuccess={() => ipdRef.current?.refetch()}
       />
     </Tabs>
   )

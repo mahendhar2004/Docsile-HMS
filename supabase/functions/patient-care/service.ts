@@ -181,6 +181,7 @@ export async function getPatientRegistrationFormData(s: Session): Promise<{
   referralOptions: string[];
   addressOptions: string[];
   patientCategoryOptions: string[];
+  cityOptions: string[];
 }> {
   const repo = makeRepo(s);
   const { hospitalProfile, serviceTemplates, dropdowns } = await repo.getRegistrationFormData();
@@ -191,6 +192,7 @@ export async function getPatientRegistrationFormData(s: Session): Promise<{
     referredBy: [],
     address: [],
     patientCategory: [],
+    city: [],
   };
 
   for (const row of dropdowns) {
@@ -207,6 +209,7 @@ export async function getPatientRegistrationFormData(s: Session): Promise<{
     referralOptions: grouped.referredBy,
     addressOptions: grouped.address,
     patientCategoryOptions: grouped.patientCategory,
+    cityOptions: grouped.city,
   };
 }
 
@@ -224,7 +227,7 @@ export async function createPatient(s: Session, body: CreatePatientBody): Promis
   const payload: Record<string, unknown> = {
     patientId,
     firstName: body.firstName,
-    lastName: body.lastName,
+    lastName: body.lastName ?? null,
     phone: body.phone,
     email: body.email ?? null,
     gender: body.gender,
@@ -239,11 +242,23 @@ export async function createPatient(s: Session, body: CreatePatientBody): Promis
     dateOfBirth: body.dateOfBirth
       ? `${body.dateOfBirth}T00:00:00+05:30`
       : null,
+    age: body.age ?? null,
     address: body.address ?? null,
+    addressLine: body.addressLine ?? null,
+    area: body.area ?? null,
+    city: body.city ?? null,
+    state: body.state ?? null,
+    pincode: body.pincode ?? null,
+    guardianName: body.guardianName ?? null,
+    guardianRelation: body.guardianRelation ?? null,
+    doctorName: body.doctorName ?? null,
+    department: body.department ?? null,
+    patientCategory: body.patientCategory ?? 'Regular',
     patientType: body.patientType,
     appointmentDate: `${body.appointmentDate}T00:00:00+05:30`,
     status: body.status ?? 'REGISTERED',
     referredBy: body.referredBy ?? null,
+    notes: body.notes ?? null,
     createdById: s.id,
   };
 
@@ -585,7 +600,7 @@ export async function createPrescriptionWithBilling(
   const paymentRecord = body.payment;
   const rxFields = body.prescription ?? {};
 
-  const newSubtotal = invoiceItems.reduce((sum, item) => sum + (item.total ?? 0), 0);
+  const newSubtotal = invoiceItems.reduce((sum, item) => sum + (item.amount ?? 0), 0);
   const paymentAmount = paymentRecord?.amount ?? 0;
   const now = new Date().toISOString();
 
@@ -599,7 +614,7 @@ export async function createPrescriptionWithBilling(
     // Append to existing prescription
     const existingItems = (existingRx.items ?? []) as unknown[];
     const updatedSubtotal = ((existingRx.subtotal as number) ?? 0) + newSubtotal;
-    const updatedDiscount = (existingRx.discount as number) ?? 0;
+    const updatedDiscount = ((existingRx.discount as number) ?? 0) + (rxFields.discount ?? 0);
     const updatedTotal = updatedSubtotal - updatedDiscount;
     const updatedAmountPaid = ((existingRx.amountPaid as number) ?? 0) + paymentAmount;
     const updatedBalanceDue = updatedTotal - updatedAmountPaid;
@@ -611,6 +626,8 @@ export async function createPrescriptionWithBilling(
 
     prescription = await repo.updatePrescriptionById(existingRx.id as string, {
       subtotal: updatedSubtotal,
+      discount: updatedDiscount,
+      discountReason: rxFields.discountReason ?? existingRx.discountReason ?? null,
       total: updatedTotal,
       amountPaid: updatedAmountPaid,
       balanceDue: updatedBalanceDue,
@@ -627,10 +644,11 @@ export async function createPrescriptionWithBilling(
       await repo.insertInvoiceItems(
         invoiceItems.map((item, i) => ({
           prescriptionId: existingRx.id as string,
-          name: item.name,
+          description: item.description,
+          category: item.category ?? null,
           quantity: item.quantity,
           unitPrice: item.unitPrice,
-          total: item.total,
+          amount: item.amount,
           sortOrder: existingItems.length + i,
         })),
       );
@@ -647,7 +665,8 @@ export async function createPrescriptionWithBilling(
   } else {
     // Create a new prescription
     prescriptionNumber = await repo.getNextPrescriptionNumber();
-    const total = newSubtotal;
+    const discount = rxFields.discount ?? 0;
+    const total = newSubtotal - discount;
     const balanceDue = total - paymentAmount;
 
     prescription = await repo.insertPrescription({
@@ -660,7 +679,8 @@ export async function createPrescriptionWithBilling(
       heightCm: rxFields.heightCm ?? null,
       weightKg: rxFields.weightKg ?? null,
       subtotal: newSubtotal,
-      discount: 0,
+      discount,
+      discountReason: rxFields.discountReason ?? null,
       total,
       amountPaid: paymentAmount,
       balanceDue,
@@ -677,10 +697,11 @@ export async function createPrescriptionWithBilling(
       await repo.insertInvoiceItems(
         invoiceItems.map((item, i) => ({
           prescriptionId: prescription.id as string,
-          name: item.name,
+          description: item.description,
+          category: item.category ?? null,
           quantity: item.quantity,
           unitPrice: item.unitPrice,
-          total: item.total,
+          amount: item.amount,
           sortOrder: i,
         })),
       );
@@ -780,6 +801,7 @@ export async function getAdmissionFormData(s: Session): Promise<{
   doctorOptions: string[];
   departmentOptions: string[];
   referralOptions: string[];
+  cityOptions: string[];
   predefinedSurgeries: Record<string, unknown>[];
   predefinedPackages: Record<string, unknown>[];
 }> {
@@ -791,6 +813,7 @@ export async function getAdmissionFormData(s: Session): Promise<{
     doctorName: [],
     department: [],
     referredBy: [],
+    city: [],
   };
 
   for (const row of dropdowns) {
@@ -804,6 +827,7 @@ export async function getAdmissionFormData(s: Session): Promise<{
     doctorOptions: grouped.doctorName,
     departmentOptions: grouped.department,
     referralOptions: grouped.referredBy,
+    cityOptions: grouped.city,
     predefinedSurgeries,
     predefinedPackages,
   };
@@ -811,8 +835,18 @@ export async function getAdmissionFormData(s: Session): Promise<{
 
 /**
  * Create a new inpatient record.
+ *
+ * InPatient is a self-contained record in main (demographics + admission +
+ * operation + billing all live on the row itself) — patientId is only an
+ * optional reference to an existing OPD patient found via lookup during
+ * Step 1, never a required FK. netAmount/totalReceivedAmount/balanceAmount
+ * are computed server-side from packageAmount/discount/paymentRecords,
+ * matching main's createInPatient action exactly (main also auto-creates an
+ * InsuranceClaim when a payment record's amountType is "Insurance" — that
+ * cross-module side effect is deliberately not ported here).
+ *
  * Calls next_ip_number() (H-3 atomic sequence) to assign the sequential ipNumber.
- * admissionDate is stored as an IST-anchored TIMESTAMPTZ.
+ * admissionDate/dischargeDate/operationDate are stored as IST-anchored TIMESTAMPTZ.
  */
 export async function createInPatient(
   s: Session,
@@ -822,25 +856,59 @@ export async function createInPatient(
   const nextNum = await repo.getNextIpNumber();
   const ipNumber = `IP-${String(nextNum).padStart(4, '0')}`;
 
-  // admissionDate/dischargeDate are TIMESTAMP columns with no timezone — see
-  // the note on createPatient's appointmentDate above for why this must NOT
-  // go through `new Date(...).toISOString()`.
+  // admissionDate/dischargeDate/operationDate/dateOfBirth are TIMESTAMP
+  // columns with no timezone — see the note on createPatient's
+  // appointmentDate above for why this must NOT go through
+  // `new Date(...).toISOString()`.
   const parseDate = (val: string): string =>
     val.includes('T') ? val : `${val}T00:00:00+05:30`;
+
+  const packageAmount = body.packageAmount;
+  const discount = body.discount ?? 0;
+  const netAmount = packageAmount - discount;
+  const totalReceivedAmount = (body.paymentRecords ?? []).reduce((sum, r) => sum + r.amount, 0);
+  const balanceAmount = netAmount - totalReceivedAmount;
 
   const now = new Date().toISOString();
   const payload: Record<string, unknown> = {
     ipNumber,
-    patientId: body.patientId,
+    patientId: body.patientId || null,
+    name: body.name,
+    age: body.age,
+    gender: body.gender,
+    phone: body.phone,
+    address: body.address ?? null,
+    addressLine: body.addressLine ?? null,
+    area: body.area ?? null,
+    city: body.city ?? null,
+    state: body.state ?? null,
+    pincode: body.pincode ?? null,
+    dateOfBirth: body.dateOfBirth ? parseDate(body.dateOfBirth) : null,
+    guardianName: body.guardianName ?? null,
     admissionDate: parseDate(body.admissionDate),
+    admissionNotes: body.admissionNotes ?? null,
+    referredBy: body.referredBy ?? null,
+    department: body.department ?? null,
+    doctorNames: JSON.stringify(body.doctorNames ?? []),
+    onDutyDoctors: JSON.stringify(body.onDutyDoctors ?? []),
+    operationName: body.operationName ?? null,
+    operationDate: body.operationDate ? parseDate(body.operationDate) : null,
+    operationProcedure: body.operationProcedure ?? null,
+    operationDetails: body.operationDetails ?? null,
+    provisionDiagnosis: body.provisionDiagnosis ?? null,
     dischargeDate: body.dischargeDate ? parseDate(body.dischargeDate) : null,
+    packageAmount,
+    packageInclusions: body.packageInclusions ? JSON.stringify(body.packageInclusions) : null,
+    discount,
+    netAmount,
+    totalReceivedAmount,
+    balanceAmount,
+    paymentRecords:
+      body.paymentRecords && body.paymentRecords.length > 0
+        ? JSON.stringify(body.paymentRecords)
+        : null,
     status: 'ADMITTED',
-    ward: body.ward ?? null,
-    bedNumber: body.bedNumber ?? null,
-    onDutyDoctors: body.onDutyDoctors ?? '[]',
-    paymentRecords: body.paymentRecords ?? null,
-    prescriptions: body.prescriptions ?? null,
-    createdById: body.createdById ?? s.id,
+    createdById: s.id,
     createdAt: now,
     updatedAt: now,
   };

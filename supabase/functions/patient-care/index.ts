@@ -29,7 +29,7 @@
  *   POST   /patient-care/inpatients/:id/payments         inpatients:edit
  *   POST   /patient-care/inpatients/:id/discharge        inpatients:discharge
  *   GET    /patient-care/dropdown-options                patients:view
- *   POST   /patient-care/dropdown-options                patients:edit
+ *   POST   /patient-care/dropdown-options                patients:create
  */
 
 import { Hono } from 'hono';
@@ -265,7 +265,7 @@ app.get('/dropdown-options', requirePermission('patients:view'), async (c) => {
   return ok(c, options);
 });
 
-app.post('/dropdown-options', requirePermission('patients:edit'), async (c) => {
+app.post('/dropdown-options', requirePermission('patients:create'), async (c) => {
   const session = c.get('session') as Session;
   const body = CreateDropdownOptionSchema.safeParse(await c.req.json());
   if (!body.success) return errorResponse(c, `Invalid dropdown option: ${body.error.errors[0].message}`, 400);

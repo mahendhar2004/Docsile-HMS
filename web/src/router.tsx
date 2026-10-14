@@ -1,11 +1,13 @@
-import React, { Suspense } from "react"
+import React, { Suspense, useEffect } from "react"
 import {
   createBrowserRouter,
   Navigate,
   Outlet,
   RouterProvider,
 } from "react-router-dom"
+import { Loader2 } from "lucide-react"
 import { useSessionStore } from "@/store/session"
+import { checkSession } from "@/lib/api-client"
 import { Skeleton } from "@/components/ui/skeleton"
 import { AppShell } from "@/components/layout/app-shell"
 
@@ -13,6 +15,7 @@ import { AppShell } from "@/components/layout/app-shell"
 const LoginPage = React.lazy(() => import("@/pages/LoginPage"))
 const DashboardPage = React.lazy(() => import("@/pages/DashboardPage"))
 const PatientsPage = React.lazy(() => import("@/pages/PatientsPage"))
+const PatientDetailPage = React.lazy(() => import("@/pages/patient-care/patient-detail-page"))
 const InPatientsPage = React.lazy(() => import("@/pages/InPatientsPage"))
 const PharmacyPage = React.lazy(() => import("@/pages/PharmacyPage"))
 const LabsPage = React.lazy(() => import("@/pages/LabsPage"))
@@ -50,13 +53,13 @@ function PageSkeleton() {
 
 /**
  * Wraps protected routes. Redirects unauthenticated users to /login.
- * The session is stored in Zustand (in-memory). On hard reload the store
- * is empty, so the user is redirected to /login, which calls POST /auth/refresh
- * to attempt silent reauthentication from the HttpOnly cookie.
+ * By the time this renders, AppRouter below has already resolved the
+ * "checking" boot state, so status here is always a definite
+ * "authenticated" or "unauthenticated" — never a stale in-memory read.
  */
 function ProtectedRoute() {
-  const isAuthenticated = useSessionStore((s) => s.isAuthenticated)
-  if (!isAuthenticated) {
+  const status = useSessionStore((s) => s.status)
+  if (status !== "authenticated") {
     return <Navigate to="/login" replace />
   }
   return (
@@ -65,6 +68,18 @@ function ProtectedRoute() {
         <Outlet />
       </Suspense>
     </AppShell>
+  )
+}
+
+/**
+ * Full-page loading state shown only during the one-time app-boot session
+ * check (see AppRouter) — never shown again after that resolves.
+ */
+function BootLoadingScreen() {
+  return (
+    <div className="flex min-h-screen items-center justify-center">
+      <Loader2 className="h-6 w-6 animate-spin text-[var(--color-muted-foreground)]" aria-hidden />
+    </div>
   )
 }
 
@@ -92,6 +107,7 @@ const router = createBrowserRouter([
 
       // Clinical modules
       { path: "patients", element: <PatientsPage /> },
+      { path: "patients/:id", element: <PatientDetailPage /> },
       { path: "inpatients", element: <InPatientsPage /> },
       { path: "pharmacy", element: <PharmacyPage /> },
       { path: "labs", element: <LabsPage /> },
@@ -120,6 +136,24 @@ const router = createBrowserRouter([
   { path: "*", element: <Navigate to="/dashboard" replace /> },
 ])
 
+/**
+ * Runs once per page load, before any route renders: attempts a silent
+ * refresh from the HttpOnly cookie so a hard reload (or a fresh tab) can
+ * restore a valid session instead of unconditionally bouncing to /login —
+ * the session store starts every page load in "checking" status specifically
+ * to give this a chance to run first.
+ */
 export function AppRouter() {
+  const status = useSessionStore((s) => s.status)
+
+  useEffect(() => {
+    if (status !== "checking") return
+    void checkSession()
+  }, [status])
+
+  if (status === "checking") {
+    return <BootLoadingScreen />
+  }
+
   return <RouterProvider router={router} />
 }
