@@ -32,8 +32,8 @@ Each module file follows the same shape:
 | # | Module | File | Status |
 |---|---|---|---|
 | 1 | Patients (OPD) | [01-patients-opd.md](01-patients-opd.md) | ✅ Done |
-| 2 | In-Patients (IPD) | — | Not started |
-| 3 | Refraction (Workup) | — | Not started |
+| 2 | In-Patients (IPD) | [02-inpatients-ipd.md](02-inpatients-ipd.md) | ✅ Done |
+| 3 | Refraction (Workup) | [03-refraction-workup.md](03-refraction-workup.md) | ✅ Done |
 | 4 | Doctor | — | Not started |
 | 5 | Pharmacy | — | Not started |
 | 6 | Optical | — | Not started |
@@ -51,4 +51,4 @@ Each module file follows the same shape:
 | 18 | Dashboard | — | Not started |
 
 Order matches the app's own nav / the existing module-audit queue in
-`.claude/TODO.md`. Next up: In-Patients (IPD).
+`.claude/TODO.md`. Next up: Doctor.
