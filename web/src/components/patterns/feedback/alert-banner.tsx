@@ -162,8 +162,7 @@ const AlertBanner = React.forwardRef<HTMLDivElement, AlertBannerProps>(
               "h-5 w-5 rounded-[var(--radius-xs)]",
               "opacity-60 hover:opacity-100",
               "motion-interactive focus-visible:outline-none",
-              "focus-visible:ring-2 focus-visible:ring-[var(--color-ring)]",
-              "focus-visible:ring-offset-1"
+              "focus-visible:shadow-[0_0_0_3px_rgba(37,99,235,0.35)]"
             )}
           >
             <X size={14} strokeWidth={2} aria-hidden="true" />

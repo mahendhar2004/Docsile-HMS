@@ -98,7 +98,7 @@ const DialogContent = React.forwardRef<
             'text-[var(--color-muted-foreground)]',
             'hover:bg-[var(--color-muted)] hover:text-[var(--color-foreground)]',
             'transition-colors duration-[var(--duration-micro)]',
-            'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-ring)]',
+            'focus-visible:outline-none focus-visible:shadow-[0_0_0_3px_rgba(37,99,235,0.35)]',
             'disabled:pointer-events-none',
           )}
         >

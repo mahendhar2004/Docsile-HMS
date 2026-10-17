@@ -6,8 +6,8 @@ import { cn } from "@/lib/utils"
 const radioItemVariants = cva(
   [
     "aspect-square rounded-full border-2 bg-surface",
-    "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
-    "disabled:cursor-not-allowed disabled:opacity-50",
+    "focus-visible:outline-none focus-visible:shadow-[0_0_0_3px_rgba(37,99,235,0.35)]",
+    "disabled:cursor-not-allowed disabled:opacity-50 disabled:bg-muted",
     "data-[state=checked]:border-primary",
     "border-border motion-interactive",
   ],

@@ -257,7 +257,7 @@ function ClaimDetailContent({ claim, onRefresh }: { claim: InsuranceClaim; onRef
   return (
     <div className="space-y-6">
       {/* ── Claim header ────────────────────────────────────────────────────── */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 pb-4 border-b border-border">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 pb-4 border-b border-divider">
         <div>
           <div className="flex items-center gap-2 flex-wrap">
             <h2 className="text-base font-semibold">{claim.patientName}</h2>

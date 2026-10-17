@@ -177,7 +177,7 @@ export function EditableComboboxWithAdd({
             if (target.closest("input")) e.preventDefault()
           }}
           style={{ width: "var(--radix-popover-trigger-width)" }}
-          className="z-[200] overflow-hidden rounded-md border border-[var(--color-border)] bg-[var(--color-popover)] text-[var(--color-popover-foreground)] shadow-md"
+          className="z-[200] overflow-hidden rounded-[var(--radius)] bg-[var(--color-popover)] text-[var(--color-popover-foreground)] shadow-[var(--shadow-popover)]"
         >
           <div ref={listRef} className="p-1 max-h-48 overflow-y-auto">
             {filtered.map((option, idx) => (
@@ -237,7 +237,7 @@ export function EditableComboboxWithAdd({
                 onClick={() => void handleAdd()}
                 className={cn(
                   "flex cursor-pointer items-center gap-1.5 rounded-sm px-2 py-1.5 text-sm text-primary hover:bg-primary/10",
-                  filtered.length > 0 && "mt-1 border-t border-border",
+                  filtered.length > 0 && "mt-1 border-t border-[var(--color-divider)]",
                   activeIndex === addRowIndex && "bg-primary/10",
                 )}
               >

@@ -6,8 +6,11 @@ import { cn } from "@/lib/utils"
 const switchTrackVariants = cva(
   [
     "relative inline-flex shrink-0 cursor-pointer items-center rounded-full",
-    "border-2 border-transparent bg-muted",
-    "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
+    // Off-track uses --color-border (not --color-muted) per the Docsile HMS
+    // design system's "Switch off" spec — a muted-bg track barely read as
+    // "off" against the page; the border token gives it real definition.
+    "border-2 border-transparent bg-[var(--color-border)]",
+    "focus-visible:outline-none focus-visible:shadow-[0_0_0_3px_rgba(37,99,235,0.35)]",
     "disabled:cursor-not-allowed disabled:opacity-50",
     "data-[state=checked]:bg-primary",
     "motion-interactive",

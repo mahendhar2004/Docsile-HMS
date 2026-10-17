@@ -10,20 +10,27 @@
      these are the few app-specific semantic sizes worth naming so every
      page uses the same handful of type roles instead of picking sizes
      ad hoc. Use with e.g. text-[length:var(--text-kpi)]. */
-  --text-display: 2rem;      /* 32px — page-level KPI numbers */
-  --text-title: 1.25rem;     /* 20px — page/section titles */
-  --text-subtitle: 1rem;     /* 16px — card titles, table headers */
-  --text-body: 0.875rem;     /* 14px — default body/table text */
-  --text-caption: 0.75rem;   /* 12px — helper text, chip labels, timestamps */
+  /* px shown below is the rendered size at this app's 17px root (not 16px —
+     see `html { font-size: 17px }` further down), matching the "Typography"
+     section of the Docsile HMS design system reference 1:1. */
+  --text-display: 2rem;      /* 34px — page-level KPI numbers */
+  --text-title: 1.25rem;     /* 21px — page/section titles */
+  --text-subtitle: 1rem;     /* 17px — card titles, section headers, dialog titles */
+  --text-body: 0.875rem;     /* 15px — default body/table text, form values */
+  --text-caption: 0.75rem;   /* 13px — helper text, chip labels, timestamps */
+  --text-overline: 0.65rem;  /* 11px — table/group-label overlines, kbd shortcuts */
   --leading-tight: 1.25;
   --leading-normal: 1.5;
   --leading-relaxed: 1.625;
 
   /* ─── Base Colors ───────────────────────────────── */
-  /* Page background is a true off-white (was a cool gray, #f0f2f5) — cards
-     and the page now sit close in tone, so --color-border below is the
-     thing doing the work of separating surfaces, not a gray/white contrast. */
-  --color-background: #f7f7f8;
+  /* Matches the "Docsile HMS · Design system" reference (Design System.dc.html,
+     see docs/design-system/) — pure white app background, --color-border
+     strengthened for visible card/table edges, --color-divider added as a
+     separate, softer token for internal row/section dividers (the old
+     --color-border value, now split out as its own role instead of being
+     overloaded for both "card edge" and "row divider"). */
+  --color-background: #ffffff;
   --color-foreground: #111827;
 
   --color-card: #ffffff;
@@ -35,16 +42,15 @@
   --color-muted: #f1f5f9;
   --color-muted-foreground: #64748b;
 
-  /* Darkened from #e2e8f0 — on a near-white page, a hairline this light was
-     nearly invisible, leaving cards/tables feeling edge-less. This also
-     strengthens every --shadow-card usage app-wide for free, since
-     --shadow-border below is a 1px ring rendered in this same color. */
   --color-border: #cbd5e1;
+  --color-divider: #e2e8f0;
   --color-input: #cbd5e1;
   --color-ring: #2563eb;
 
   /* ─── Primary (Apple Blue) ──────────────────────── */
   --color-primary: #2563eb;
+  --color-primary-hover: #1d4ed8;
+  --color-primary-pressed: #1e40af;
   --color-primary-foreground: #ffffff;
 
   /* ─── Secondary ─────────────────────────────────── */
@@ -52,8 +58,12 @@
   --color-secondary-foreground: #1d1d1f;
 
   /* ─── Accent ────────────────────────────────────── */
+  /* Also the design system's "soft" interaction colour (soft buttons,
+     selected rows, callouts) — accent-hover/-pressed are its button states. */
   --color-accent: #e8f4ff;
   --color-accent-foreground: #2563eb;
+  --color-accent-hover: #d6ebff;
+  --color-accent-pressed: #c2e0ff;
 
   /* ─── Destructive (Apple Red) ───────────────────── */
   --color-destructive: #ff3b30;
@@ -80,6 +90,8 @@
   --color-error-foreground: #ffffff;
   --color-error-soft: #ffece9;
   --color-error-soft-foreground: #c62b1f;
+  --color-error-hover: #e0281d;
+  --color-error-pressed: #c62b1f;
 
   --color-info: #2563eb;
   --color-info-foreground: #ffffff;
@@ -208,6 +220,35 @@ body {
   line-height: 1.5;
 }
 
+/* Typography roles — one class per named role in the Docsile HMS design
+   system's "Typography" reference (docs/design-system/). Composes family,
+   size, weight and line-height in one place so call sites don't hand
+   recompose 5 Tailwind utilities to get e.g. "mono-id" right. Prefer these
+   over ad hoc text-size/font-weight combinations when a new component
+   matches one of these roles; the --text-* variables above stay available
+   on their own for anything that doesn't. Written with longhand
+   font-family/size/weight (not the `font` shorthand) since CSS's shorthand
+   has a strict value grammar that some build-time CSS parsers reject when
+   a var() lands in certain sub-parts, even though browsers accept it fine. */
+.type-display {
+  font-family: var(--font-sans); font-size: var(--text-display); font-weight: 700; line-height: 1.2;
+  font-variant-numeric: tabular-nums;
+}
+.type-title       { font-family: var(--font-sans); font-size: var(--text-title); font-weight: 700; line-height: 1.25; }
+.type-subtitle    { font-family: var(--font-sans); font-size: var(--text-subtitle); font-weight: 600; line-height: 1.3; }
+.type-body        { font-family: var(--font-sans); font-size: var(--text-body); font-weight: 400; line-height: 1.5; }
+.type-body-strong { font-family: var(--font-sans); font-size: var(--text-body); font-weight: 600; line-height: 1.5; }
+.type-caption     { font-family: var(--font-sans); font-size: var(--text-caption); font-weight: 500; line-height: 1.4; }
+.type-overline {
+  font-family: var(--font-sans); font-size: var(--text-overline); font-weight: 600; line-height: 1.3;
+  color: var(--color-muted-foreground); text-transform: uppercase; letter-spacing: .06em;
+}
+.type-mono-id {
+  font-family: var(--font-mono); font-size: var(--text-caption); font-weight: 600; line-height: 1.3;
+  font-variant-numeric: tabular-nums;
+}
+.type-mono-kbd    { font-family: var(--font-mono); font-size: var(--text-overline); font-weight: 600; line-height: 1; }
+
 @keyframes fade-in {
   from { opacity: 0; }
   to { opacity: 1; }
@@ -311,8 +352,7 @@ body {
 .filter-divider {
   width: 1px;
   height: 1.25rem;
-  background: var(--color-border);
-  opacity: 0.6;
+  background: var(--color-divider);
   flex-shrink: 0;
 }
 

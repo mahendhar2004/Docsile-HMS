@@ -150,3 +150,9 @@ export { Skeleton } from "./skeleton"
 export type { SkeletonProps } from "./skeleton"
 
 export { Toaster, toast } from "./sonner"
+
+export { Kbd } from "./kbd"
+export type { KbdProps } from "./kbd"
+
+export { Progress } from "./progress"
+export type { ProgressProps } from "./progress"

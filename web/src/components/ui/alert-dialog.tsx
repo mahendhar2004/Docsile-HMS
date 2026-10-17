@@ -141,11 +141,11 @@ const AlertDialogAction = React.forwardRef<
     ref={ref}
     className={cn(
       'inline-flex items-center justify-center gap-2',
-      'px-4 py-2 text-sm font-medium rounded-[var(--radius-sm)]',
+      'px-4 py-2 text-sm font-medium rounded-[var(--radius)]',
       'bg-[var(--color-primary)] text-[var(--color-primary-foreground)]',
-      'hover:opacity-90 transition-opacity duration-[var(--duration-micro)]',
-      'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-ring)]',
-      'disabled:pointer-events-none disabled:opacity-50',
+      'hover:bg-[var(--color-primary-hover)] active:bg-[var(--color-primary-pressed)] transition-colors duration-[var(--duration-micro)]',
+      'focus-visible:outline-none focus-visible:shadow-[0_0_0_3px_rgba(37,99,235,0.35)]',
+      'disabled:pointer-events-none disabled:opacity-45',
       className,
     )}
     {...props}
@@ -161,12 +161,16 @@ const AlertDialogCancel = React.forwardRef<
     ref={ref}
     className={cn(
       'inline-flex items-center justify-center gap-2',
-      'px-4 py-2 text-sm font-medium rounded-[var(--radius-sm)]',
-      'shadow-[var(--shadow-border)]',
+      'px-4 py-2 text-sm font-medium rounded-[var(--radius)]',
+      'shadow-[var(--shadow-card)]',
       'bg-[var(--color-card)] text-[var(--color-foreground)]',
-      'hover:bg-[var(--color-muted)] transition-colors duration-[var(--duration-micro)]',
-      'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-ring)]',
-      'disabled:pointer-events-none disabled:opacity-50',
+      'hover:bg-[var(--color-muted)] active:bg-[var(--color-divider)] transition-colors duration-[var(--duration-micro)]',
+      // Composes the focus glow + the resting shadow-card in one utility —
+      // two separate shadow-[...] classes would have one override the
+      // other, not stack (see button.tsx's "secondary" variant for the
+      // same note).
+      'focus-visible:outline-none focus-visible:shadow-[0_0_0_3px_rgba(37,99,235,0.35),var(--shadow-card)]',
+      'disabled:pointer-events-none disabled:opacity-45',
       className,
     )}
     {...props}

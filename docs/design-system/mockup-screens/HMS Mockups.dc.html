@@ -1,0 +1,227 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet data-dc-atomics>
+<meta name="design_doc_mode" content="canvas">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap">
+<style>body{margin:0;background:#eef0f3;font-family:Inter,-apple-system,BlinkMacSystemFont,"Helvetica Neue",Arial,sans-serif}a{color:#1d4ed8}a:hover{color:#2563eb}</style>
+</helmet>
+<section id="t1" style="padding:40px 44px 36px;font-family:Inter,sans-serif;color:#111827">
+<div style="display:flex;align-items:baseline;gap:12px;margin-bottom:8px"><a href="#t1" style="font:600 10px ui-monospace,Menlo,monospace;padding:3px 7px;background:#201e1d;color:#fff;border-radius:4px;text-decoration:none">1</a><span style="font:700 14px Inter,sans-serif">Eye-hospital HMS · desktop · repo design tokens</span></div>
+<p style="max-width:900px;margin:0 0 26px;font-size:14px;color:#475569">Assumptions: front desk, nurse and doctor are the speed-critical users. Rule for every screen: one primary action per row or screen, the next step is always one click or one keystroke, and secondary modules sit behind ⌘K. Data: ₹, +91, English. Variations explore navigation model (<a href="#1a">1a</a> rail · <a href="#1b">1b</a> top bar + palette · <a href="#1c">1c</a> pipeline board), density, and task flow (side panel vs. single page). <a href="#1d">1d</a> and <a href="#1e">1e</a> are the nurse and doctor steps.</p>
+<div style="display:flex;flex-wrap:wrap;gap:44px;align-items:flex-start">
+
+<!-- 1a -->
+<div id="1a" style="flex:none;display:flex;flex-direction:column;gap:9px;scroll-margin-top:16px">
+<div style="display:flex;gap:8px;align-items:baseline;font-size:12px"><a href="#1a" style="font:600 10.5px ui-monospace,Menlo,monospace;padding:3px 7px;background:rgba(0,0,0,.08);color:#1a1a1a;border-radius:5px;text-decoration:none">1a</a>Front desk · icon rail + live queue + quick-register side panel (comfortable density)</div>
+<div style="width:1360px;height:820px;display:flex;background:#f7f7f8;border-radius:12px;overflow:hidden;box-shadow:0 4px 8px -2px rgba(15,23,42,.08),0 16px 32px -8px rgba(15,23,42,.12)">
+<div style="width:92px;background:#ffffff;display:flex;flex-direction:column;align-items:center;padding:20px 0;gap:6px">
+<div style="font-family:Inter,sans-serif;font-weight:700;letter-spacing:-.01em;font-size:22px;color:#1d4ed8;margin-bottom:14px">Nētra</div>
+<sc-for list="{{ nav }}" as="n" hint-placeholder-count="7"><div style="width:68px;padding:8px 0;border-radius:12px;text-align:center;background:{{ n.bg }};color:{{ n.fg }}"><div style="font-size:20px;line-height:1.1">{{ n.ic }}</div><div style="font-size:11px;font-weight:600">{{ n.label }}</div></div></sc-for>
+<div style="margin-top:auto;width:40px;height:40px;border-radius:50%;background:#bfe9cc;display:grid;place-items:center;font-weight:700;color:#14532d">SR</div>
+</div>
+<div style="flex:1;min-width:0;padding:26px 30px;display:flex;flex-direction:column;gap:18px">
+<div style="display:flex;align-items:center;gap:16px">
+<div style="flex:1"><div style="font-family:Inter,sans-serif;font-weight:700;letter-spacing:-.01em;font-size:30px;line-height:1.1">Today's queue</div><div style="font-size:13px;color:#475569">Fri 16 Oct · 38 seen · 11 waiting · avg wait 14 min</div></div>
+<div style="width:300px;height:42px;border-radius:8px;background:#fff;border:1px solid #cbd5e1;display:flex;align-items:center;padding:0 16px;gap:8px;font-size:14px;color:#64748b">Search name or phone<span style="margin-left:auto;font:600 11px ui-monospace,monospace;background:#f1f5f9;padding:2px 7px;border-radius:6px">/</span></div>
+<div style="height:42px;border-radius:8px;background:#2563eb;color:#fff;display:flex;align-items:center;padding:0 20px;font-weight:700;gap:10px;font-size:14px">+ New patient<span style="font:600 11px ui-monospace,monospace;background:rgba(255,255,255,.25);padding:2px 7px;border-radius:6px">N</span></div>
+</div>
+<div style="display:flex;gap:8px">
+<sc-for list="{{ filters }}" as="f" hint-placeholder-count="4"><div style="padding:6px 14px;border-radius:8px;font-size:13px;font-weight:600;background:{{ f.bg }};color:{{ f.fg }}">{{ f.label }}</div></sc-for>
+</div>
+<div style="background:#ffffff;border:1px solid #cbd5e1;border-radius:12px;padding:6px 8px;display:flex;flex-direction:column;overflow:hidden">
+<sc-for list="{{ queue }}" as="q" hint-placeholder-count="8"><div style="display:flex;align-items:center;gap:14px;padding:11px 12px;border-bottom:1px solid #cbd5e1">
+<div style="width:52px;font:700 13px ui-monospace,monospace;color:#64748b">{{ q.t }}</div>
+<div style="flex:1.4;min-width:0"><div style="font-weight:700;font-size:15px">{{ q.name }}</div><div style="font-size:12px;color:#64748b">{{ q.meta }} · {{ q.phone }}</div></div>
+<div style="flex:1;font-size:13px;color:#475569">{{ q.doc }}</div>
+<div style="width:150px"><span style="padding:4px 11px;border-radius:999px;font-size:12px;font-weight:700;background:{{ q.bg }};color:{{ q.fg }}">{{ q.status }}</span></div>
+<div style="width:150px;text-align:center;padding:7px 0;border-radius:8px;font-size:13px;font-weight:700;background:{{ q.abg }};color:{{ q.afg }}">{{ q.action }}</div>
+</div></sc-for>
+</div>
+</div>
+<div style="width:380px;background:#ffffff;padding:26px 26px;display:flex;flex-direction:column;gap:14px">
+<div style="display:flex;align-items:center"><div style="font-family:Inter,sans-serif;font-weight:700;letter-spacing:-.01em;font-size:22px;flex:1">New patient</div><span style="font:600 11px ui-monospace,monospace;background:#e2e8f0;padding:2px 7px;border-radius:6px">Esc</span></div>
+<div><div style="font-size:12px;font-weight:700;margin-bottom:4px">Phone</div><div style="height:42px;border-radius:8px;background:#fff;border:2px solid #2563eb;display:flex;align-items:center;padding:0 16px;gap:8px;font-size:14px"><span style="color:#64748b">+91</span>98410 22817</div><div style="font-size:12px;color:#1a7f37;margin-top:5px;font-weight:600">Returning patient found: Lakshmi N. — fill from record ⏎</div></div>
+<div><div style="font-size:12px;font-weight:700;margin-bottom:4px">Full name</div><div style="height:42px;border-radius:8px;background:#fff;border:1px solid #cbd5e1;display:flex;align-items:center;padding:0 16px;font-size:14px;color:#94a3b8">Patient name</div></div>
+<div style="display:flex;gap:12px"><div style="flex:1"><div style="font-size:12px;font-weight:700;margin-bottom:4px">Age</div><div style="height:42px;border-radius:8px;background:#fff;border:1px solid #cbd5e1;display:flex;align-items:center;padding:0 16px;font-size:14px;color:#94a3b8">yrs</div></div>
+<div style="flex:1.6"><div style="font-size:12px;font-weight:700;margin-bottom:4px">Gender</div><div style="height:42px;border-radius:8px;background:#f1f5f9;display:flex;padding:4px;gap:4px;font-size:13px;font-weight:600"><div style="flex:1;border-radius:8px;background:#2563eb;color:#fff;display:grid;place-items:center">F</div><div style="flex:1;display:grid;place-items:center">M</div><div style="flex:1;display:grid;place-items:center">Other</div></div></div></div>
+<div><div style="font-size:12px;font-weight:700;margin-bottom:6px">Doctor</div><div style="display:flex;gap:8px;flex-wrap:wrap"><span style="padding:7px 14px;border-radius:999px;background:#e8f9ee;color:#14532d;font-size:13px;font-weight:700">Dr. Menon · 2 waiting</span><span style="padding:7px 14px;border-radius:999px;background:#fff;border:1px solid #cbd5e1;font-size:13px;font-weight:600">Dr. Iyer · 5</span><span style="padding:7px 14px;border-radius:999px;background:#fff;border:1px solid #cbd5e1;font-size:13px;font-weight:600">Any</span></div></div>
+<div><div style="font-size:12px;font-weight:700;margin-bottom:6px">Reason</div><div style="display:flex;gap:8px;flex-wrap:wrap"><span style="padding:6px 12px;border-radius:999px;background:#fff;border:1px solid #cbd5e1;font-size:12px;font-weight:600">Check-up</span><span style="padding:6px 12px;border-radius:999px;background:#fff;border:1px solid #cbd5e1;font-size:12px;font-weight:600">Blurred vision</span><span style="padding:6px 12px;border-radius:999px;background:#fff;border:1px solid #cbd5e1;font-size:12px;font-weight:600">Red eye</span><span style="padding:6px 12px;border-radius:999px;background:#fff;border:1px solid #cbd5e1;font-size:12px;font-weight:600">Follow-up</span></div></div>
+<div style="margin-top:auto;height:50px;border-radius:8px;background:#2563eb;color:#fff;display:flex;align-items:center;justify-content:center;gap:12px;font-weight:700;font-size:15px">Register &amp; send to workup<span style="font:600 11px ui-monospace,monospace;background:rgba(255,255,255,.25);padding:2px 7px;border-radius:6px">⏎</span></div>
+</div>
+</div></div>
+
+<!-- 1b -->
+<div id="1b" style="flex:none;display:flex;flex-direction:column;gap:9px;scroll-margin-top:16px">
+<div style="display:flex;gap:8px;align-items:baseline;font-size:12px"><a href="#1b" style="font:600 10.5px ui-monospace,Menlo,monospace;padding:3px 7px;background:rgba(0,0,0,.08);color:#1a1a1a;border-radius:5px;text-decoration:none">1b</a>Keyboard-first · top bar + ⌘K command palette · dense table</div>
+<div style="width:1360px;height:820px;position:relative;background:#f7f7f8;border-radius:12px;overflow:hidden;box-shadow:0 4px 8px -2px rgba(15,23,42,.08),0 16px 32px -8px rgba(15,23,42,.12);display:flex;flex-direction:column">
+<div style="height:62px;background:#ffffff;display:flex;align-items:center;padding:0 26px;gap:26px">
+<div style="font-family:Inter,sans-serif;font-weight:700;letter-spacing:-.01em;font-size:22px;color:#1d4ed8">Nētra</div>
+<div style="display:flex;gap:6px;font-size:14px;font-weight:600">
+<sc-for list="{{ tabs }}" as="t" hint-placeholder-count="6"><div style="padding:7px 14px;border-radius:8px;background:{{ t.bg }};color:{{ t.fg }}">{{ t.label }}</div></sc-for></div>
+<div style="margin-left:auto;width:340px;height:38px;border-radius:8px;background:#fff;border:1px solid #cbd5e1;display:flex;align-items:center;padding:0 14px;font-size:13px;color:#64748b">Search, register, go to…<span style="margin-left:auto;font:600 11px ui-monospace,monospace;background:#f1f5f9;padding:2px 7px;border-radius:6px">⌘K</span></div>
+<div style="width:36px;height:36px;border-radius:50%;background:#bfe9cc;display:grid;place-items:center;font-weight:700;font-size:13px;color:#14532d">SR</div>
+</div>
+<div style="padding:22px 30px;display:flex;flex-direction:column;gap:16px;flex:1;min-height:0">
+<div style="display:flex;gap:14px">
+<sc-for list="{{ kpis }}" as="k" hint-placeholder-count="4"><div style="flex:1;background:#ffffff;border:1px solid #cbd5e1;border-radius:12px;padding:12px 18px"><div style="font-size:12px;font-weight:600;color:#475569">{{ k.l }}</div><div style="font-family:Inter,sans-serif;font-weight:700;letter-spacing:-.01em;font-size:28px;line-height:1.1;color:{{ k.c }}">{{ k.v }}</div></div></sc-for>
+</div>
+<div style="background:#ffffff;border:1px solid #cbd5e1;border-radius:12px;overflow:hidden;flex:1">
+<div style="display:flex;padding:10px 18px;font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:#64748b;background:#f1f5f9"><div style="width:60px">Token</div><div style="flex:1.5">Patient</div><div style="width:110px">Age/Sex</div><div style="flex:1">Doctor</div><div style="width:150px">Status</div><div style="width:90px">Waiting</div><div style="width:100px;text-align:right">Next ⏎</div></div>
+<sc-for list="{{ queue }}" as="q" hint-placeholder-count="8"><div style="display:flex;align-items:center;padding:9px 18px;font-size:13px;border-bottom:1px solid #cbd5e1"><div style="width:60px;font:700 12px ui-monospace,monospace;color:#64748b">{{ q.t }}</div><div style="flex:1.5;font-weight:700">{{ q.name }}</div><div style="width:110px;color:#475569">{{ q.meta }}</div><div style="flex:1;color:#475569">{{ q.doc }}</div><div style="width:150px"><span style="padding:3px 10px;border-radius:999px;font-size:11px;font-weight:700;background:{{ q.bg }};color:{{ q.fg }}">{{ q.status }}</span></div><div style="width:90px;color:#475569">{{ q.wait }}</div><div style="width:100px;text-align:right;font-weight:700;color:#1d4ed8">{{ q.action }} →</div></div></sc-for>
+</div>
+</div>
+<div style="position:absolute;inset:0;background:rgba(32,30,29,.35)"></div>
+<div style="position:absolute;left:310px;top:110px;width:740px;background:#f7f7f8;border-radius:12px;box-shadow:0 8px 16px -4px rgba(15,23,42,.10),0 24px 48px -12px rgba(15,23,42,.16);overflow:hidden">
+<div style="padding:18px 24px;display:flex;align-items:center;gap:10px;font-size:18px;border-bottom:1px solid #cbd5e1">ravi<span style="width:2px;height:22px;background:#2563eb"></span></div>
+<div style="padding:10px 12px 14px">
+<div style="padding:6px 12px;font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:#64748b">Actions</div>
+<div style="padding:11px 14px;border-radius:12px;background:#dbe7ff;display:flex;align-items:center;gap:12px;font-weight:700;color:#1e3a8a">Register “Ravi” as new patient<span style="margin-left:auto;font:600 11px ui-monospace,monospace">⏎</span></div>
+<div style="padding:6px 12px;margin-top:8px;font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:#64748b">Patients</div>
+<sc-for list="{{ results }}" as="r" hint-placeholder-count="3"><div style="padding:10px 14px;border-radius:12px;display:flex;align-items:center;gap:12px"><div style="flex:1"><div style="font-weight:700;font-size:14px">{{ r.n }}</div><div style="font-size:12px;color:#64748b">{{ r.m }}</div></div><span style="padding:3px 10px;border-radius:999px;font-size:11px;font-weight:700;background:{{ r.bg }};color:{{ r.fg }}">{{ r.s }}</span></div></sc-for>
+<div style="padding:6px 12px;margin-top:8px;font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:#64748b">Go to</div>
+<div style="padding:10px 14px;font-size:14px;font-weight:600;display:flex"><span style="flex:1">Pharmacy billing</span><span style="font:600 11px ui-monospace,monospace;color:#64748b">G P</span></div>
+</div>
+</div>
+</div></div>
+
+<!-- 1c -->
+<div id="1c" style="flex:none;display:flex;flex-direction:column;gap:9px;scroll-margin-top:16px">
+<div style="display:flex;gap:8px;align-items:baseline;font-size:12px"><a href="#1c" style="font:600 10.5px ui-monospace,Menlo,monospace;padding:3px 7px;background:rgba(0,0,0,.08);color:#1a1a1a;border-radius:5px;text-decoration:none">1c</a>Whole-clinic view · pipeline board (Registered → Workup → Doctor → Billing), one tap moves a patient on</div>
+<div style="width:1360px;height:820px;display:flex;flex-direction:column;background:#f7f7f8;border-radius:12px;overflow:hidden;box-shadow:0 4px 8px -2px rgba(15,23,42,.08),0 16px 32px -8px rgba(15,23,42,.12)">
+<div style="padding:22px 30px 10px;display:flex;align-items:center;gap:18px">
+<div style="font-family:Inter,sans-serif;font-weight:700;letter-spacing:-.01em;font-size:22px;color:#1d4ed8">Nētra</div>
+<div style="font-family:Inter,sans-serif;font-weight:700;letter-spacing:-.01em;font-size:30px;flex:1">Clinic flow <span style="font-family:Inter,sans-serif;font-weight:400;font-size:13px;color:#475569">· 19 in clinic · avg total 52 min</span></div>
+<div style="width:260px;height:40px;border-radius:8px;background:#fff;border:1px solid #cbd5e1;display:flex;align-items:center;padding:0 16px;font-size:13px;color:#64748b">Search / ⌘K<span style="margin-left:auto;font:600 11px ui-monospace,monospace;background:#f1f5f9;padding:2px 7px;border-radius:6px">/</span></div>
+<div style="height:40px;border-radius:8px;background:#2563eb;color:#fff;display:flex;align-items:center;padding:0 20px;font-weight:700;font-size:14px">+ New patient</div>
+</div>
+<div style="flex:1;min-height:0;display:flex;gap:16px;padding:12px 30px 18px">
+<sc-for list="{{ cols }}" as="c" hint-placeholder-count="4"><div style="flex:1;min-width:0;background:{{ c.bg }};border-radius:12px;padding:16px;display:flex;flex-direction:column;gap:10px">
+<div style="display:flex;align-items:center;gap:8px;padding:0 4px 4px"><span style="font-family:Inter,sans-serif;font-weight:700;letter-spacing:-.01em;font-size:19px;flex:1">{{ c.title }}</span><span style="min-width:28px;text-align:center;padding:2px 8px;border-radius:999px;background:#fff;font-size:13px;font-weight:700">{{ c.n }}</span></div>
+<sc-for list="{{ c.cards }}" as="p" hint-placeholder-count="3"><div style="background:#fff;border-radius:12px;padding:13px 14px;box-shadow:0 1px 2px rgba(15,23,42,.04),0 2px 6px -1px rgba(15,23,42,.08)">
+<div style="display:flex;gap:8px;align-items:baseline"><span style="font-weight:700;font-size:14px;flex:1">{{ p.name }}</span><span style="font:600 11px ui-monospace,monospace;color:#64748b">{{ p.t }}</span></div>
+<div style="font-size:12px;color:#64748b;margin:2px 0 10px">{{ p.sub }}</div>
+<div style="display:flex;align-items:center;gap:8px"><span style="font-size:12px;font-weight:600;color:{{ p.wc }};flex:1">{{ p.wait }}</span><span style="padding:5px 12px;border-radius:999px;background:{{ c.btn }};color:#fff;font-size:12px;font-weight:700">{{ c.act }} →</span></div>
+</div></sc-for>
+</div></sc-for>
+</div>
+<div style="height:44px;background:#ffffff;display:flex;align-items:center;gap:22px;padding:0 30px;font-size:12px;color:#475569"><span><b>N</b> new patient</span><span><b>/</b> search</span><span><b>←→</b> move patient</span><span><b>⌘K</b> everything else (Pharmacy, Optical, Billing, Reports…)</span></div>
+</div></div>
+
+<!-- 1d -->
+<div id="1d" style="flex:none;display:flex;flex-direction:column;gap:9px;scroll-margin-top:16px">
+<div style="display:flex;gap:8px;align-items:baseline;font-size:12px"><a href="#1d" style="font:600 10.5px ui-monospace,Menlo,monospace;padding:3px 7px;background:rgba(0,0,0,.08);color:#1a1a1a;border-radius:5px;text-decoration:none">1d</a>Nurse · refraction workup, single page, Tab flows across fields, RE | LE side by side</div>
+<div style="width:1360px;height:820px;display:flex;flex-direction:column;background:#f7f7f8;border-radius:12px;overflow:hidden;box-shadow:0 4px 8px -2px rgba(15,23,42,.08),0 16px 32px -8px rgba(15,23,42,.12)">
+<div style="display:flex;align-items:center;gap:16px;padding:16px 30px;background:#ffffff">
+<div style="color:#475569;font-weight:700">← Queue</div>
+<div style="width:46px;height:46px;border-radius:50%;background:#dbe7ff;display:grid;place-items:center;font-weight:700;color:#1e3a8a">LN</div>
+<div style="flex:1"><div style="font-family:Inter,sans-serif;font-weight:700;letter-spacing:-.01em;font-size:24px;line-height:1.1">Lakshmi Narayanan</div><div style="font-size:13px;color:#475569">62 · F · +91 98410 22817 · Token A-14 · Dr. Menon · “Blurred vision, left eye”</div></div>
+<span style="padding:5px 12px;border-radius:999px;background:#e8f9ee;color:#14532d;font-size:12px;font-weight:700">Diabetic · on file</span>
+<div style="display:flex;gap:6px;font-size:12px;font-weight:700"><span style="padding:6px 12px;border-radius:999px;background:#2563eb;color:#fff">Refraction</span><span style="padding:6px 12px;border-radius:999px;background:#f1f5f9">Glasses Rx</span><span style="padding:6px 12px;border-radius:999px;background:#f1f5f9">Clinical</span></div>
+</div>
+<div style="flex:1;min-height:0;padding:22px 30px;display:flex;gap:22px">
+<sc-for list="{{ eyes }}" as="e" hint-placeholder-count="2"><div style="flex:1;background:#ffffff;border:1px solid #cbd5e1;border-radius:12px;padding:20px 22px;display:flex;flex-direction:column;gap:14px">
+<div style="display:flex;align-items:baseline;gap:10px"><span style="font-family:Inter,sans-serif;font-weight:700;letter-spacing:-.01em;font-size:22px">{{ e.title }}</span><span style="font-size:12px;color:#64748b">{{ e.sub }}</span></div>
+<div style="display:flex;gap:10px;font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:#64748b"><div style="width:120px"></div><div style="flex:1">SPH</div><div style="flex:1">CYL</div><div style="flex:1">AXIS</div><div style="flex:1">VA</div></div>
+<sc-for list="{{ e.rows }}" as="r" hint-placeholder-count="5"><div style="display:flex;gap:10px;align-items:center"><div style="width:120px;font-size:13px;font-weight:700">{{ r.k }}</div>
+<div style="flex:1;height:40px;border-radius:12px;background:#fff;border:{{ r.b }};display:flex;align-items:center;padding:0 12px;font:600 14px ui-monospace,monospace">{{ r.sph }}</div>
+<div style="flex:1;height:40px;border-radius:12px;background:#fff;border:1px solid #cbd5e1;display:flex;align-items:center;padding:0 12px;font:600 14px ui-monospace,monospace">{{ r.cyl }}</div>
+<div style="flex:1;height:40px;border-radius:12px;background:#fff;border:1px solid #cbd5e1;display:flex;align-items:center;padding:0 12px;font:600 14px ui-monospace,monospace">{{ r.axis }}</div>
+<div style="flex:1;height:40px;border-radius:12px;background:#fff;border:1px solid #cbd5e1;display:flex;align-items:center;padding:0 12px;font:600 14px ui-monospace,monospace">{{ r.va }}</div></div></sc-for>
+<div style="display:flex;gap:10px;align-items:center;margin-top:4px"><div style="width:120px;font-size:13px;font-weight:700">IOP (mmHg)</div><div style="width:110px;height:40px;border-radius:12px;background:#fff;border:1px solid #cbd5e1;display:flex;align-items:center;padding:0 12px;font:600 14px ui-monospace,monospace">{{ e.iop }}</div><div style="display:flex;gap:6px;font-size:12px;font-weight:600"><span style="padding:6px 12px;border-radius:999px;background:#e8f9ee;color:#14532d">NCT</span><span style="padding:6px 12px;border-radius:999px;background:#fff">Applanation</span></div></div>
+</div></sc-for>
+</div>
+<div style="padding:14px 30px;background:#ffffff;display:flex;align-items:center;gap:18px">
+<div style="font-size:13px;color:#475569;flex:1"><b>Tab</b> next field · <b>Shift+Tab</b> back · <b>C</b> copy RE → LE · values auto-format (−2.25, 180°)</div>
+<div style="padding:12px 20px;border-radius:8px;border:1px solid #cbd5e1;font-weight:700;font-size:14px">Save draft</div>
+<div style="padding:12px 24px;border-radius:8px;background:#2563eb;color:#fff;font-weight:700;font-size:14px;display:flex;gap:10px;align-items:center">Save &amp; send to Dr. Menon<span style="font:600 11px ui-monospace,monospace;background:rgba(255,255,255,.25);padding:2px 7px;border-radius:6px">⌘⏎</span></div>
+</div>
+</div></div>
+
+<!-- 1e -->
+<div id="1e" style="flex:none;display:flex;flex-direction:column;gap:9px;scroll-margin-top:16px">
+<div style="display:flex;gap:8px;align-items:baseline;font-size:12px"><a href="#1e" style="font:600 10.5px ui-monospace,Menlo,monospace;padding:3px 7px;background:rgba(0,0,0,.08);color:#1a1a1a;border-radius:5px;text-decoration:none">1e</a>Doctor · consultation + prescription on one page, templates and one “Complete” action</div>
+<div style="width:1360px;height:820px;display:flex;flex-direction:column;background:#f7f7f8;border-radius:12px;overflow:hidden;box-shadow:0 4px 8px -2px rgba(15,23,42,.08),0 16px 32px -8px rgba(15,23,42,.12)">
+<div style="display:flex;align-items:center;gap:16px;padding:16px 30px;background:#ffffff">
+<div style="color:#475569;font-weight:700">← Queue</div>
+<div style="flex:1"><div style="font-family:Inter,sans-serif;font-weight:700;letter-spacing:-.01em;font-size:24px;line-height:1.1">Lakshmi Narayanan <span style="font-family:Inter,sans-serif;font-size:14px;color:#475569">62 · F · A-14</span></div></div>
+<div style="font-size:13px;color:#475569">Next: <b>Suresh P.</b> (A-15) <span style="font:600 11px ui-monospace,monospace;background:#f1f5f9;padding:2px 7px;border-radius:6px">⌘→</span></div>
+</div>
+<div style="flex:1;min-height:0;display:flex;gap:22px;padding:22px 30px">
+<div style="width:380px;display:flex;flex-direction:column;gap:14px">
+<div style="background:#ffffff;border:1px solid #cbd5e1;border-radius:12px;padding:18px 20px"><div style="font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:#64748b;margin-bottom:10px">Today's workup · by Nurse Anita</div>
+<div style="display:flex;gap:14px"><div style="flex:1"><div style="font-weight:700;margin-bottom:6px">RE</div><div style="font:500 13px/1.7 ui-monospace,monospace">−2.25 / −0.75 × 180<br>VA 6/9 · IOP 14</div></div><div style="flex:1"><div style="font-weight:700;margin-bottom:6px">LE</div><div style="font:500 13px/1.7 ui-monospace,monospace">−3.00 / −1.00 × 175<br>VA 6/18 · <span style="color:#c62b1f;font-weight:700">IOP 22 ▲</span></div></div></div></div>
+<div style="background:#ffffff;border:1px solid #cbd5e1;border-radius:12px;padding:18px 20px"><div style="font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:#64748b;margin-bottom:10px">Last visit · 12 Mar 2026</div>
+<div style="font-size:13px;line-height:1.6">Dx: Mild cataract (both). Rx: Lubricant drops. Glasses changed.</div></div>
+<div style="background:#fff4e5;border-radius:12px;padding:14px 20px;font-size:13px;color:#b5650a;font-weight:600">Diabetic · allergic to sulfa drugs</div>
+</div>
+<div style="flex:1;min-width:0;display:flex;flex-direction:column;gap:18px">
+<div><div style="font-size:12px;font-weight:700;margin-bottom:8px">Diagnosis</div><div style="display:flex;gap:8px;flex-wrap:wrap">
+<sc-for list="{{ dx }}" as="d" hint-placeholder-count="5"><span style="padding:8px 16px;border-radius:999px;font-size:13px;font-weight:700;background:{{ d.bg }};color:{{ d.fg }}">{{ d.l }}</span></sc-for>
+<span style="padding:8px 16px;border-radius:999px;font-size:13px;color:#64748b;border:1px dashed #cbd5e1">Type to add…</span></div></div>
+<div style="background:#ffffff;border:1px solid #cbd5e1;border-radius:12px;padding:18px 20px;display:flex;flex-direction:column;gap:6px">
+<div style="display:flex;align-items:center;gap:10px;margin-bottom:6px"><span style="font-size:12px;font-weight:700;flex:1">Medicines</span><span style="font-size:12px;color:#64748b">Apply template:</span><span style="padding:5px 12px;border-radius:999px;background:#e8f9ee;color:#14532d;font-size:12px;font-weight:700">Post-cataract</span><span style="padding:5px 12px;border-radius:999px;background:#fff;font-size:12px;font-weight:700">Dry eye</span><span style="padding:5px 12px;border-radius:999px;background:#fff;font-size:12px;font-weight:700">Conjunctivitis</span></div>
+<sc-for list="{{ meds }}" as="m" hint-placeholder-count="3"><div style="display:flex;align-items:center;gap:12px;padding:10px 14px;background:#fff;border-radius:12px"><span style="flex:1.4;font-weight:700;font-size:14px">{{ m.n }}</span><span style="flex:1;font-size:13px;color:#475569">{{ m.d }}</span><span style="font-size:12px;color:#94a3b8">✕</span></div></sc-for>
+<div style="padding:10px 14px;border-radius:12px;border:1px dashed #cbd5e1;font-size:13px;color:#64748b">+ Add medicine — type name, Tab to dose, ⏎ to add</div>
+</div>
+<div style="display:flex;gap:22px">
+<div style="flex:1"><div style="font-size:12px;font-weight:700;margin-bottom:8px">Follow-up</div><div style="height:44px;border-radius:8px;background:#f1f5f9;display:flex;padding:4px;gap:4px;font-size:13px;font-weight:600"><div style="flex:1;display:grid;place-items:center">1 wk</div><div style="flex:1;display:grid;place-items:center">2 wk</div><div style="flex:1;border-radius:8px;background:#2563eb;color:#fff;display:grid;place-items:center">1 mo</div><div style="flex:1;display:grid;place-items:center">3 mo</div><div style="flex:1;display:grid;place-items:center">None</div></div></div>
+<div style="flex:1"><div style="font-size:12px;font-weight:700;margin-bottom:8px">Send patient on to</div><div style="display:flex;gap:8px"><span style="padding:10px 16px;border-radius:999px;background:#e8f9ee;color:#14532d;font-size:13px;font-weight:700">✓ Pharmacy</span><span style="padding:10px 16px;border-radius:999px;background:#e8f9ee;color:#14532d;font-size:13px;font-weight:700">✓ Optical</span><span style="padding:10px 16px;border-radius:999px;background:#fff;border:1px solid #cbd5e1;font-size:13px;font-weight:600">Lab</span></div></div>
+</div>
+</div>
+</div>
+<div style="padding:14px 30px;background:#ffffff;display:flex;align-items:center;gap:18px"><div style="flex:1;font-size:13px;color:#475569">Autosaved 10:42 · IOP 22 flagged for glaucoma check?</div><div style="padding:12px 20px;border-radius:8px;border:1px solid #cbd5e1;font-weight:700;font-size:14px">Preview Rx</div><div style="padding:12px 24px;border-radius:8px;background:#2563eb;color:#fff;font-weight:700;font-size:14px;display:flex;gap:10px;align-items:center">Complete &amp; call next patient<span style="font:600 11px ui-monospace,monospace;background:rgba(255,255,255,.25);padding:2px 7px;border-radius:6px">⌘⏎</span></div></div>
+</div></div>
+
+</div>
+<p style="margin:22px 0 0;font-size:12px;color:#475569">Try next: “take the rail from <a href="#1a">1a</a> with the pipeline from <a href="#1c">1c</a>” · “design billing and pharmacy handoff screens” · “make <a href="#1d">1d</a> a stepper instead of one page”</p>
+</section>
+</x-dc>
+<script type="text/x-dc" data-dc-script>
+class Component extends DCLogic {
+  renderVals() {
+    const A='#2563eb', S='#f1f5f9';
+    const nav=[['◎','Today',1],['☺','Patients'],['◉','Workup'],['✚','Doctor'],['℞','Pharmacy'],['◍','Optical'],['₹','Billing']].map(([ic,label,on])=>({ic,label,bg:on?'#dbe7ff':'transparent',fg:on?'#1e3a8a':'#475569'}));
+    const filters=[['All 49',1],['Waiting 11'],['In workup 4'],['With doctor 3'],['Billing 5']].map(([label,on])=>({label,bg:on?'#111827':'#f1f5f9',fg:on?'#fff':'#111827'}));
+    const st={w:['#fff4e5','#b5650a'],n:['#e2e8f0','#1e293b'],d:['#e8f9ee','#14532d'],b:['#eaf1ff','#1d4ed8']};
+    const mk=(t,name,meta,phone,doc,s,status,wait,action)=>({t,name,meta,phone,doc,status,wait,action,bg:st[s][0],fg:st[s][1],abg:s==='w'?A:'#f1f5f9',afg:s==='w'?'#fff':'#111827'});
+    const queue=[
+      mk('A-14','Lakshmi Narayanan','62 · F','98410 22817','Dr. Menon','w','Waiting · workup','9 min','Start workup'),
+      mk('A-15','Suresh Patel','45 · M','99620 18342','Dr. Iyer','w','Waiting · workup','6 min','Start workup'),
+      mk('A-13','Anitha Raj','34 · F','98840 55120','Dr. Menon','n','In workup','12 min','Open'),
+      mk('A-12','Mohammed Rafi','58 · M','90030 48811','Dr. Iyer','d','With doctor','21 min','Open'),
+      mk('A-11','Kavitha S.','29 · F','97910 33045','Dr. Menon','d','With doctor','—','Open'),
+      mk('A-10','Ramesh Kumar','71 · M','98400 72266','Dr. Iyer','b','Billing · ₹1,850','4 min','Collect'),
+      mk('A-09','Deepa Venkat','8 · F','98411 90027','Dr. Menon','b','Optical · glasses','2 min','Open'),
+      mk('A-08','Joseph Thomas','66 · M','94440 11873','Dr. Iyer','n','Done','—','View')
+    ];
+    const tabs=['Today','Patients','Pharmacy','Optical','Labs','Billing','More ▾'].map((label,i)=>({label,bg:i===0?'#dbe7ff':'transparent',fg:i===0?'#1e3a8a':'#475569'}));
+    const kpis=[['Waiting','11','#1d4ed8'],['In workup','4','#111827'],['With doctor','3','#111827'],['Collected today','₹48,250','#1a7f37']].map(([l,v,c])=>({l,v,c}));
+    const results=[['Ravi Shankar','54 · M · 98410 66021 · last visit 3 Aug','Returning',1],['Ravindran K.','67 · M · 97890 12345 · in workup now','In workup'],['Ravi Teja','31 · M · 99001 87654 · last visit 2024','Returning',1]].map(([n,m,s,r])=>({n,m,s,bg:r?'#e2e8f0':'#dbe7ff',fg:r?'#1e293b':'#1e3a8a'}));
+    const card=(name,t,sub,wait,late)=>({name,t,sub,wait,wc:late?'#1d4ed8':'#64748b'});
+    const cols=[
+      {title:'Registered',n:4,bg:'#eaf1ff',btn:'#2563eb',act:'Workup',cards:[card('Lakshmi Narayanan','A-14','62 · F · Dr. Menon','9 min',1),card('Suresh Patel','A-15','45 · M · Dr. Iyer','6 min'),card('Priya Menon','A-16','38 · F · Any','2 min')]},
+      {title:'Workup',n:4,bg:'#f1f5f9',btn:'#1e293b',act:'To doctor',cards:[card('Anitha Raj','A-13','34 · F · Refraction','12 min',1),card('Gopal Das','A-12b','52 · M · IOP check','5 min'),card('Fatima B.','A-11b','27 · F · Refraction','3 min')]},
+      {title:'With doctor',n:3,bg:'#e8f9ee',btn:'#1a7f37',act:'Complete',cards:[card('Mohammed Rafi','A-12','58 · M · Dr. Iyer','21 min',1),card('Kavitha S.','A-11','29 · F · Dr. Menon','just now')]},
+      {title:'Billing & pickup',n:5,bg:'#ffffff',btn:'#1d4ed8',act:'Collect ₹',cards:[card('Ramesh Kumar','A-10','71 · M · ₹1,850','4 min'),card('Deepa Venkat','A-09','8 · F · Glasses ready','2 min'),card('Joseph Thomas','A-08','66 · M · Pharmacy ₹640','7 min')]}
+    ];
+    const B='2px solid #2563eb', N='1px solid #cbd5e1';
+    const r=(k,a,b,c,d,f)=>({k,sph:a,cyl:b,axis:c,va:d,b:f?B:N});
+    const eyes=[
+      {title:'Right eye (RE)',sub:'Auto-refractometer first',iop:'14',rows:[r('Auto-ref','−2.25','−0.75','180','6/9',1),r('Previous Rx','−2.00','−0.50','180','6/9'),r('Present Rx · Dist','−2.25','−0.75','180','6/6'),r('Present Rx · Near','+1.50','—','—','N6')]},
+      {title:'Left eye (LE)',sub:'Press C to copy from RE',iop:'22',rows:[r('Auto-ref','−3.00','−1.00','175','6/18'),r('Previous Rx','−2.50','−0.75','170','6/12'),r('Present Rx · Dist','−3.00','−1.00','175','6/9'),r('Present Rx · Near','+1.50','—','—','N6')]}
+    ];
+    const dx=[['Mild cataract',1],['Dry eye',1],['Refractive error'],['Diabetic retinopathy'],['Glaucoma suspect']].map(([l,on])=>({l,bg:on?'#2563eb':'#f1f5f9',fg:on?'#fff':'#111827'}));
+    const meds=[['Carboxymethylcellulose 0.5%','1 drop · both eyes · 4×/day · 30 days'],['Moxifloxacin 0.5%','1 drop · LE · 4×/day · 7 days'],['Timolol 0.5%','1 drop · LE · 2×/day · review in 2 wk']].map(([n,d])=>({n,d}));
+    return {nav,filters,queue,tabs,kpis,results,cols,eyes,dx,meds};
+  }
+}
+</script>
+</body>
+</html>

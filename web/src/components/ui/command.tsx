@@ -37,7 +37,7 @@ const CommandInput = React.forwardRef<
   React.ComponentPropsWithoutRef<typeof CommandPrimitive.Input>
 >(({ className, ...props }, ref) => (
   <div
-    className="flex items-center gap-2 border-b border-[var(--color-border)] px-3"
+    className="flex items-center gap-2 border-b border-[var(--color-divider)] px-3"
     // cmdk uses this attr to wire up keyboard nav
     data-cmdk-input-wrapper=""
   >
@@ -167,7 +167,7 @@ const CommandSeparator = React.forwardRef<
 >(({ className, ...props }, ref) => (
   <CommandPrimitive.Separator
     ref={ref}
-    className={cn("-mx-1 h-px bg-[var(--color-border)]", className)}
+    className={cn("-mx-1 h-px bg-[var(--color-divider)]", className)}
     {...props}
   />
 ))

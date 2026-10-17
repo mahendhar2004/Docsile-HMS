@@ -33,7 +33,10 @@ const Separator = React.forwardRef<
       decorative={decorative}
       orientation={orientation}
       className={cn(
-        "shrink-0 bg-[var(--color-border)]",
+        // --color-divider (not --color-border) — this is exactly the
+        // "divides sections within a surface" role the token split exists
+        // for; --border is reserved for a surface's own outer edge.
+        "shrink-0 bg-[var(--color-divider)]",
         orientation === "horizontal" ? "h-px w-full" : "h-full w-px",
         className
       )}

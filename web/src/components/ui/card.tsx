@@ -1,9 +1,11 @@
 /**
  * ui/card.tsx
  *
- * Card primitive — generic surface container. Matches main's plain
- * `rounded-lg border bg-card shadow-sm` look (src/components/ui/card.tsx on
- * main) — no elevated/flat shadow-tier distinction, main has none.
+ * Card primitive — generic surface container. Uses --shadow-card (a 1px
+ * hairline ring in --color-border composited with --shadow-sm as one
+ * box-shadow, not a literal `border` property) per the Docsile HMS design
+ * system reference — the same treatment every hand-built Settings-style
+ * card div already uses via `shadow-[var(--shadow-card)]` directly.
  *
  * Composition:
  *   Card > CardHeader > CardTitle + CardDescription
@@ -24,9 +26,9 @@ import { cn } from "@/lib/utils"
 
 const cardVariants = cva(
   [
-    "rounded-[var(--radius-lg)] border border-[var(--color-border)]",
+    "rounded-[var(--radius-lg)]",
     "bg-[var(--color-card)] text-[var(--color-card-foreground)]",
-    "shadow-[var(--shadow-sm)]",
+    "shadow-[var(--shadow-card)]",
   ],
   {
     variants: {
@@ -58,8 +60,8 @@ const Card = React.forwardRef<HTMLDivElement, CardProps>(
         cardVariants({ variant }),
         interactive && [
           "motion-interactive cursor-pointer",
-          "hover:shadow-[var(--shadow-md)]",
-          "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-ring)] focus-visible:ring-offset-2",
+          "hover:shadow-[var(--shadow-card-hover)]",
+          "focus-visible:outline-none focus-visible:shadow-[0_0_0_3px_rgba(37,99,235,0.35)]",
         ],
         className
       )}

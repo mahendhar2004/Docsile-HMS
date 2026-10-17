@@ -1,0 +1,29 @@
+/* Single source of truth. Values mirror web/src/index.css; only --color-background is changed (pure white). */
+:root{
+  --color-background:#ffffff; /* ← change this ONE line to restyle every page */
+  --color-foreground:#111827;
+  --color-card:#ffffff;
+  --color-muted:#f1f5f9;
+  --color-muted-foreground:#64748b;
+  --color-border:#cbd5e1;
+  --color-divider:#e2e8f0;
+  --color-ring:#2563eb;
+  --color-primary:#2563eb;
+  --color-primary-hover:#1d4ed8;
+  --color-primary-foreground:#ffffff;
+  --color-accent:#e8f4ff;
+  --color-accent-foreground:#2563eb;
+  --color-destructive:#ff3b30;
+  --color-success:#34c759;--color-success-soft:#e8f9ee;--color-success-soft-foreground:#1a7f37;
+  --color-warning:#ff9f0a;--color-warning-soft:#fff4e5;--color-warning-soft-foreground:#b5650a;
+  --color-error:#ff3b30;--color-error-soft:#ffece9;--color-error-soft-foreground:#c62b1f;
+  --color-info-soft:#eaf1ff;--color-info-soft-foreground:#1d4ed8;
+  --color-neutral-soft:#f1f5f9;--color-neutral-soft-foreground:#475569;
+  --radius-sm:6px;--radius:8px;--radius-lg:12px;--radius-full:9999px;
+  --shadow-sm:0 1px 2px 0 rgba(15,23,42,.04),0 2px 6px -1px rgba(15,23,42,.08);
+  --shadow-card:0 0 0 1px var(--color-border),var(--shadow-sm);
+  --font-sans:"Inter",-apple-system,BlinkMacSystemFont,"Helvetica Neue",Arial,sans-serif;
+  --font-mono:"SF Mono","Fira Code",monospace;
+}
+body{margin:0;background:var(--color-background);color:var(--color-foreground);font-family:var(--font-sans)}
+a{color:var(--color-primary)}a:hover{color:var(--color-primary-hover)}

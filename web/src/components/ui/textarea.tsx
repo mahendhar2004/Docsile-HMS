@@ -6,11 +6,11 @@ const textareaVariants = cva(
   [
     "flex w-full min-h-[80px] border bg-surface text-foreground",
     "placeholder:text-muted-foreground",
-    "focus:outline-none focus:ring-2 focus:ring-ring focus:border-ring",
-    "disabled:cursor-not-allowed disabled:opacity-50 disabled:bg-muted",
+    "focus:outline-none focus:border-[var(--color-ring)] focus:shadow-[0_0_0_3px_rgba(37,99,235,0.15)]",
+    "disabled:cursor-not-allowed disabled:opacity-60 disabled:bg-muted",
     "read-only:bg-muted read-only:cursor-default",
-    "aria-[invalid=true]:border-error aria-[invalid=true]:focus:ring-error",
-    "motion-interactive rounded-sm border-border resize-y",
+    "aria-[invalid=true]:border-error aria-[invalid=true]:focus:shadow-[0_0_0_3px_rgba(255,59,48,0.15)]",
+    "motion-interactive rounded-[var(--radius)] border-border resize-y",
   ],
   {
     variants: {

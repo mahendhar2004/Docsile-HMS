@@ -672,7 +672,7 @@ export default function PatientDetailPage() {
             <TabsContent value="history" className="mt-0 p-5">
               {sortedPrescriptions.length > 0 ? (
                 <div className="relative space-y-4">
-                  <div className="absolute bottom-2 left-[7px] top-2 w-px bg-[var(--color-border)]" />
+                  <div className="absolute bottom-2 left-[7px] top-2 w-px bg-[var(--color-divider)]" />
                   {sortedPrescriptions.map((p) => (
                     <div key={p.id} className="relative flex items-start gap-3.5">
                       <div

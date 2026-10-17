@@ -32,8 +32,8 @@ const tabsTriggerVariants = cva(
   [
     'inline-flex items-center justify-center gap-1.5 whitespace-nowrap',
     'text-sm font-medium transition-colors',
-    'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-ring)]',
-    'disabled:pointer-events-none disabled:opacity-50',
+    'focus-visible:outline-none focus-visible:shadow-[0_0_0_3px_rgba(37,99,235,0.35)]',
+    'disabled:pointer-events-none disabled:opacity-45',
   ],
   {
     variants: {
@@ -51,7 +51,8 @@ const tabsTriggerVariants = cva(
           'hover:text-[var(--color-foreground)]',
           'data-[state=active]:bg-[var(--color-surface)]',
           'data-[state=active]:text-[var(--color-foreground)]',
-          'data-[state=active]:shadow-[var(--shadow-xs)]',
+          // --shadow-sm per the design system's "Segmented active" shadow spec.
+          'data-[state=active]:shadow-[var(--shadow-sm)]',
         ],
         vertical: [
           'w-full justify-start px-3 py-2 rounded-[var(--radius-sm)]',
@@ -135,7 +136,7 @@ const TabsContent = React.forwardRef<
       ref={ref}
       className={cn(
         'outline-none',
-        'focus-visible:ring-2 focus-visible:ring-[var(--color-ring)]',
+        'focus-visible:shadow-[0_0_0_3px_rgba(37,99,235,0.35)]',
         /* vertical variant: take remaining width */
         variant === 'vertical' ? 'flex-1' : 'mt-4',
         className,

@@ -107,11 +107,11 @@ function InlineErrorState({
               type="button"
               onClick={onRetry}
               className={cn(
-                "mt-1 inline-flex items-center gap-1.5 rounded-md",
-                "border border-[var(--color-border)] bg-white",
+                "mt-1 inline-flex items-center gap-1.5 rounded-[var(--radius)]",
+                "shadow-[var(--shadow-card)]",
                 "px-3 py-1.5 text-sm font-medium text-[var(--color-foreground)]",
                 "hover:bg-[var(--color-muted)] transition-colors",
-                "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-ring)]",
+                "focus-visible:outline-none focus-visible:shadow-[0_0_0_3px_rgba(37,99,235,0.35),var(--shadow-card)]",
               )}
               aria-label="Retry loading data"
             >
@@ -179,7 +179,7 @@ function OffsetPaginationControls({
     <div
       className={cn(
         "flex items-center justify-between",
-        "px-4 py-2.5 border-t border-[var(--color-border)]",
+        "px-4 py-2.5 border-t border-[var(--color-divider)]",
         "bg-[var(--color-muted)]/30",
       )}
       role="navigation"
@@ -210,9 +210,9 @@ function OffsetPaginationControls({
             </span>
             <select
               className={cn(
-                "text-xs border border-[var(--color-border)] rounded-[var(--radius-sm)]",
-                "px-2 py-1 bg-white text-[var(--color-foreground)]",
-                "focus:outline-none focus:ring-2 focus:ring-[var(--color-ring)]",
+                "text-xs border border-[var(--color-border)] rounded-[var(--radius)]",
+                "px-2 py-1 bg-[var(--color-surface)] text-[var(--color-foreground)]",
+                "focus:outline-none focus:border-[var(--color-ring)] focus:shadow-[0_0_0_3px_rgba(37,99,235,0.15)]",
               )}
               value={pageSize}
               onChange={(e) => onPageSizeChange(Number(e.target.value))}
@@ -282,7 +282,7 @@ function CursorPaginationControls({
     <div
       className={cn(
         "flex items-center justify-between",
-        "px-4 py-2.5 border-t border-[var(--color-border)]",
+        "px-4 py-2.5 border-t border-[var(--color-divider)]",
         "bg-[var(--color-muted)]/30",
       )}
       role="navigation"
@@ -314,12 +314,11 @@ function CursorPaginationControls({
             onClick={onLoadMore}
             disabled={!hasNextPage || isFetching}
             className={cn(
-              "inline-flex items-center gap-1.5 rounded-[var(--radius-sm)]",
-              "border border-[var(--color-border)] bg-white",
+              "inline-flex items-center gap-1.5 rounded-[var(--radius)] shadow-[var(--shadow-card)]",
               "px-3 py-1.5 text-xs font-medium text-[var(--color-foreground)]",
               "hover:bg-[var(--color-muted)] transition-colors",
-              "disabled:opacity-40 disabled:cursor-not-allowed",
-              "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-ring)]",
+              "disabled:opacity-45 disabled:cursor-not-allowed",
+              "focus-visible:outline-none focus-visible:shadow-[0_0_0_3px_rgba(37,99,235,0.35),var(--shadow-card)]",
             )}
             aria-label="Load more results"
           >
@@ -374,12 +373,15 @@ function PaginationButton({
       aria-label={ariaLabel}
       className={cn(
         "inline-flex items-center justify-center",
-        "h-7 w-7 rounded-[var(--radius-sm)]",
-        "border border-[var(--color-border)] bg-white",
+        // shadow-card (hairline ring + soft shadow) instead of a literal
+        // border, radius --radius (8px) not --radius-sm — matches the
+        // Docsile HMS design system's "Pagination" spec exactly (its page
+        // buttons are plain shadow-card chips, not bordered boxes).
+        "h-7 w-7 rounded-[var(--radius)] shadow-[var(--shadow-card)]",
         "text-[var(--color-foreground)]",
         "hover:bg-[var(--color-muted)] transition-colors",
-        "disabled:opacity-40 disabled:cursor-not-allowed",
-        "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-ring)]",
+        "disabled:opacity-45 disabled:cursor-not-allowed",
+        "focus-visible:outline-none focus-visible:shadow-[0_0_0_3px_rgba(37,99,235,0.35),var(--shadow-card)]",
       )}
     >
       {children}

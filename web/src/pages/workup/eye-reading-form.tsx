@@ -424,7 +424,7 @@ function EyeReadingForm({
         </div>
 
         {/* PD */}
-        <div className="flex items-center gap-3 pt-3 border-t border-border">
+        <div className="flex items-center gap-3 pt-3 border-t border-divider">
           <p className="text-xs font-semibold text-muted-foreground w-8">PD</p>
           <Input
             value={fd.ar.pd}
@@ -473,7 +473,7 @@ function EyeReadingForm({
         </div>
 
         {/* Left Eye — Distance */}
-        <div className="pt-4 border-t border-border">
+        <div className="pt-4 border-t border-divider">
           <h4 className="text-sm font-medium text-foreground mb-2">Left Eye - Distance :</h4>
           <EyeRow4 row={data.le.d} onChange={s("le", "d")} showLabels idPrefix={`${section}-le-d`} />
         </div>
@@ -494,7 +494,7 @@ function EyeReadingForm({
 
         {/* Sight Type — only for SR section */}
         {section === "sr" && (
-          <div className="pt-3 border-t border-border">
+          <div className="pt-3 border-t border-divider">
             <h4 className="text-sm font-medium text-foreground mb-2">Sight Type:</h4>
             <div className="flex flex-wrap gap-4">
               {SIGHT_TYPE_OPTIONS.map((option) => {
@@ -542,7 +542,7 @@ function EyeReadingForm({
 
   function renderCF() {
     return (
-      <div className="bg-gray-50 border border-border rounded-lg overflow-hidden">
+      <div className="bg-muted rounded-lg overflow-hidden">
         <button
           type="button"
           onClick={() => setCfOpen((o) => !o)}
@@ -559,7 +559,7 @@ function EyeReadingForm({
         </button>
 
         {cfOpen && (
-          <div className="px-4 pb-4 border-t border-border">
+          <div className="px-4 pb-4 border-t border-divider">
             <div className="grid grid-cols-[110px_1fr_1fr] gap-3 mt-3 mb-2">
               <div />
               <p className="text-xs font-semibold text-foreground text-center">Right Eye (RE)</p>
@@ -638,8 +638,8 @@ function EyeReadingForm({
         </TabsList>
 
         <TabsContent value="ar" className="mt-4">
-          <div className="bg-gray-50 border border-border rounded-lg p-4">
-            <h3 className="text-sm font-semibold text-foreground mb-4 pb-2 border-b border-border">
+          <div className="bg-muted rounded-lg p-4">
+            <h3 className="text-sm font-semibold text-foreground mb-4 pb-2 border-b border-divider">
               Auto Refractometer (AR)
             </h3>
             {renderAR()}
@@ -647,8 +647,8 @@ function EyeReadingForm({
         </TabsContent>
 
         <TabsContent value="sr" className="mt-4">
-          <div className="bg-gray-50 border border-border rounded-lg p-4">
-            <h3 className="text-sm font-semibold text-foreground mb-4 pb-2 border-b border-border">
+          <div className="bg-muted rounded-lg p-4">
+            <h3 className="text-sm font-semibold text-foreground mb-4 pb-2 border-b border-divider">
               Present Glass Prescription (SR)
             </h3>
             {renderDNSection("sr", fd.sr)}
@@ -656,8 +656,8 @@ function EyeReadingForm({
         </TabsContent>
 
         <TabsContent value="pgp" className="mt-4">
-          <div className="bg-gray-50 border border-border rounded-lg p-4">
-            <h3 className="text-sm font-semibold text-foreground mb-4 pb-2 border-b border-border">
+          <div className="bg-muted rounded-lg p-4">
+            <h3 className="text-sm font-semibold text-foreground mb-4 pb-2 border-b border-divider">
               Previous Glass Prescription (PGP)
             </h3>
             {renderDNSection("pgp", fd.pgp)}

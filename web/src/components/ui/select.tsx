@@ -34,10 +34,11 @@ const selectTriggerVariants = cva(
     "text-[var(--color-foreground)]",
     // Placeholder
     "[&[data-placeholder]>span]:text-[var(--color-muted-foreground)]",
-    // Focus
-    "focus:outline-none focus:ring-2 focus:ring-[var(--color-ring)] focus:ring-offset-1",
-    // Disabled
-    "disabled:cursor-not-allowed disabled:opacity-50",
+    // Focus — border-color change + 15%-opacity glow, same field-focus
+    // treatment as input.tsx/textarea.tsx (not the 35% used on buttons).
+    "focus:outline-none focus:border-[var(--color-ring)] focus:shadow-[0_0_0_3px_rgba(37,99,235,0.15)]",
+    // Disabled — 60% opacity, matching input.tsx's field-disabled spec.
+    "disabled:cursor-not-allowed disabled:opacity-60",
     // Motion
     "motion-interactive",
   ].join(" "),

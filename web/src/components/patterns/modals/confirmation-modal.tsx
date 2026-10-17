@@ -66,7 +66,7 @@ const variantConfig: Record<
     iconColor: 'text-[var(--color-info-soft-foreground)]',
     actionClass: cn(
       'bg-[var(--color-primary)] text-[var(--color-primary-foreground)]',
-      'hover:opacity-90',
+      'hover:bg-[var(--color-primary-hover)] active:bg-[var(--color-primary-pressed)]',
     ),
   },
   destructive: {
@@ -75,7 +75,7 @@ const variantConfig: Record<
     iconColor: 'text-[var(--color-error-soft-foreground)]',
     actionClass: cn(
       'bg-[var(--color-error)] text-[var(--color-error-foreground)]',
-      'hover:opacity-90',
+      'hover:bg-[var(--color-error-hover)] active:bg-[var(--color-error-pressed)]',
     ),
   },
   warning: {
@@ -143,11 +143,10 @@ export function ConfirmationModal({
             disabled={isLoading}
             className={cn(
               'inline-flex items-center gap-2',
-              'px-4 py-2 text-[length:var(--text-body)] font-medium rounded-[var(--radius-sm)]',
-              'shadow-[var(--shadow-card)]',
-              'transition-opacity duration-[var(--duration-micro)]',
-              'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-ring)]',
-              'disabled:pointer-events-none disabled:opacity-50',
+              'px-4 py-2 text-[length:var(--text-body)] font-medium rounded-[var(--radius)]',
+              'transition-colors duration-[var(--duration-micro)]',
+              'focus-visible:outline-none focus-visible:shadow-[0_0_0_3px_rgba(37,99,235,0.35)]',
+              'disabled:pointer-events-none disabled:opacity-45',
               config.actionClass,
             )}
           >

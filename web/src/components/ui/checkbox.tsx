@@ -7,8 +7,10 @@ import { cn } from "@/lib/utils"
 const checkboxVariants = cva(
   [
     "shrink-0 border-2 rounded-xs bg-surface text-primary-foreground",
-    "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
-    "disabled:cursor-not-allowed disabled:opacity-50",
+    "focus-visible:outline-none focus-visible:shadow-[0_0_0_3px_rgba(37,99,235,0.35)]",
+    // Disabled unchecked fills with --color-muted (not just a dimmed white)
+    // per the Docsile HMS design system's "Checkbox disabled" spec.
+    "disabled:cursor-not-allowed disabled:opacity-50 disabled:bg-muted",
     "data-[state=checked]:bg-primary data-[state=checked]:border-primary",
     "data-[state=indeterminate]:bg-primary data-[state=indeterminate]:border-primary",
     "border-border motion-interactive",

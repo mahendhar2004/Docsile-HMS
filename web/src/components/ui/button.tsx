@@ -7,25 +7,41 @@ import { cn } from "@/lib/utils"
 const buttonVariants = cva(
   [
     "inline-flex items-center justify-center gap-2 whitespace-nowrap font-medium select-none cursor-pointer",
-    "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
-    "disabled:pointer-events-none disabled:opacity-50",
+    "focus-visible:outline-none",
+    "disabled:pointer-events-none disabled:opacity-45",
     "motion-interactive",
   ],
   {
     variants: {
-      // Matches main's plain, flat variants exactly (src/components/ui/button.tsx
-      // on main) — no shadow on any variant, rounded-md everywhere.
+      // Matches the "Button" section of the Docsile HMS design system
+      // reference (docs/design-system/) — radius uses --radius (8px, "buttons,
+      // inputs" per its Shape spec), each variant has an explicit hover +
+      // pressed (active:) color rather than an opacity tint, and focus is a
+      // 3px/35%-opacity glow (no offset ring), not Tailwind's default ring-2
+      // + ring-offset-2. Every variant's focus-visible:shadow-[...] is
+      // written out in full (not composed from a shared constant) because
+      // Tailwind's build-time class scanner needs the complete literal
+      // utility string in source to generate it — a JS template-interpolated
+      // class name is invisible to it and silently produces no CSS.
+      // "secondary" composes two shadow layers (the glow + its own resting
+      // shadow-card) in one utility, since two separate shadow-[...] classes
+      // would just have one override the other, not stack.
       variant: {
         primary:
-          "bg-primary text-primary-foreground hover:bg-primary/90 rounded-md",
+          "bg-[var(--color-primary)] text-white hover:bg-[var(--color-primary-hover)] active:bg-[var(--color-primary-pressed)] rounded-[var(--radius)] focus-visible:shadow-[0_0_0_3px_rgba(37,99,235,0.35)]",
         secondary:
-          "bg-secondary text-secondary-foreground hover:bg-secondary/80 rounded-md",
+          "bg-card text-foreground shadow-[var(--shadow-card)] hover:bg-muted active:bg-[var(--color-divider)] rounded-[var(--radius)] focus-visible:shadow-[0_0_0_3px_rgba(37,99,235,0.35),var(--shadow-card)]",
+        // New variant — a tinted/"soft" action, between primary and ghost
+        // (e.g. "Add note"-style secondary actions that shouldn't compete
+        // with the page's one primary action).
+        soft:
+          "bg-accent text-accent-foreground hover:bg-[var(--color-accent-hover)] active:bg-[var(--color-accent-pressed)] rounded-[var(--radius)] focus-visible:shadow-[0_0_0_3px_rgba(37,99,235,0.35)]",
         outline:
-          "border border-input bg-background hover:bg-accent hover:text-accent-foreground rounded-md",
+          "border border-input bg-background hover:bg-accent hover:text-accent-foreground rounded-[var(--radius)] focus-visible:shadow-[0_0_0_3px_rgba(37,99,235,0.35)]",
         ghost:
-          "bg-transparent text-foreground hover:bg-muted rounded-md",
+          "bg-transparent text-muted-foreground hover:bg-muted hover:text-foreground active:bg-[var(--color-divider)] rounded-[var(--radius)] focus-visible:shadow-[0_0_0_3px_rgba(37,99,235,0.35)]",
         destructive:
-          "bg-destructive text-destructive-foreground hover:bg-destructive/90 rounded-md",
+          "bg-[var(--color-error)] text-white hover:bg-[var(--color-error-hover)] active:bg-[var(--color-error-pressed)] rounded-[var(--radius)] focus-visible:shadow-[0_0_0_3px_rgba(37,99,235,0.35)]",
         link:
           "bg-transparent text-primary underline-offset-4 hover:underline h-auto p-0",
       },

@@ -37,14 +37,19 @@ const Table = React.forwardRef<
 ))
 Table.displayName = "Table"
 
-/** <thead> wrapper — plain bottom rule on its rows, matching main. */
+/**
+ * <thead> wrapper — bottom rule on its rows. Uses --color-divider (not
+ * --color-border) per the Docsile HMS design system's token split: --border
+ * is for a surface's own outer edge (the card/table container's shadow-card
+ * ring), --divider is for internal row/section rules within that surface.
+ */
 const TableHeader = React.forwardRef<
   HTMLTableSectionElement,
   React.HTMLAttributes<HTMLTableSectionElement>
 >(({ className, ...props }, ref) => (
   <thead
     ref={ref}
-    className={cn("[&_tr]:border-b [&_tr]:border-[var(--color-border)]", className)}
+    className={cn("[&_tr]:border-b [&_tr]:border-[var(--color-divider)]", className)}
     {...props}
   />
 ))
@@ -77,7 +82,7 @@ const TableFooter = React.forwardRef<
   <tfoot
     ref={ref}
     className={cn(
-      "border-t border-[var(--color-border)] bg-[var(--color-muted)]/50 font-medium",
+      "border-t border-[var(--color-divider)] bg-[var(--color-muted)]/50 font-medium",
       "[&>tr]:last:border-b-0",
       className,
     )}
@@ -99,8 +104,8 @@ const TableRow = React.forwardRef<
   <tr
     ref={ref}
     className={cn(
-      "border-b border-[var(--color-border)] transition-colors",
-      "hover:bg-[var(--color-muted)]/50 data-[state=selected]:bg-[var(--color-muted)]",
+      "border-b border-[var(--color-divider)] transition-colors",
+      "hover:bg-[var(--color-muted)]/50 data-[state=selected]:bg-[var(--color-accent)]",
       className,
     )}
     {...props}

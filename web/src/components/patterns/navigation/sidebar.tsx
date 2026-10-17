@@ -197,7 +197,7 @@ export function Sidebar() {
         ].join(" ")}
       >
         {/* Brand */}
-        <div className="flex items-center gap-3 px-5 py-4 border-b border-[var(--color-border)]">
+        <div className="flex items-center gap-3 px-5 py-4 border-b border-[var(--color-divider)]">
           <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-primary shadow-sm">
             <Stethoscope className="h-5 w-5 text-white" aria-hidden="true" />
           </div>
@@ -263,7 +263,7 @@ export function Sidebar() {
         </nav>
 
         {/* Footer: Configurations link + user card */}
-        <div className="border-t border-[var(--color-border)] px-3 pt-3 pb-4 space-y-1">
+        <div className="border-t border-[var(--color-divider)] px-3 pt-3 pb-4 space-y-1">
           {isVisible(SETTINGS_ITEM) && (
             <NavLink
               to={SETTINGS_ITEM.path}
